@@ -23,6 +23,10 @@ type term =
   | Val(t)
   | Eval(t, t)
   | Entail(t, t)
+  | Consistent(t, t)
+  | MatchedArrow(t, t)
+  | MatchedProd(t, t)
+  | MatchedSum(t, t)
   // Proposition
   | Type(t)
   | HasType(t, t)
@@ -62,6 +66,7 @@ type term =
   | Case(t, t, t, t, t)
   | Roll(t)
   | Unroll(t)
+  | ExpHole
   // ALFA Pat
   | Pat(string)
   | Cast(t, t) // We allow at most one annotation for Let/Fun/Fix
@@ -75,6 +80,7 @@ type term =
   | Sum(t, t)
   | TVar(string)
   | Rec(t, t)
+  | TypHole
   // ALFA TPat
   | TPat(string)
 and t = IdTagged.t(term);
@@ -101,6 +107,10 @@ let precedence: t => int =
     | Val(_) => P.filter
     | Eval(_) => P.filter
     | Entail(_) => P.filter
+    | Consistent(_) => P.filter
+    | MatchedArrow(_) => P.filter
+    | MatchedProd(_) => P.filter
+    | MatchedSum(_) => P.filter
     | Type(_) => P.ann
     | HasType(_) => P.ann
     | Syn(_) => P.ann
@@ -138,6 +148,7 @@ let precedence: t => int =
     | Case(_) => P.fun_
     | Roll(_) => P.ap
     | Unroll(_) => P.ap
+    | ExpHole => P.max
     | Pat(_) => P.max
     | Cast(_, _) => P.ann
     | PatPair(_) => P.comma
@@ -150,6 +161,7 @@ let precedence: t => int =
     | TVar(_) => P.max
     | Rec(_) => P.type_arrow + 2
     | TPat(_) => P.max
+    | TypHole => P.max
     };
 
 let children = (syntax: t): list(t) =>
@@ -158,6 +170,10 @@ let children = (syntax: t): list(t) =>
   | Val(a) => [a]
   | Eval(a, b) => [a, b]
   | Entail(a, b) => [a, b]
+  | Consistent(a, b) => [a, b]
+  | MatchedArrow(a, b) => [a, b]
+  | MatchedProd(a, b) => [a, b]
+  | MatchedSum(a, b) => [a, b]
   | Type(a) => [a]
   | HasType(a, b) => [a, b]
   | Syn(a, b) => [a, b]
@@ -196,6 +212,7 @@ let children = (syntax: t): list(t) =>
   | Case(a, b, c, d, e) => [a, b, c, d, e]
   | Roll(a) => [a]
   | Unroll(a) => [a]
+  | ExpHole => []
   // ALFA Pat
   | Pat(_) => []
   | Cast(a, b) => [a, b]
@@ -209,6 +226,7 @@ let children = (syntax: t): list(t) =>
   | Sum(a, b) => [a, b]
   | TVar(_) => []
   | Rec(a, b) => [a, b]
+  | TypHole => []
   // ALFA TPat
   | TPat(_) => []
   };
@@ -252,6 +270,10 @@ let repr = (~sp: string=" ", p: int, syntax: t): Aba.t(string, t) => {
       List.length(ctx) == 0
         ? "·" |> op_sg : List.init(List.length(ctx) - 1, _ => ",") |> bin
     | Entail(_) => "⊢" |> bin_sg
+    | Consistent(_) => "~" |> bin_sg
+    | MatchedArrow(_) => "▶→" |> bin_sg
+    | MatchedProd(_) => "▶×" |> bin_sg
+    | MatchedSum(_) => "▶+" |> bin_sg
     | NumLit(i) => string_of_int(i) |> op_sg
     | Val(_) => "val" |> post_sg
     | Neg(_) => "-" |> pre_sg
@@ -287,6 +309,7 @@ let repr = (~sp: string=" ", p: int, syntax: t): Aba.t(string, t) => {
     | Case(_) => ["case", "of L(", ") →", "else R(", ") →"] |> pre
     | Roll(_) => ["roll(", ")"] |> op
     | Unroll(_) => ["unroll(", ")"] |> op
+    | ExpHole => "_" |> op_sg
     | Pat(s) => s |> op_sg
     | Cast(_) => ":" |> bin_sg
     | PatPair(_) => "," |> bin_sg
@@ -295,6 +318,7 @@ let repr = (~sp: string=" ", p: int, syntax: t): Aba.t(string, t) => {
     | HasType(_) => ":" |> bin_sg
     | Syn(_) => "⇒" |> bin_sg
     | Ana(_) => "⇐" |> bin_sg
+    | TypHole => "?" |> op_sg
     };
   (lebals |> mk_parens, children(syntax));
 };
@@ -330,7 +354,8 @@ let rec subst: (t, string, t) => t =
     | Unit
     | Sum(_)
     | TVar(_)
-    | Rec(_) => e
+    | Rec(_)
+    | TypHole => e
     // Exp
     | NumLit(_) => e
     | Neg(e) => Neg(subst(e)) |> rewrap
@@ -358,6 +383,7 @@ let rec subst: (t, string, t) => t =
       Case(subst(e1), x, subst'(x, e2), y, subst'(y, e3)) |> rewrap
     | Roll(e) => Roll(subst(e)) |> rewrap
     | Unroll(e) => Unroll(subst(e)) |> rewrap
+    | ExpHole => e
     // Meta
     | TPat(_)
     | Pat(_)
@@ -378,7 +404,11 @@ let rec subst: (t, string, t) => t =
     // Judgments
     | Val(_)
     | Eval(_)
-    | Entail(_) => e
+    | Entail(_)
+    | Consistent(_)
+    | MatchedArrow(_)
+    | MatchedProd(_)
+    | MatchedSum(_) => e
     };
   };
 
@@ -404,6 +434,7 @@ let rec subst_ty: (t, string, t) => t =
     | Sum(t1, t2) => Sum(subst_ty(t1), subst_ty(t2)) |> rewrap
     | TVar(x') => String.equal(x', x) ? v : e
     | Rec(x, t1) => Rec(x, subst_ty'(x, t1)) |> rewrap
+    | TypHole => e
     // Exp
     | NumLit(_) => e
     | Neg(e) => Neg(subst_ty(e)) |> rewrap
@@ -433,6 +464,7 @@ let rec subst_ty: (t, string, t) => t =
       Case(subst_ty(e1), x, subst_ty(e2), y, subst_ty(e3)) |> rewrap
     | Roll(e) => Roll(subst_ty(e)) |> rewrap
     | Unroll(e) => Unroll(subst_ty(e)) |> rewrap
+    | ExpHole => e
     // Meta
     | TPat(_)
     | Pat(_) => e
@@ -453,7 +485,11 @@ let rec subst_ty: (t, string, t) => t =
     // Judgments
     | Val(_)
     | Eval(_)
-    | Entail(_) => e
+    | Entail(_)
+    | Consistent(_)
+    | MatchedArrow(_)
+    | MatchedProd(_)
+    | MatchedSum(_) => e
     };
   };
 
@@ -482,6 +518,8 @@ let rec eq: (t, t) => bool =
       let rep_id = TVar(Id.mk() |> Id.show) |> temp;
       eq(subst_ty(rep_id, a1, a2), subst_ty(rep_id, b1, b2));
     | (Rec(_), _) => false
+    | (TypHole, TypHole) => true
+    | (TypHole, _) => false
     | (NumLit(a), NumLit(b)) => Int.equal(a, b)
     | (NumLit(_), _) => false
     | (Neg(a), Neg(b)) => eq(a, b)
@@ -535,6 +573,8 @@ let rec eq: (t, t) => bool =
     | (Roll(_), _) => false
     | (Unroll(a), Unroll(b)) => eq(a, b)
     | (Unroll(_), _) => false
+    | (ExpHole, ExpHole) => true
+    | (ExpHole, _) => false
     | (TPat(a), TPat(b)) => String.equal(a, b)
     | (TPat(_), _) => false
     | (Pat(a), Pat(b)) => String.equal(a, b)
@@ -569,6 +609,32 @@ let rec eq: (t, t) => bool =
     | (Eval(_), _) => false
     | (Entail(a1, a2), Entail(b1, b2)) => eq(a1, b1) && eq(a2, b2)
     | (Entail(_), _) => false
+    | (Consistent(a1, a2), Consistent(b1, b2)) => eq(a1, b1) && eq(a2, b2)
+    | (Consistent(_), _) => false
+    | (MatchedArrow(a1, a2), MatchedArrow(b1, b2)) =>
+      eq(a1, b1) && eq(a2, b2)
+    | (MatchedArrow(_), _) => false
+    | (MatchedProd(a1, a2), MatchedProd(b1, b2)) =>
+      eq(a1, b1) && eq(a2, b2)
+    | (MatchedProd(_), _) => false
+    | (MatchedSum(a1, a2), MatchedSum(b1, b2)) => eq(a1, b1) && eq(a2, b2)
+    | (MatchedSum(_), _) => false
+    };
+
+let rec glb: (t, t) => t =
+  (a, b) =>
+    switch (IdTagged.term_of(a), IdTagged.term_of(b)) {
+    | _ when eq(a, b) => a
+    | (TypHole, _) => TypHole |> temp
+    | (_, TypHole) => TypHole |> temp
+    | (Arrow(t_in, t_out), Arrow(t_in', t_out')) =>
+      Arrow(glb(t_in, t_in'), glb(t_out, t_out')) |> temp
+    | (Prod(t1, t2), Prod(t1', t2')) =>
+      Prod(glb(t1, t1'), glb(t2, t2')) |> temp
+    | (Sum(t1, t2), Sum(t1', t2')) =>
+      Sum(glb(t1, t1'), glb(t2, t2')) |> temp
+    // TODO: This is not a proper handler of not-defined case
+    | _ => Hole("glb failed") |> temp
     };
 
 let rec splice_on_exist = (p, l) =>

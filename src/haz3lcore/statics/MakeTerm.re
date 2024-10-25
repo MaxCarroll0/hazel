@@ -220,6 +220,7 @@ and alfa_exp_term: unsorted => (Drv.Exp.term, list(Id.t)) = {
       | "R" => ret(InjR)
       | "roll" => ret(Roll)
       | "unroll" => ret(Unroll)
+      | _ when Form.is_wild(t) => ret(ExpHole)
       | _ when Form.is_empty_list(t) => ret(Ctx([]))
       | _ when Form.is_empty_tuple(t) => ret(Triv)
       | _ when Form.is_int(t) => ret(NumLit(int_of_string(t)))
@@ -282,6 +283,14 @@ and alfa_exp_term: unsorted => (Drv.Exp.term, list(Id.t)) = {
       ret(Let(pat, def, r))
     | (["fix", "->"], [Drv(Pat(pat))]) => ret(Fix(pat, r))
     | (["fun", "->"], [Drv(Pat(pat))]) => ret(Fun(pat, r))
+    | _ => ret(hole(tm))
+    }
+  | Pre(([(_id, (labels, [Drv(Typ(l))]))], []), Drv(Typ(r))) as tm =>
+    switch (labels) {
+    | ["consistent", "~"] => ret(Consistent(l, r))
+    | ["matched_arrow", "=>"] => ret(MatchedArrow(l, r))
+    | ["matched_prod", "=>"] => ret(MatchedProd(l, r))
+    | ["matched_sum", "=>"] => ret(MatchedSum(l, r))
     | _ => ret(hole(tm))
     }
   | Post(Drv(Exp(l)), ([(_id, t)], [])) as tm =>
@@ -355,6 +364,7 @@ and alfa_typ_term: unsorted => (Drv.Typ.term, list(Id.t)) = {
     | "Bool" => ret(Bool)
     | "1"
     | "Unit" => ret(Unit)
+    | _ when Form.is_explicit_hole(t) => ret(TypHole)
     | _ when Form.is_typ_var(t) => ret(Var(t))
     | _ => ret(hole(tm))
     }

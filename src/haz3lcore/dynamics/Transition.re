@@ -279,6 +279,10 @@ module Transition = (EV: EV_MODE) => {
         | Val(e) => Val(go_exp(e))
         | Eval(e1, e2) => Eval(go_exp(e1), go_exp(e2))
         | Entail(ctx, p) => Entail(go_exp(ctx), go_exp(p))
+        | Consistent(t1, t2) => Consistent(go_typ(t1), go_typ(t2))
+        | MatchedArrow(t1, t2) => MatchedArrow(go_typ(t1), go_typ(t2))
+        | MatchedProd(t1, t2) => MatchedProd(go_typ(t1), go_typ(t2))
+        | MatchedSum(t1, t2) => MatchedSum(go_typ(t1), go_typ(t2))
         | Ctx(es) => Ctx(List.map(go_exp, es))
         | Cons(e1, e2) => Cons(go_exp(e1), go_exp(e2))
         | Concat(e1, e2) => Concat(go_exp(e1), go_exp(e2))
@@ -316,6 +320,7 @@ module Transition = (EV: EV_MODE) => {
           Case(go_exp(e1), List.map(((p, e)) => (p, go_exp(e)), rls))
         | Roll => Roll
         | Unroll => Unroll
+        | ExpHole => ExpHole
         };
       term |> rewrap;
     }
@@ -368,6 +373,7 @@ module Transition = (EV: EV_MODE) => {
         | Var(x) => Var(x)
         | Rec(x, t) => Rec(x, go_typ(t))
         | Parens(t) => Parens(go_typ(t))
+        | TypHole => TypHole
         };
       term |> rewrap;
     }

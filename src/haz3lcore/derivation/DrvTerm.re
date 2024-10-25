@@ -9,6 +9,10 @@ module ALFA_Exp = {
     | Val
     | Eval
     | Entail
+    | Consistent
+    | MatchedArrow
+    | MatchedProd
+    | MatchedSum
     | Ctx
     | Cons
     | Concat
@@ -43,7 +47,8 @@ module ALFA_Exp = {
     | InjR
     | Case
     | Roll
-    | Unroll;
+    | Unroll
+    | ExpHole;
 
   include TermBase.ALFA_Exp;
 
@@ -70,6 +75,10 @@ module ALFA_Exp = {
     | Val(_) => Val
     | Eval(_) => Eval
     | Entail(_) => Entail
+    | Consistent(_) => Consistent
+    | MatchedArrow(_) => MatchedArrow
+    | MatchedProd(_) => MatchedProd
+    | MatchedSum(_) => MatchedSum
     | Ctx(_) => Ctx
     | Cons(_) => Cons
     | Concat(_) => Concat
@@ -105,7 +114,8 @@ module ALFA_Exp = {
     | InjR => InjR
     | Case(_) => Case
     | Roll => Roll
-    | Unroll => Unroll;
+    | Unroll => Unroll
+    | ExpHole => ExpHole;
 };
 
 module ALFA_Rul = {
@@ -189,7 +199,8 @@ module ALFA_Typ = {
     | Sum
     | Var
     | Rec
-    | Parens;
+    | Parens
+    | TypHole;
 
   include TermBase.ALFA_Typ;
 
@@ -219,7 +230,8 @@ module ALFA_Typ = {
     | Sum(_) => Sum
     | Var(_) => Var
     | Rec(_) => Rec
-    | Parens(_) => Parens;
+    | Parens(_) => Parens
+    | TypHole => TypHole;
 };
 
 module ALFA_TPat = {

@@ -37,6 +37,7 @@ module Operation = {
     | Fix(t, t) // Fix(Pat(_), _)
     | Rec(t, t) // Rec(TPat(_), _)
     // These t perform pure calculation
+    | Glb(t, t) // Glb(_, _)
     | Subst((t, t), t) // Subst((_, Pat(_)), _)
     | SubstTy((t, t), t) // SubstTy((_, TPat(_)), _)
     | Cons(t, t) // Cons(_, Ctx(_))
@@ -55,6 +56,7 @@ module Operation = {
     | Type(_) => P.ann
     | Fix(_) => P.fun_
     | Rec(_) => P.type_arrow + 2
+    | Glb(_, _) => P.max
     | Subst(_) => P.ap
     | SubstTy(_) => P.ap
     | Cons(_) => P.comma
@@ -68,10 +70,16 @@ module Operation = {
     let p' = precedence(operation);
     let tight_start = s =>
       s == ""
-      || List.exists(String.ends_with(s, ~suffix=_), ["/", "「", "」"]);
+      || List.exists(
+           String.ends_with(s, ~suffix=_),
+           ["/", "「", "」", "("],
+         );
     let tight_end = s =>
       s == ""
-      || List.exists(String.starts_with(s, ~prefix=_), ["/", "」", ","]);
+      || List.exists(
+           String.starts_with(s, ~prefix=_),
+           ["/", "」", ",", ")"],
+         );
     let mk_parens = labels =>
       labels
       |> ListUtil.map_first(s => p < p' ? "(" ++ s : s)
@@ -101,6 +109,7 @@ module Operation = {
     | Type(a) => ("type" |> post_sg, [a])
     | Fix(p, e) => (["fix", "→"] |> pre, [p, e])
     | Rec(t, a) => (["rec", "is"] |> pre, [t, a])
+    | Glb(a, b) => (["glb(", ",", ")"] |> op, [a, b])
     | Subst((v, x), e) => (["「", "/", "」"] |> pre, [v, x, e])
     | SubstTy((t, a), e) => (["「", "/", "」"] |> pre, [t, a, e])
     | Cons(e, l) => ("," |> bin_sg, [l, e])
@@ -144,6 +153,7 @@ module Operation = {
     | Type(a) => get_symbols(a)
     | Fix(p, e) => get_symbols(p) @ get_symbols(e)
     | Rec(t, a) => get_symbols(t) @ get_symbols(a)
+    | Glb(a, b) => get_symbols(a) @ get_symbols(b)
     | Subst((v, x), e) => get_symbols(v) @ get_symbols(x) @ get_symbols(e)
     | SubstTy((t, a), e) =>
       get_symbols(t) @ get_symbols(a) @ get_symbols(e)
@@ -174,6 +184,7 @@ module Operation = {
       | Type(a) => Type(go(a)) |> DrvSyntax.fresh
       | Fix(p, e) => Fix(go(p), go(e)) |> DrvSyntax.fresh
       | Rec(t, a) => Rec(go(t), go(a)) |> DrvSyntax.fresh
+      | Glb(a, b) => DrvSyntax.glb(go(a), go(b))
       | Subst((v, x), e) =>
         DrvSyntax.subst(go(v), go(x) |> string_of_pat, go(e))
       | SubstTy((t, a), e) =>
@@ -300,6 +311,20 @@ let of_tests: Rule.t => list(t) = {
     });
   SymbolMap.(
     fun
+    // Type consistency
+    | C_Refl
+    | C_UnkL
+    | C_UnkR
+    | C_Sum
+    | C_Prod
+    | C_Arrow => []
+    // Type Matched
+    | MS_Hole
+    | MS_Sum
+    | MP_Hole
+    | MP_Prod
+    | MA_Hole
+    | MA_Arrow => []
     // Type Validity
     | TV_Num
     | TV_Bool
@@ -310,7 +335,9 @@ let of_tests: Rule.t => list(t) = {
     | TV_Rec => [Eq(delta', Cons(Type(TVarOfTPat(tpat)), delta))]
     | TV_TVar => [Mem(Type(t), delta)] // TODO
     // Typing
-    | A_Subsumption => []
+    | A_Subsumption
+    | A_Subsumption_GT => []
+    | S_Hole => []
     | T_True
     | S_True => []
     | T_False
@@ -318,6 +345,7 @@ let of_tests: Rule.t => list(t) = {
     | T_If
     | S_If
     | A_If => []
+    | S_If_GT => [Eq(t, Glb(t1, t2))]
     | T_Num // TODO
     | S_Num => [] // TODO
     | T_Neg
@@ -354,17 +382,25 @@ let of_tests: Rule.t => list(t) = {
     | S_FunAnn
     | A_FunAnn
     | T_Fun
-    | A_Fun => [Eq(gamma', Cons(HasType(VarOfPat(x), t_in), gamma))]
+    | A_Fun
+    | A_Fun_GT => [Eq(gamma', Cons(HasType(VarOfPat(x), t_in), gamma))]
+    | A_FunAnn_GT => [
+        Eq(gamma', Cons(HasType(VarOfPat(x), t_in'), gamma)),
+      ]
     | T_Ap
-    | S_Ap => []
+    | S_Ap
+    | S_Ap_GT => []
     | T_Triv
     | S_Triv => []
     | T_Pair
     | S_Pair
-    | A_Pair => []
+    | A_Pair
+    | A_Pair_GT => []
     | T_LetPair
     | S_LetPair
-    | A_LetPair => [
+    | S_LetPair_GT
+    | A_LetPair
+    | A_LetPair_GT => [
         Eq(
           gamma',
           Cons(
@@ -375,17 +411,27 @@ let of_tests: Rule.t => list(t) = {
       ]
     | T_PrjL
     | S_PrjL
+    | S_PrjL_GT
     | T_PrjR
-    | S_PrjR => []
+    | S_PrjR
+    | S_PrjR_GT => []
     | T_InjL
     | A_InjL
+    | A_InjL_GT
     | T_InjR
-    | A_InjR => []
+    | A_InjR
+    | A_InjR_GT => []
     | T_Case
     | S_Case
-    | A_Case => [
+    | A_Case
+    | A_Case_GT => [
         Eq(gamma', Cons(HasType(VarOfPat(x), t1), gamma)),
         Eq(gamma'', Cons(HasType(VarOfPat(y), t2), gamma)),
+      ]
+    | S_Case_GT => [
+        Eq(gamma', Cons(HasType(VarOfPat(x), t1), gamma)),
+        Eq(gamma'', Cons(HasType(VarOfPat(y), t2), gamma)),
+        Eq(t', Glb(t1', t2')),
       ]
     | T_FixAnn_TV => [
         Eq(gamma', Cons(HasType(VarOfPat(x), t), gamma)),

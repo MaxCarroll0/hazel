@@ -15,6 +15,10 @@ module M = (W: Wrapper) => {
     | Val(t)
     | Eval(t, t)
     | Entail(t, t)
+    | Consistent(t, t)
+    | MatchedArrow(t, t)
+    | MatchedProd(t, t)
+    | MatchedSum(t, t)
     | Ctx(t) // Copy self
     // Proposition
     | Type(t)
@@ -47,6 +51,7 @@ module M = (W: Wrapper) => {
     | Case(t, t, t, t, t)
     | Roll(t)
     | Unroll(t)
+    | ExpHole
     // ALFA Typ
     | Num
     | Bool
@@ -56,6 +61,7 @@ module M = (W: Wrapper) => {
     | Unit
     | TVar(t) // Copy self
     | Rec(t, t)
+    | TypHole
     // ALFA Pat
     | Pat(t) // Copy self
     | Cast(t, t) // We allow at most one annotation for Let/Fun/Fix
@@ -89,6 +95,10 @@ let rec map_reg = (f: string => string, spec: t): t => {
     | Val(a) => Val(map_reg(a))
     | Eval(a, b) => Eval(map_reg(a), map_reg(b))
     | Entail(a, b) => Entail(map_reg(a), map_reg(b))
+    | Consistent(a, b) => Consistent(map_reg(a), map_reg(b))
+    | MatchedArrow(a, b) => MatchedArrow(map_reg(a), map_reg(b))
+    | MatchedProd(a, b) => MatchedProd(map_reg(a), map_reg(b))
+    | MatchedSum(a, b) => MatchedSum(map_reg(a), map_reg(b))
     | Ctx(a) => Ctx(map_reg(a))
     | Type(a) => Type(map_reg(a))
     | HasType(a, b) => HasType(map_reg(a), map_reg(b))
@@ -120,6 +130,7 @@ let rec map_reg = (f: string => string, spec: t): t => {
       Case(map_reg(a), map_reg(b), map_reg(c), map_reg(d), map_reg(e))
     | Roll(a) => Roll(map_reg(a))
     | Unroll(a) => Unroll(map_reg(a))
+    | ExpHole => ExpHole
     | Num => Num
     | Bool => Bool
     | Arrow(a, b) => Arrow(map_reg(a), map_reg(b))
@@ -128,6 +139,7 @@ let rec map_reg = (f: string => string, spec: t): t => {
     | Unit => Unit
     | TVar(a) => TVar(map_reg(a))
     | Rec(a, b) => Rec(map_reg(a), map_reg(b))
+    | TypHole => TypHole
     | Pat(a) => Pat(map_reg(a))
     | Cast(a, b) => Cast(map_reg(a), map_reg(b))
     | PatStrip(a) => PatStrip(map_reg(a))
@@ -150,6 +162,11 @@ let rec of_syntax = (spec: t): DrvSyntax.t => {
   | Val(a) => Val(of_syntax(a)) |> rewrap
   | Eval(a, b) => Eval(of_syntax(a), of_syntax(b)) |> rewrap
   | Entail(a, b) => Entail(of_syntax(a), of_syntax(b)) |> rewrap
+  | Consistent(a, b) => Consistent(of_syntax(a), of_syntax(b)) |> rewrap
+  | MatchedArrow(a, b) =>
+    MatchedArrow(of_syntax(a), of_syntax(b)) |> rewrap
+  | MatchedProd(a, b) => MatchedProd(of_syntax(a), of_syntax(b)) |> rewrap
+  | MatchedSum(a, b) => MatchedSum(of_syntax(a), of_syntax(b)) |> rewrap
   | Type(a) => Type(of_syntax(a)) |> rewrap
   | HasType(a, b) => HasType(of_syntax(a), of_syntax(b)) |> rewrap
   | Syn(a, b) => Syn(of_syntax(a), of_syntax(b)) |> rewrap
@@ -188,6 +205,7 @@ let rec of_syntax = (spec: t): DrvSyntax.t => {
     |> rewrap
   | Roll(a) => Roll(of_syntax(a)) |> rewrap
   | Unroll(a) => Unroll(of_syntax(a)) |> rewrap
+  | ExpHole => ExpHole |> rewrap
   | Num => Num |> rewrap
   | Bool => Bool |> rewrap
   | Arrow(a, b) => Arrow(of_syntax(a), of_syntax(b)) |> rewrap
@@ -196,6 +214,7 @@ let rec of_syntax = (spec: t): DrvSyntax.t => {
   | Unit => Unit |> rewrap
   | TVar(r) => of_syntax(r)
   | Rec(a, b) => Rec(of_syntax(a), of_syntax(b)) |> rewrap
+  | TypHole => TypHole |> rewrap
   | Pat(r) => of_syntax(r)
   | Cast(a, b) => Cast(of_syntax(a), of_syntax(b)) |> rewrap
   | PatStrip(r) => of_syntax(r)
@@ -264,6 +283,14 @@ let rec go: ((map, list(failure)), specced) => (map, list(failure)) =
     | (Val(ra), Val(a)) => info |> go(ra, a)
     | (Eval(ra, rb), Eval(a, b)) => info |> go(ra, a) |> go(rb, b)
     | (Entail(ra, rb), Entail(a, b)) => info |> go(ra, a) |> go(rb, b)
+    | (Consistent(ra, rb), Consistent(a, b)) =>
+      info |> go(ra, a) |> go(rb, b)
+    | (MatchedArrow(ra, rb), MatchedArrow(a, b)) =>
+      info |> go(ra, a) |> go(rb, b)
+    | (MatchedProd(ra, rb), MatchedProd(a, b)) =>
+      info |> go(ra, a) |> go(rb, b)
+    | (MatchedSum(ra, rb), MatchedSum(a, b)) =>
+      info |> go(ra, a) |> go(rb, b)
     | (Ctx(r), Ctx(_)) => info |> go(r, syntax)
     // Proposition
     | (Type(rt), Type(t)) => info |> go(rt, t)
@@ -305,6 +332,7 @@ let rec go: ((map, list(failure)), specced) => (map, list(failure)) =
       |> go(re, e)
     | (Roll(ra), Roll(a)) => info |> go(ra, a)
     | (Unroll(ra), Unroll(a)) => info |> go(ra, a)
+    | (ExpHole, ExpHole) => info
     // ALFA Typ
     | (Num, Num) => info
     | (Bool, Bool) => info
@@ -314,6 +342,7 @@ let rec go: ((map, list(failure)), specced) => (map, list(failure)) =
     | (Unit, Unit) => info
     | (TVar(r), TVar(_)) => info |> go(r, syntax)
     | (Rec(ra, rb), Rec(a, b)) => info |> go(ra, a) |> go(rb, b)
+    | (TypHole, TypHole) => info
     // ALFA Pat
     | (Pat(r), Pat(_)) => info |> go(r, syntax)
     | (Cast(ra, rb), Cast(a, b)) => info |> go(ra, a) |> go(rb, b)
@@ -332,6 +361,10 @@ let rec go: ((map, list(failure)), specced) => (map, list(failure)) =
     | (Val(_), _)
     | (Eval(_), _)
     | (Entail(_), _)
+    | (Consistent(_), _)
+    | (MatchedArrow(_), _)
+    | (MatchedProd(_), _)
+    | (MatchedSum(_), _)
     | (Ctx(_), _)
     | (Type(_), _)
     | (HasType(_), _)
@@ -362,6 +395,7 @@ let rec go: ((map, list(failure)), specced) => (map, list(failure)) =
     | (Case(_), _)
     | (Roll(_), _)
     | (Unroll(_), _)
+    | (ExpHole, _)
     | (Num, _)
     | (Bool, _)
     | (Arrow(_), _)
@@ -370,6 +404,7 @@ let rec go: ((map, list(failure)), specced) => (map, list(failure)) =
     | (Unit, _)
     | (TVar(_), _)
     | (Rec(_), _)
+    | (TypHole, _)
     | (Pat(_), _)
     | (Cast(_), _)
     | (PatStrip(_), _)
@@ -406,6 +441,30 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
   let val_ = v => Val(v);
   let (concl_spec, prem_specs) =
     switch (rule) {
+    | C_Refl => (Consistent(t, t), [])
+    | C_UnkL => (Consistent(TypHole, t), [])
+    | C_UnkR => (Consistent(t, TypHole), [])
+    | C_Sum => (
+        Consistent(Sum(t1, t2), Sum(t1', t2')),
+        [Consistent(t1, t1'), Consistent(t2, t2')],
+      )
+    | C_Prod => (
+        Consistent(Prod(t1, t2), Prod(t1', t2')),
+        [Consistent(t1, t1'), Consistent(t2, t2')],
+      )
+    | C_Arrow => (
+        Consistent(Arrow(t_in, t_out), Arrow(t_in', t_out')),
+        [Consistent(t_in, t_in'), Consistent(t_out, t_out')],
+      )
+    | MS_Hole => (MatchedSum(TypHole, TypHole), [])
+    | MS_Sum => (MatchedSum(Sum(t1, t2), Sum(t1, t2)), [])
+    | MP_Hole => (MatchedProd(TypHole, TypHole), [])
+    | MP_Prod => (MatchedProd(Prod(t1, t2), Prod(t1, t2)), [])
+    | MA_Hole => (MatchedArrow(TypHole, TypHole), [])
+    | MA_Arrow => (
+        MatchedArrow(Arrow(t_in, t_out), Arrow(t_in, t_out)),
+        [],
+      )
     | TV_Num => (type_(delta, Num), [])
     | TV_Bool => (type_(delta, Bool), [])
     | TV_Unit => (type_(delta, Unit), [])
@@ -423,6 +482,7 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
       )
     | TV_Rec => (type_(delta, Rec(TPat(tpat), t)), [type_(delta', t)])
     | TV_TVar => (type_(delta, TVar(t)), [])
+    | S_Hole => (syn(gamma, ExpHole, TypHole), [])
     | T_True => (has(gamma, True, Bool), [])
     | S_True => (syn(gamma, True, Bool), [])
     | V_True => (val_(True), [])
@@ -436,6 +496,10 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
     | S_If => (
         syn(gamma, If(e, e1, e2), t),
         [ana(gamma, e, Bool), syn(gamma, e1, t), syn(gamma, e2, t)],
+      )
+    | S_If_GT => (
+        syn(gamma, If(e, e1, e2), t),
+        [ana(gamma, e, Bool), has(gamma, e1, t1), has(gamma, e2, t2)],
       )
     | A_If => (
         ana(gamma, If(e, e1, e2), t),
@@ -587,6 +651,14 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
         ana(gamma, Fun(Cast(Pat(x), t_in), e_body), Arrow(t_in, t_out)),
         [ana(gamma', e_body, t_out)],
       )
+    | A_FunAnn_GT => (
+        ana(gamma, Fun(Cast(Pat(x), t_in'), e_body), t),
+        [
+          MatchedArrow(t, Arrow(t_in, t_out)),
+          Consistent(t_in', t_in),
+          ana(gamma', e_body, t_out),
+        ],
+      )
     | T_Fun => (
         has(gamma, Fun(Pat(x), e_body), Arrow(t_in, t_out)),
         [has(gamma', e_body, t_out)],
@@ -594,6 +666,10 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
     | A_Fun => (
         ana(gamma, Fun(Pat(x), e_body), Arrow(t_in, t_out)),
         [ana(gamma', e_body, t_out)],
+      )
+    | A_Fun_GT => (
+        ana(gamma, Fun(Pat(x), e_body), t),
+        [MatchedArrow(t, Arrow(t_in, t_out)), ana(gamma', e_body, t_out)],
       )
     | V_Fun => (val_(Fun(Pat(x), e_body)), [])
     | T_Ap => (
@@ -603,6 +679,14 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
     | S_Ap => (
         syn(gamma, Ap(e1, e2), t_out),
         [syn(gamma, e1, Arrow(t_in, t_out)), ana(gamma, e2, t_in)],
+      )
+    | S_Ap_GT => (
+        syn(gamma, Ap(e1, e2), t_out),
+        [
+          syn(gamma, e1, t),
+          MatchedArrow(t, Arrow(t_in, t_out)),
+          ana(gamma, e2, t_in),
+        ],
       )
     | E_Ap => (
         eval(Ap(e1, e2), v),
@@ -627,6 +711,14 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
         ana(gamma, Pair(e1, e2), Prod(t1, t2)),
         [ana(gamma, e1, t1), ana(gamma, e2, t2)],
       )
+    | A_Pair_GT => (
+        ana(gamma, Pair(e1, e2), t),
+        [
+          MatchedProd(t, Prod(t1, t2)),
+          ana(gamma, e1, t1),
+          ana(gamma, e2, t2),
+        ],
+      )
     | V_Pair => (val_(Pair(v1, v2)), [val_(v1), val_(v2)])
     | E_Pair => (
         eval(Pair(e1, e2), Pair(v1, v2)),
@@ -640,9 +732,25 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
         syn(gamma, Let(PatPair(Pat(x), Pat(y)), e_def, e_body), t),
         [syn(gamma, e_def, Prod(t1, t2)), syn(gamma', e_body, t)],
       )
+    | S_LetPair_GT => (
+        syn(gamma, Let(PatPair(Pat(x), Pat(y)), e_def, e_body), t),
+        [
+          syn(gamma, e_def, t_def),
+          MatchedProd(t_def, Prod(t1, t2)),
+          syn(gamma', e_body, t),
+        ],
+      )
     | A_LetPair => (
         ana(gamma, Let(PatPair(Pat(x), Pat(y)), e_def, e_body), t),
         [syn(gamma, e_def, Prod(t1, t2)), ana(gamma', e_body, t)],
+      )
+    | A_LetPair_GT => (
+        ana(gamma, Let(PatPair(Pat(x), Pat(y)), e_def, e_body), t),
+        [
+          syn(gamma, e_def, t_def),
+          MatchedProd(t_def, Prod(t1, t2)),
+          ana(gamma', e_body, t),
+        ],
       )
     | E_LetPair => (
         eval(Let(PatPair(PatStrip(x), PatStrip(y)), e_def, e_body), v),
@@ -650,16 +758,32 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
       )
     | T_PrjL => (has(gamma, PrjL(e), t1), [has(gamma, e, Prod(t1, t2))])
     | S_PrjL => (syn(gamma, PrjL(e), t1), [syn(gamma, e, Prod(t1, t2))])
+    | S_PrjL_GT => (
+        syn(gamma, PrjL(e), t1),
+        [syn(gamma, e, t), MatchedProd(t, Prod(t1, t2))],
+      )
     | E_PrjL => (eval(PrjL(e), v1), [eval(e, Pair(v1, v2))])
     | T_PrjR => (has(gamma, PrjR(e), t2), [has(gamma, e, Prod(t1, t2))])
     | S_PrjR => (syn(gamma, PrjR(e), t2), [syn(gamma, e, Prod(t1, t2))])
+    | S_PrjR_GT => (
+        syn(gamma, PrjR(e), t2),
+        [syn(gamma, e, t), MatchedProd(t, Prod(t1, t2))],
+      )
     | E_PrjR => (eval(PrjR(e), v2), [eval(e, Pair(v1, v2))])
     | T_InjL => (has(gamma, InjL(e), Sum(t1, t2)), [has(gamma, e, t1)])
     | A_InjL => (ana(gamma, InjL(e), Sum(t1, t2)), [ana(gamma, e, t1)])
+    | A_InjL_GT => (
+        ana(gamma, InjL(e), t),
+        [MatchedSum(t, Sum(t1, t2)), ana(gamma, e, t1)],
+      )
     | V_InjL => (val_(InjL(e)), [val_(e)])
     | E_InjL => (eval(InjL(e), InjL(v)), [eval(e, v)])
     | T_InjR => (has(gamma, InjR(e), Sum(t1, t2)), [has(gamma, e, t2)])
     | A_InjR => (ana(gamma, InjR(e), Sum(t1, t2)), [ana(gamma, e, t2)])
+    | A_InjR_GT => (
+        ana(gamma, InjR(e), t),
+        [MatchedSum(t, Sum(t1, t2)), ana(gamma, e, t2)],
+      )
     | V_InjR => (val_(InjR(e)), [val_(e)])
     | E_InjR => (eval(InjR(e), InjR(v)), [eval(e, v)])
     | T_Case => (
@@ -678,12 +802,30 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
           syn(gamma'', e2, t),
         ],
       )
+    | S_Case_GT => (
+        syn(gamma, Case(e, Pat(x), e1, Pat(y), e2), t'),
+        [
+          syn(gamma, e, t),
+          MatchedSum(t, Sum(t1, t2)),
+          syn(gamma', e1, t1'),
+          syn(gamma'', e2, t2'),
+        ],
+      )
     | A_Case => (
         ana(gamma, Case(e, Pat(x), e1, Pat(y), e2), t),
         [
           syn(gamma, e, Sum(t1, t2)),
           ana(gamma', e1, t),
           ana(gamma'', e2, t),
+        ],
+      )
+    | A_Case_GT => (
+        ana(gamma, Case(e, Pat(x), e1, Pat(y), e2), t),
+        [
+          syn(gamma, e, t'),
+          MatchedSum(t', Sum(t1, t2)),
+          ana(gamma', e1, t1'),
+          ana(gamma'', e2, t2'),
         ],
       )
     | E_Case_L => (
@@ -716,6 +858,10 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
       )
     | E_Unroll => (eval(Unroll(e), v), [eval(e, Roll(v))])
     | A_Subsumption => (ana(gamma, e, t), [syn(gamma, e, t)])
+    | A_Subsumption_GT => (
+        ana(gamma, e, t),
+        [syn(gamma, e, t'), Consistent(t', t)],
+      )
     | E_Val => (eval(e, e), [val_(e)])
     | Assumption => (entail(gamma, a), [])
     | And_I => (
@@ -744,6 +890,10 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
     | Val(a) => Val(fresh(a))
     | Eval(a, b) => Eval(fresh(a), fresh(b))
     | Entail(a, b) => Entail(fresh(a), fresh(b))
+    | Consistent(a, b) => Consistent(fresh(a), fresh(b))
+    | MatchedArrow(a, b) => MatchedArrow(fresh(a), fresh(b))
+    | MatchedProd(a, b) => MatchedProd(fresh(a), fresh(b))
+    | MatchedSum(a, b) => MatchedSum(fresh(a), fresh(b))
     | Ctx(a) => Ctx(fresh(a))
     | Type(a) => Type(fresh(a))
     | HasType(a, b) => HasType(fresh(a), fresh(b))
@@ -775,6 +925,7 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
       Case(fresh(a), fresh(b), fresh(c), fresh(d), fresh(e))
     | Roll(a) => Roll(fresh(a))
     | Unroll(a) => Unroll(fresh(a))
+    | ExpHole => ExpHole
     | Num => Num
     | Bool => Bool
     | Arrow(a, b) => Arrow(fresh(a), fresh(b))
@@ -783,6 +934,7 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
     | Unit => Unit
     | TVar(a) => TVar(fresh(a))
     | Rec(a, b) => Rec(fresh(a), fresh(b))
+    | TypHole => TypHole
     | Pat(a) => Pat(fresh(a))
     | Cast(a, b) => Cast(fresh(a), fresh(b))
     | PatStrip(a) => PatStrip(fresh(a))

@@ -1,6 +1,36 @@
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t =
-  | A_Subsumption
+  // Gradual Typing
+  // - Type consistency
+  | C_Refl
+  | C_UnkL
+  | C_UnkR
+  | C_Sum
+  | C_Prod
+  | C_Arrow
+  // - Type Matched
+  | MS_Hole
+  | MS_Sum
+  | MP_Hole
+  | MP_Prod
+  | MA_Hole
+  | MA_Arrow
+  // - Gradual Typing Rules
+  | S_Hole
+  | A_Subsumption_GT
+  | S_If_GT
+  | S_PrjL_GT
+  | S_PrjR_GT
+  | A_Pair_GT
+  | S_LetPair_GT
+  | A_LetPair_GT
+  | A_InjL_GT
+  | A_InjR_GT
+  | A_Case_GT
+  | S_Case_GT
+  | A_FunAnn_GT
+  | A_Fun_GT
+  | S_Ap_GT
   // Type Validity
   | TV_Num
   | TV_Bool
@@ -11,6 +41,7 @@ type t =
   | TV_Rec
   | TV_TVar
   // Typing
+  | A_Subsumption
   // - Booleans
   | T_True
   | S_True
@@ -160,131 +191,10 @@ let repr =
   | A_Subsumption => "A-Sub."
   | rule => show(rule);
 
-let prems_num =
-  fun
-  | TV_Num => 0
-  | TV_Bool => 0
-  | TV_Unit => 0
-  | TV_Arrow => 2
-  | TV_Prod => 2
-  | TV_Sum => 2
-  | TV_Rec => 1
-  | TV_TVar => 0
-  | A_Subsumption => 1
-  | E_Val => 1
-  | S_Num
-  | T_Num => 0
-  | V_Num => 0
-  | S_True
-  | T_True => 0
-  | V_True => 0
-  | S_False
-  | T_False => 0
-  | V_False => 0
-  | S_Triv
-  | T_Triv => 0
-  | V_Triv => 0
-  | S_Neg
-  | T_Neg => 1
-  | E_Neg => 1
-  | S_Plus
-  | T_Plus => 2
-  | E_Plus => 2
-  | S_Minus
-  | T_Minus => 2
-  | E_Minus => 2
-  | S_Times
-  | T_Times => 2
-  | E_Times => 2
-  | S_Lt
-  | T_Lt => 2
-  | E_Lt_T
-  | E_Lt_F => 2
-  | S_Gt
-  | T_Gt => 2
-  | E_Gt_T
-  | E_Gt_F => 2
-  | S_Eq
-  | T_Eq => 2
-  | E_Eq_T
-  | E_Eq_F => 2
-  | A_If
-  | S_If
-  | T_If => 3
-  | E_If_T
-  | E_If_F => 2
-  | S_Var
-  | T_Var => 0
-  | S_LetAnn
-  | A_LetAnn
-  | T_LetAnn => 2
-  | T_LetAnn_TV => 3
-  | S_Let
-  | A_Let
-  | T_Let => 2
-  | E_Let => 2
-  | S_FunAnn
-  | A_FunAnn
-  | T_FunAnn => 1
-  | T_FunAnn_TV => 2
-  | A_Fun
-  | T_Fun => 1
-  | V_Fun => 0
-  | T_Fix => 1
-  | T_FixAnn => 1
-  | T_FixAnn_TV => 2
-  | E_Fix => 1
-  | S_Ap
-  | T_Ap => 2
-  | E_Ap => 3
-  | S_Pair
-  | A_Pair
-  | T_Pair => 2
-  | E_Pair => 2
-  | V_Pair => 2
-  | S_LetPair
-  | A_LetPair
-  | T_LetPair => 2
-  | E_LetPair => 2
-  | S_PrjL
-  | T_PrjL => 1
-  | E_PrjL => 1
-  | S_PrjR
-  | T_PrjR => 1
-  | E_PrjR => 1
-  | A_InjL
-  | T_InjL => 1
-  | E_InjL => 1
-  | V_InjL => 1
-  | A_InjR
-  | T_InjR => 1
-  | E_InjR => 1
-  | V_InjR => 1
-  | A_Case
-  | S_Case
-  | T_Case => 3
-  | E_Case_L
-  | E_Case_R => 2
-  | T_Roll => 1
-  | E_Roll => 1
-  | V_Roll => 1
-  | T_Unroll => 1
-  | E_Unroll => 1
-  // Propositional logic
-  | Assumption => 0
-  | And_I => 2
-  | And_E_L => 1
-  | And_E_R => 1
-  | Or_I_L => 1
-  | Or_I_R => 1
-  | Or_E => 3
-  | Implies_I => 1
-  | Implies_E => 2
-  | Truth_I => 0
-  | Falsity_E => 1;
-
 [@deriving (show({with_path: false}), sexp, yojson)]
 type kind =
+  | TypeConsistency
+  | TypeMatched
   | TypeValidity
   | Synthesis
   | Analysis
@@ -299,6 +209,19 @@ and prop_logic_kind =
 
 let of_kind: t => kind =
   fun
+  // - Type consistency
+  | C_Refl
+  | C_UnkL
+  | C_UnkR
+  | C_Sum
+  | C_Prod
+  | C_Arrow => TypeConsistency
+  | MS_Hole
+  | MS_Sum
+  | MP_Hole
+  | MP_Prod
+  | MA_Hole
+  | MA_Arrow => TypeMatched
   | TV_Num
   | TV_Bool
   | TV_Unit
@@ -307,6 +230,13 @@ let of_kind: t => kind =
   | TV_Sum
   | TV_Rec
   | TV_TVar => TypeValidity
+  | S_Hole
+  | S_If_GT
+  | S_PrjL_GT
+  | S_PrjR_GT
+  | S_LetPair_GT
+  | S_Case_GT
+  | S_Ap_GT
   | S_True
   | S_False
   | S_If
@@ -329,6 +259,14 @@ let of_kind: t => kind =
   | S_PrjL
   | S_PrjR
   | S_Case => Synthesis
+  | A_Subsumption_GT
+  | A_Pair_GT
+  | A_LetPair_GT
+  | A_InjL_GT
+  | A_InjR_GT
+  | A_Case_GT
+  | A_FunAnn_GT
+  | A_Fun_GT
   | A_Subsumption
   | A_If
   | A_LetAnn
@@ -421,6 +359,8 @@ let of_kind: t => kind =
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type sort =
+  | TypeConsistency
+  | TypeMatched
   | TypeValidity
   | A_Subsumption
   | E_Val
@@ -436,6 +376,19 @@ type sort =
 
 let of_sort: t => sort =
   fun
+  | C_Refl
+  | C_UnkL
+  | C_UnkR
+  | C_Sum
+  | C_Prod
+  | C_Arrow => TypeConsistency
+  | S_Hole // Should be somewhere else
+  | MS_Hole
+  | MS_Sum
+  | MP_Hole
+  | MP_Prod
+  | MA_Hole
+  | MA_Arrow => TypeMatched
   | TV_Num
   | TV_Bool
   | TV_Unit
@@ -452,6 +405,7 @@ let of_sort: t => sort =
   | V_False
   | T_If
   | S_If
+  | S_If_GT
   | A_If
   | E_If_T
   | E_If_F => Boolean
@@ -496,11 +450,14 @@ let of_sort: t => sort =
   | T_FunAnn_TV
   | S_FunAnn
   | A_FunAnn
+  | A_FunAnn_GT
   | T_Fun
   | A_Fun
+  | A_Fun_GT
   | V_Fun
   | T_Ap
   | S_Ap
+  | S_Ap_GT
   | E_Ap => Function
   | T_Triv
   | S_Triv
@@ -508,29 +465,38 @@ let of_sort: t => sort =
   | T_Pair
   | S_Pair
   | A_Pair
+  | A_Pair_GT
   | V_Pair
   | E_Pair
   | T_LetPair
   | S_LetPair
+  | S_LetPair_GT
   | A_LetPair
+  | A_LetPair_GT
   | E_LetPair
   | T_PrjL
   | S_PrjL
+  | S_PrjL_GT
   | E_PrjL
   | T_PrjR
   | S_PrjR
+  | S_PrjR_GT
   | E_PrjR => Product
   | T_InjL
   | A_InjL
+  | A_InjL_GT
   | V_InjL
   | E_InjL
   | T_InjR
   | A_InjR
+  | A_InjR_GT
   | V_InjR
   | E_InjR
   | T_Case
   | S_Case
+  | S_Case_GT
   | A_Case
+  | A_Case_GT
   | E_Case_L
   | E_Case_R => Sum
   | T_FixAnn
@@ -542,7 +508,8 @@ let of_sort: t => sort =
   | E_Roll
   | T_Unroll
   | E_Unroll => Recursive
-  | A_Subsumption => A_Subsumption
+  | A_Subsumption
+  | A_Subsumption_GT => A_Subsumption
   | E_Val => E_Val
   | Assumption
   | And_I
@@ -566,7 +533,8 @@ type version =
   | ALFpBD
   | ALFA
   | ALFArec
-  | ALFArecTV;
+  | ALFArecTV
+  | GradualALFA;
 
 let of_version: t => version =
   fun
@@ -688,9 +656,67 @@ let of_version: t => version =
   | V_Roll
   | T_Unroll
   | E_Roll
-  | E_Unroll => ALFArec;
+  | E_Unroll => ALFArec
+  | C_Refl
+  | C_UnkL
+  | C_UnkR
+  | C_Sum
+  | C_Prod
+  | C_Arrow
+  | MS_Hole
+  | MS_Sum
+  | MP_Hole
+  | MP_Prod
+  | MA_Hole
+  | MA_Arrow
+  | S_Hole
+  | A_Subsumption_GT
+  | S_If_GT
+  | S_PrjL_GT
+  | S_PrjR_GT
+  | A_Pair_GT
+  | S_LetPair_GT
+  | A_LetPair_GT
+  | A_InjL_GT
+  | A_InjR_GT
+  | A_Case_GT
+  | S_Case_GT
+  | A_FunAnn_GT
+  | A_Fun_GT
+  | S_Ap_GT => GradualALFA;
 
 let all: list(t) = [
+  // Gradual Typing
+  // - Type consistency
+  C_Refl,
+  C_UnkL,
+  C_UnkR,
+  C_Sum,
+  C_Prod,
+  C_Arrow,
+  // - Type Matched
+  MS_Hole,
+  MS_Sum,
+  MP_Hole,
+  MP_Prod,
+  MA_Hole,
+  MA_Arrow,
+  // - Gradual Typing Rules
+  S_Hole,
+  A_Subsumption_GT,
+  S_If_GT,
+  S_PrjL_GT,
+  S_PrjR_GT,
+  A_Pair_GT,
+  S_LetPair_GT,
+  A_LetPair_GT,
+  A_InjL_GT,
+  A_InjR_GT,
+  A_Case_GT,
+  S_Case_GT,
+  A_FunAnn_GT,
+  A_Fun_GT,
+  S_Ap_GT,
   A_Subsumption,
   // Type Validity
   TV_Num,
@@ -838,6 +864,8 @@ let keywords: t => list(string) =
     (show(rule) |> String.split_on_char('_'))
     @ (
       switch (of_kind(rule)) {
+      | TypeConsistency => ["Type", "Consistency", "consist", "tc", "cons"]
+      | TypeMatched => ["Type", "Matched", "match", "tm", "mat"]
       | TypeValidity => ["Type", "Validity", "typ", "tv", "val"]
       | Synthesis => ["Synthesis", "syn"]
       | Analysis => ["Analysis", "ana"]

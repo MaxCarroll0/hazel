@@ -201,6 +201,12 @@ and drv_to_info_map =
     | Eval(e1, e2) => m |> go_exp'(e1) |> snd |> go_exp'(e2) |> snd |> add'
     | Entail(ctx, p) =>
       m |> go_exp(ctx, ~ty=Ctx) |> snd |> go_exp(p, ~ty=Prop) |> snd |> add'
+    | Consistent(t1, t2) =>
+      m |> go_typ(t1) |> snd |> go_typ(t2) |> snd |> add'
+    | MatchedArrow(t1, t2)
+    | MatchedProd(t1, t2)
+    | MatchedSum(t1, t2) =>
+      m |> go_typ(t1) |> snd |> go_typ(t2) |> snd |> add'
     | Ctx(es) =>
       List.fold_left((m, e) => m |> go_exp(e, ~ty=Prop) |> snd, m, es)
       |> add'
@@ -253,6 +259,7 @@ and drv_to_info_map =
     | InjR
     | Roll
     | Unroll => m |> add'
+    | ExpHole => m |> add'
     | Case(e, [(p1, e1), (p2, e2)]) =>
       let m = m |> go_exp'(e) |> snd;
       let m = m |> go_pat(p1, ~expect=Ap_InjL) |> snd;
@@ -317,6 +324,7 @@ and drv_to_info_map =
       | Var(_) => m
       | Rec(p, t) => m |> go_tpat(p) |> snd |> go_typ(t) |> snd
       | Parens(t) => m |> go_typ(t) |> snd
+      | TypHole => m
       };
     add(Typ(typ), info, m);
   }

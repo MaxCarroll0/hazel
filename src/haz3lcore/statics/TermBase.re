@@ -1341,6 +1341,10 @@ and ALFA_Exp: {
     | Val(t)
     | Eval(t, t)
     | Entail(t, t)
+    | Consistent(ALFA_Typ.t, ALFA_Typ.t)
+    | MatchedArrow(ALFA_Typ.t, ALFA_Typ.t)
+    | MatchedProd(ALFA_Typ.t, ALFA_Typ.t)
+    | MatchedSum(ALFA_Typ.t, ALFA_Typ.t)
     // Ctx
     | Ctx(list(t))
     | Cons(t, t)
@@ -1379,6 +1383,7 @@ and ALFA_Exp: {
     | Case(t, list((ALFA_Pat.t, t)))
     | Roll
     | Unroll
+    | ExpHole
   and t = IdTagged.t(term);
 
   let map_term:
@@ -1405,6 +1410,10 @@ and ALFA_Exp: {
     | Val(t)
     | Eval(t, t)
     | Entail(t, t)
+    | Consistent(ALFA_Typ.t, ALFA_Typ.t)
+    | MatchedArrow(ALFA_Typ.t, ALFA_Typ.t)
+    | MatchedProd(ALFA_Typ.t, ALFA_Typ.t)
+    | MatchedSum(ALFA_Typ.t, ALFA_Typ.t)
     // Ctx
     | Ctx(list(t))
     | Cons(t, t)
@@ -1443,6 +1452,7 @@ and ALFA_Exp: {
     | Case(t, list((ALFA_Pat.t, t)))
     | Roll
     | Unroll
+    | ExpHole
   and t = IdTagged.t(term);
 
   let map_term =
@@ -1470,6 +1480,14 @@ and ALFA_Exp: {
         | Val(e) => Val(exp_map_term(e))
         | Eval(e1, e2) => Eval(exp_map_term(e1), exp_map_term(e2))
         | Entail(e1, e2) => Entail(exp_map_term(e1), exp_map_term(e2))
+        | Consistent(t1, t2) =>
+          Consistent(typ_map_term(t1), typ_map_term(t2))
+        | MatchedArrow(t1, t2) =>
+          MatchedArrow(typ_map_term(t1), typ_map_term(t2))
+        | MatchedProd(t1, t2) =>
+          MatchedProd(typ_map_term(t1), typ_map_term(t2))
+        | MatchedSum(t1, t2) =>
+          MatchedSum(typ_map_term(t1), typ_map_term(t2))
         | Ctx(e) => Ctx(List.map(exp_map_term, e))
         | Cons(e1, e2) => Cons(exp_map_term(e1), exp_map_term(e2))
         | Concat(e1, e2) => Concat(exp_map_term(e1), exp_map_term(e2))
@@ -1515,6 +1533,7 @@ and ALFA_Exp: {
           )
         | Roll => Roll
         | Unroll => Unroll
+        | ExpHole => ExpHole
         },
     };
     x |> f_exp(rec_call);
@@ -1537,6 +1556,18 @@ and ALFA_Exp: {
     | (Entail(e11, e12), Entail(e21, e22)) =>
       ALFA_Exp.fast_equal(e11, e21) && ALFA_Exp.fast_equal(e12, e22)
     | (Entail(_), _) => false
+    | (Consistent(t11, t12), Consistent(t21, t22)) =>
+      ALFA_Typ.fast_equal(t11, t21) && ALFA_Typ.fast_equal(t12, t22)
+    | (Consistent(_), _) => false
+    | (MatchedArrow(t11, t12), MatchedArrow(t21, t22)) =>
+      ALFA_Typ.fast_equal(t11, t21) && ALFA_Typ.fast_equal(t12, t22)
+    | (MatchedArrow(_), _) => false
+    | (MatchedProd(t11, t12), MatchedProd(t21, t22)) =>
+      ALFA_Typ.fast_equal(t11, t21) && ALFA_Typ.fast_equal(t12, t22)
+    | (MatchedProd(_), _) => false
+    | (MatchedSum(t11, t12), MatchedSum(t21, t22)) =>
+      ALFA_Typ.fast_equal(t11, t21) && ALFA_Typ.fast_equal(t12, t22)
+    | (MatchedSum(_), _) => false
     | (Ctx(es1), Ctx(es2)) =>
       List.length(es1) == List.length(es2)
       && List.for_all2(ALFA_Exp.fast_equal, es1, es2)
@@ -1644,6 +1675,8 @@ and ALFA_Exp: {
     | (Roll, _) => false
     | (Unroll, Unroll) => true
     | (Unroll, _) => false
+    | (ExpHole, ExpHole) => true
+    | (ExpHole, _) => false
     };
 }
 and ALFA_Rul: {
@@ -1820,6 +1853,7 @@ and ALFA_Typ: {
     | Var(Var.t)
     | Rec(ALFA_TPat.t, t)
     | Parens(t)
+    | TypHole
   and t = IdTagged.t(term);
 
   let map_term:
@@ -1846,6 +1880,7 @@ and ALFA_Typ: {
     | Var(Var.t)
     | Rec(ALFA_TPat.t, t)
     | Parens(t)
+    | TypHole
   and t = IdTagged.t(term);
 
   let map_term = (~f_hazel_pat=continue, ~f_typ=continue, ~f_tpat=continue, x) => {
@@ -1866,6 +1901,7 @@ and ALFA_Typ: {
         | Var(v) => Var(v)
         | Rec(tp, t) => Rec(tpat_map_term(tp), typ_map_term(t))
         | Parens(t) => Parens(typ_map_term(t))
+        | TypHole => TypHole
         },
     };
     x |> f_typ(rec_call);
@@ -1898,6 +1934,8 @@ and ALFA_Typ: {
     | (Rec(_), _) => false
     | (Parens(t1), Parens(t2)) => ALFA_Typ.fast_equal(t1, t2)
     | (Parens(_), _) => false
+    | (TypHole, TypHole) => true
+    | (TypHole, _) => false
     };
 }
 and ALFA_TPat: {

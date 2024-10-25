@@ -223,10 +223,16 @@ let atomic_forms: list((string, (string => bool, list(Mold.t)))) = [
     "explicit_hole",
     (
       is_explicit_hole,
-      [mk_op(Exp, []), mk_op(Pat, []), mk_op(Typ, []), mk_op(TPat, [])],
+      [
+        mk_op(Exp, []),
+        mk_op(Pat, []),
+        mk_op(Typ, []),
+        mk_op(TPat, []),
+        mk_op(Drv(Typ), []),
+      ],
     ),
   ),
-  ("wild", (is_wild, [mk_op(Pat, [])])),
+  ("wild", (is_wild, [mk_op(Pat, []), mk_op(Drv(Exp), [])])),
   ("string", (is_string, [mk_op(Exp, []), mk_op(Pat, [])])),
   (
     "int_lit",
@@ -405,6 +411,38 @@ let forms: list((string, t)) = [
   ("eval", mk_infix("\\=/", Drv(Exp), P.min)),
   ("entail", mk_infix("|-", Drv(Exp), P.min)),
   ("unary_entail", mk(ss, ["|-"], mk_pre(P.min, Drv(Exp), []))),
+  (
+    "consistent",
+    mk(
+      ds,
+      ["consistent", "~"],
+      mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
+    ),
+  ),
+  (
+    "matched_arrow",
+    mk(
+      ds,
+      ["matched_arrow", "=>"],
+      mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
+    ),
+  ),
+  (
+    "matched_prod",
+    mk(
+      ds,
+      ["matched_prod", "=>"],
+      mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
+    ),
+  ),
+  (
+    "matched_sum",
+    mk(
+      ds,
+      ["matched_sum", "=>"],
+      mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
+    ),
+  ),
   // Drv(Ctx)
   ("alfa_exp_list", mk(ii, ["[", "]"], mk_op(Drv(Exp), [Drv(Exp)]))),
   ("alfa_cons", mk_infix(",", Drv(Exp), P.comma)),

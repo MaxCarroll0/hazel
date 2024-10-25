@@ -20,6 +20,10 @@ and elab_jdmt: Drv.Exp.t => t =
       | Val(e) => Val(elab_exp(e))
       | Eval(e1, e2) => Eval(elab_exp(e1), elab_exp(e2))
       | Entail(ctx, p) => Entail(elab_ctxt(ctx), elab_prop(p))
+      | Consistent(t1, t2) => Consistent(elab_typ(t1), elab_typ(t2))
+      | MatchedArrow(t1, t2) => MatchedArrow(elab_typ(t1), elab_typ(t2))
+      | MatchedProd(t1, t2) => MatchedProd(elab_typ(t1), elab_typ(t2))
+      | MatchedSum(t1, t2) => MatchedSum(elab_typ(t1), elab_typ(t2))
       | _ => Hole(Drv.Exp.show(jdmt))
       };
     {...jdmt, term};
@@ -136,6 +140,7 @@ and elab_exp: Drv.Exp.t => t =
         };
       | Roll => hole
       | Unroll => hole
+      | ExpHole => ExpHole
       | _ => hole
       };
     {...exp, term};
@@ -169,6 +174,7 @@ and elab_typ: Drv.Typ.t => t =
       | Sum(t1, t2) => Sum(elab_typ(t1), elab_typ(t2))
       | Var(x) => TVar(x)
       | Rec(x, t) => Rec(elab_tpat(x), elab_typ(t))
+      | TypHole => TypHole
       | Parens(t) => IdTagged.term_of(elab_typ(t))
       };
     {...typ, term};

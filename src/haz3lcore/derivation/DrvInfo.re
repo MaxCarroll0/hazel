@@ -156,7 +156,11 @@ let types_of_exp = (exp: Drv.Exp.t): list(ty_merged) =>
   | Tuple(_) => []
   | Val(_)
   | Eval(_)
-  | Entail(_) => [Jdmt]
+  | Entail(_)
+  | Consistent(_)
+  | MatchedArrow(_)
+  | MatchedProd(_)
+  | MatchedSum(_) => [Jdmt]
   | Ctx(_)
   | Cons(_)
   | Concat(_) => [Ctx]
@@ -187,7 +191,8 @@ let types_of_exp = (exp: Drv.Exp.t): list(ty_merged) =>
   | Triv
   | PrjL(_)
   | PrjR(_)
-  | Case(_) => [Exp, Arrow]
+  | Case(_)
+  | ExpHole => [Exp, Arrow]
   | InjL
   | InjR
   | Roll
