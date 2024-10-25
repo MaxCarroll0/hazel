@@ -520,13 +520,13 @@ let forms: list((string, t)) = [
   ("exp_pair", mk_infix(",", Drv(Exp), P.comma)),
   ("exp_prjl", mk(ii, [".fst"], mk_post(P.ap, Drv(Exp), []))),
   ("exp_prjr", mk(ii, [".snd"], mk_post(P.ap, Drv(Exp), []))),
-  ("alfa_case", mk(ds, ["case", "end"], mk_op(Drv(Exp), [Drv(Rul)]))),
+  ("alfa_case", mk(ds, ["case", "end"], mk_op(Drv(Exp), [Drv(Exp)]))),
   (
     "alfa_rule",
     mk(
       ds,
       ["|", "=>"],
-      mk_bin'(P.rule_sep, Drv(Rul), Drv(Exp), [Drv(Pat)], Drv(Exp)),
+      mk_bin'(P.rule_sep, Drv(Exp), Drv(Exp), [Drv(Pat)], Drv(Exp)),
     ),
   ),
   // Drv(Pat)

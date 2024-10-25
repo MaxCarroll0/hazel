@@ -168,9 +168,9 @@ let rec go_s = (s: Sort.t, skel: Skel.t, seg: Segment.t): Term.Any.t =>
       switch (drv) {
       | Jdmt
       | Ctx
+      | Rul
       | Prop => failwith("unexpected drv sort")
       | Exp => Exp(alfa_exp(unsorted(skel, seg)))
-      | Rul => Rul(alfa_rul(unsorted(skel, seg)))
       | Pat => Pat(alfa_pat(unsorted(skel, seg)))
       | Typ => Typ(alfa_typ(unsorted(skel, seg)))
       | TPat => TPat(alfa_tpat(unsorted(skel, seg)))
@@ -236,10 +236,12 @@ and alfa_exp_term: unsorted => (Drv.Exp.term, list(Id.t)) = {
       }
     | (["(", ")"], [Drv(Exp(body))]) => ret(Parens(body))
     | (["{", "}"], [Pat(var)]) => ret(Abbr(var))
-    | (["case", "end"], [Drv(Rul({ids, term: Rules(scrut, rules), _}))]) => (
-        Case(scrut, rules),
-        ids,
-      )
+    | (["case", "end"], [Drv(Exp({term: Case(_) as term, _}))]) =>
+      ret(term)
+    // switch (body) {
+    // | {ids, copied: false, term: Case(_)} => ret(body.term)
+    // | term => ret(Ctx([term]))
+    // }
     | _ => ret(hole(tm))
     }
   | Bin(Drv(Exp(l)), ([(_id, ([t], []))], []), Drv(Exp(r))) as tm =>
@@ -263,7 +265,12 @@ and alfa_exp_term: unsorted => (Drv.Exp.term, list(Id.t)) = {
   | Bin(Drv(Exp(l)), tiles, Drv(Exp(r))) as tm =>
     switch (is_tuple_prop(tiles)) {
     | Some(between_kids) => ret(Tuple([l] @ between_kids @ [r]))
-    | None => ret(hole(tm))
+    | None =>
+      switch (is_alfa_rules(tiles)) {
+      | Some((ps, leading_clauses)) =>
+        ret(Case(l, List.combine(ps, leading_clauses @ [r])))
+      | None => ret(hole(tm))
+      }
     }
   | Bin(Drv(Exp(l)), ([(_id, ([t], []))], []), Drv(Typ(r))) as tm =>
     switch (t) {
@@ -301,28 +308,6 @@ and alfa_exp_term: unsorted => (Drv.Exp.term, list(Id.t)) = {
     | _ => ret(hole(tm))
     }
   | _ as tm => ret(hole(tm));
-}
-and alfa_rul = (unsorted: unsorted) => {
-  let hole = Drv.Rul.hole(kids_of_unsorted(unsorted));
-  switch (alfa_exp(unsorted)) {
-  | {term: Hole(MultiHole(any)), _} =>
-    // print_endline("alfa_rul: any: " ++ Any.show(List.hd(any)));
-    switch (unsorted) {
-    | Bin(Drv(Exp(scrut)), tiles, Drv(Exp(last_clause))) =>
-      // print_endline("alfa_rul: scrut: " ++ Drv.Exp.show(scrut));
-      switch (is_alfa_rules(tiles)) {
-      | Some((ps, leading_clauses)) => {
-          ids: ids(unsorted),
-          term:
-            Rules(scrut, List.combine(ps, leading_clauses @ [last_clause])),
-          copied: false,
-        }
-      | None => {ids: ids(unsorted), term: hole, copied: false}
-      };
-    | _ => {ids: ids(unsorted), term: hole, copied: false}
-    };
-  | _ => {ids: ids(unsorted), term: hole, copied: false}
-  };
 }
 and alfa_pat = unsorted => {
   let (term, inner_ids) = alfa_pat_term(unsorted);
