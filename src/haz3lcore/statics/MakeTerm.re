@@ -305,9 +305,11 @@ and alfa_exp_term: unsorted => (Drv.Exp.term, list(Id.t)) = {
 and alfa_rul = (unsorted: unsorted) => {
   let hole = Drv.Rul.hole(kids_of_unsorted(unsorted));
   switch (alfa_exp(unsorted)) {
-  | {term: Hole(MultiHole(_)), _} =>
+  | {term: Hole(MultiHole(any)), _} =>
+    // print_endline("alfa_rul: any: " ++ Any.show(List.hd(any)));
     switch (unsorted) {
     | Bin(Drv(Exp(scrut)), tiles, Drv(Exp(last_clause))) =>
+      // print_endline("alfa_rul: scrut: " ++ Drv.Exp.show(scrut));
       switch (is_alfa_rules(tiles)) {
       | Some((ps, leading_clauses)) => {
           ids: ids(unsorted),
@@ -316,9 +318,9 @@ and alfa_rul = (unsorted: unsorted) => {
           copied: false,
         }
       | None => {ids: ids(unsorted), term: hole, copied: false}
-      }
+      };
     | _ => {ids: ids(unsorted), term: hole, copied: false}
-    }
+    };
   | _ => {ids: ids(unsorted), term: hole, copied: false}
   };
 }

@@ -412,12 +412,20 @@ let forms: list((string, t)) = [
   ("entail", mk_infix("|-", Drv(Exp), P.min)),
   ("unary_entail", mk(ss, ["|-"], mk_pre(P.min, Drv(Exp), []))),
   (
+    "fake_consistent",
+    mk(ds, ["consistent", "~"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
+  ),
+  (
     "consistent",
     mk(
       ds,
       ["consistent", "~"],
       mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
     ),
+  ),
+  (
+    "fake_matched_arrow",
+    mk(ds, ["matched_arrow", "=>"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
   ),
   (
     "matched_arrow",
@@ -428,12 +436,20 @@ let forms: list((string, t)) = [
     ),
   ),
   (
+    "fake_matched_prod",
+    mk(ds, ["matched_prod", "=>"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
+  ),
+  (
     "matched_prod",
     mk(
       ds,
       ["matched_prod", "=>"],
       mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
     ),
+  ),
+  (
+    "fake_matched_sum",
+    mk(ds, ["matched_sum", "=>"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
   ),
   (
     "matched_sum",

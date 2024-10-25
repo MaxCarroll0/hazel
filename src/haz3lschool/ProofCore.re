@@ -1,5 +1,5 @@
 open Util;
-module Rule = Haz3lcore.Rule;
+module RuleImage = Haz3lcore.RuleImage;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type tree('a) = Tree.p('a);
@@ -48,11 +48,12 @@ type abbr_trees('a) = list(tree(abbr('a)));
 type model('code) = {
   prelude: 'code,
   setup: 'code,
+  version: RuleImage.version,
   trees: abbr_trees(deduction('code)),
 }
 and deduction('code) = {
   jdmt: 'code,
-  rule: option(Rule.t),
+  rule: option(RuleImage.t),
 };
 
 let map_jdmt = f => Abbr.map_just(d => {...d, jdmt: f(d.jdmt)});
@@ -68,12 +69,14 @@ module ModelUtil = {
   let map = (f: 'a => 'b, m: model('a)): model('b) => {
     prelude: f(m.prelude),
     setup: f(m.setup),
+    version: m.version,
     trees: m.trees |> List.map(Tree.map(map_jdmt(f))),
   };
 
   let mapi = (f: (pos, 'a) => 'b, m: model('a)): model('b) => {
     prelude: f(Prelude, m.prelude),
     setup: f(Setup, m.setup),
+    version: m.version,
     trees:
       m.trees
       |> List.mapi(i => Tree.mapi(pos => map_jdmt(f(Trees(i, pos))))),
@@ -141,6 +144,7 @@ module ModelUtil = {
   let init = (init: pos => 'a): model('a) => {
     prelude: Prelude |> init,
     setup: Setup |> init,
+    version: PropositionalLogic,
     trees: [
       Tree.empty(
         derivation_init_wrapper(init(Trees(0, Value)) |> Fun.const),
@@ -151,6 +155,7 @@ module ModelUtil = {
   let fill = (m: model('a), init: pos => 'b): model('b) => {
     prelude: init(Prelude),
     setup: init(Setup),
+    version: m.version,
     trees:
       m.trees
       |> List.mapi(i =>

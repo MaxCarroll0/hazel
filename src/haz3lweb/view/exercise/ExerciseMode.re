@@ -70,22 +70,29 @@ let view =
               let ed = Tree.nth(tree, pos);
               switch (ed, res) {
               | (Just({rule: Some(rule), _}), {rule: None, _}) =>
-                Some({
-                  ...res,
-                  rule:
-                    Some(
-                      {
-                        open Haz3lcore;
-                        print_endline("Uncaught Rule: " ++ Rule.show(rule));
-                        let spec = RuleSpec.of_spec(rule);
-                        let tests = RuleTest.of_tests(rule);
-                        let (spec, tests) =
-                          RuleVerify.fill_eq_tests(spec, tests);
-                        let tests = RuleVerify.test_remove_eq_test(tests);
-                        {rule, spec, tests};
-                      },
-                    ),
-                })
+                Haz3lcore.(
+                  switch (RuleImage.image(eds.version, rule)) {
+                  | Some(rule) =>
+                    Some({
+                      ...res,
+                      rule:
+                        Some(
+                          {
+                            print_endline(
+                              "Uncaught Rule: " ++ Rule.show(rule),
+                            );
+                            let spec = RuleSpec.of_spec(rule);
+                            let tests = RuleTest.of_tests(rule);
+                            let (spec, tests) =
+                              RuleVerify.fill_eq_tests(spec, tests);
+                            let tests = RuleVerify.test_remove_eq_test(tests);
+                            {rule, spec, tests};
+                          },
+                        ),
+                    })
+                  | _ => Some(res)
+                  }
+                )
               | _ => Some(res)
               };
             }) {

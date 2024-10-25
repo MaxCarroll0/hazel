@@ -76,7 +76,7 @@ let conclusion_view = (~spec: RuleSpec.t, ~color_map: ColorSteps.t) =>
 
 let rule_to_label =
   fun
-  | Some(rule) => Rule.repr(rule)
+  | Some(rule) => RuleImage.repr(rule)
   | None => "?";
 
 let label_view = (~label) =>
@@ -150,7 +150,12 @@ let rule_example_view =
     ~attrs=[Attr.class_("section"), Attr.class_("syntactic-form")],
     switch (rule) {
     | Some({spec: (concl, prems), tests, rule}) => [
-        premises_view(~specs=prems, ~tests, ~rule=Some(rule), ~color_map),
+        premises_view(
+          ~specs=prems,
+          ~tests,
+          ~rule=Some(RuleImage.to_image(rule)),
+          ~color_map,
+        ),
         conclusion_view(~spec=concl, ~color_map),
       ]
     | None => []

@@ -14,6 +14,7 @@ let exercise : Exercise.spec =
       model =
         Proof
           {
+            version = Haz3lcore.RuleImage.PropositionalLogic;
             prelude =
               "let a = atom(\"A\") in\n\
                let b = atom(\"B\") in\n\

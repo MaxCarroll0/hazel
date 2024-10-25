@@ -446,6 +446,7 @@ let of_tests: Rule.t => list(t) = {
     // Evaluation
     | E_If_T => []
     | E_If_F => []
+    | E_Num => []
     | E_Neg => [Eq(n', Neg(n))]
     | E_Plus => [Eq(n', Plus(n1, n2))]
     | E_Minus => [Eq(n', Minus(n1, n2))]

@@ -23,7 +23,7 @@ module FakeCode = {
 
 type view_info = (pos, VerifiedTree.info, ed)
 and ed =
-  | Just(option(Rule.t), Editor.t, Exercise.DynamicsItem.t)
+  | Just(option(RuleImage.t), Editor.t, Exercise.DynamicsItem.t)
   | Abbr(option(int));
 
 let proof_view =
@@ -139,7 +139,7 @@ let proof_view =
 
   let rule_to_label =
     fun
-    | Some(rule) => Rule.repr(rule)
+    | Some(rule) => RuleImage.repr(rule)
     | None => "?";
 
   let abbr_to_label = index =>
@@ -561,5 +561,45 @@ let proof_view =
       ~footer=[],
     );
 
-  [prelude_view, setup_view, derivations_view];
+  let option_view = (name, n) =>
+    option(
+      ~attrs=n == name ? [Attr.create("selected", "selected")] : [],
+      [text(n)],
+    );
+
+  let version_view =
+    div(
+      ~attrs=[Attr.class_("version-name"), Attr.title("Toggle Version")],
+      [
+        div(~attrs=[Attr.class_("version-label")], [text("Version: ")]),
+        select(
+          ~attrs=[
+            Attr.on_change((_, name) =>
+              inject(
+                UpdateAction.MapExercise(
+                  m =>
+                    switch (m.model) {
+                    | Proof(m') => {
+                        ...m,
+                        model:
+                          Proof({
+                            ...m',
+                            version: RuleImage.version_of_string(name),
+                          }),
+                      }
+                    | _ => m
+                    },
+                ),
+              )
+            ),
+          ],
+          List.map(
+            option_view(RuleImage.show_version(eds.version)),
+            RuleImage.all_of_version |> List.map(RuleImage.show_version),
+          ),
+        ),
+      ],
+    );
+
+  [version_view, prelude_view, setup_view, derivations_view];
 };

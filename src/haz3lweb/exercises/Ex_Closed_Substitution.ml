@@ -13,6 +13,7 @@ let exercise : Exercise.spec =
     model =
       Proof
         {
+          version = Haz3lcore.RuleImage.ALF;
           prelude =
             {
               selection = { focus = Left; content = []; mode = Normal };

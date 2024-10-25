@@ -14,6 +14,7 @@ let exercise : Exercise.spec =
       model =
         Proof
           {
+            version = Haz3lcore.RuleImage.GradualALFA;
             prelude = "";
             setup = "";
             trees = [ Node (Just { jdmt = ""; rule = None }, []) ];

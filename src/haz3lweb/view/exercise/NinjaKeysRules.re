@@ -22,7 +22,7 @@ let map_model = (f, state: Exercise.state): Exercise.state => {
     },
 };
 
-let update_rule: Haz3lcore.Rule.t => UpdateAction.t =
+let update_rule: Haz3lcore.RuleImage.t => UpdateAction.t =
   rule =>
     UpdateAction.MapExercise(
       map_model(
@@ -35,7 +35,7 @@ let update_rule: Haz3lcore.Rule.t => UpdateAction.t =
  */
 
 let from_rule =
-    (schedule_action: UpdateAction.t => unit, rule: Haz3lcore.Rule.t)
+    (schedule_action: UpdateAction.t => unit, rule: Haz3lcore.RuleImage.t)
     : {
         .
         "handler": Js.readonly_prop(unit => unit),
@@ -46,19 +46,23 @@ let from_rule =
       } => {
   [%js
    {
-     val id = Haz3lcore.Rule.show(rule);
-     val title = Haz3lcore.Rule.show(rule);
+     val id = Haz3lcore.RuleImage.show(rule);
+     val title = Haz3lcore.RuleImage.show(rule);
      val section =
        Js.Optdef.option(
-         Some(Haz3lcore.Rule.show_kind(Haz3lcore.Rule.of_kind(rule))),
+         Some(
+           Haz3lcore.RuleImage.show_kind(Haz3lcore.RuleImage.of_kind(rule)),
+         ),
        );
      val handler = () => update_rule(rule) |> schedule_action;
-     val keywords = Haz3lcore.Rule.keywords(rule) |> String.concat(" ")
+     val keywords = Haz3lcore.RuleImage.keywords(rule) |> String.concat(" ")
    }];
 };
 
 let options = (schedule_action: UpdateAction.t => unit) =>
-  Array.of_list(List.map(from_rule(schedule_action), Haz3lcore.Rule.all));
+  Array.of_list(
+    List.map(from_rule(schedule_action), Haz3lcore.RuleImage.all),
+  );
 
 let elem = () => JsUtil.get_elem_by_id("ninja-keys-rules");
 

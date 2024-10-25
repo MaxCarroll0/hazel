@@ -271,9 +271,9 @@ let repr = (~sp: string=" ", p: int, syntax: t): Aba.t(string, t) => {
         ? "·" |> op_sg : List.init(List.length(ctx) - 1, _ => ",") |> bin
     | Entail(_) => "⊢" |> bin_sg
     | Consistent(_) => "~" |> bin_sg
-    | MatchedArrow(_) => "▶→" |> bin_sg
-    | MatchedProd(_) => "▶×" |> bin_sg
-    | MatchedSum(_) => "▶+" |> bin_sg
+    | MatchedArrow(_) => "▸→" |> bin_sg
+    | MatchedProd(_) => "▸×" |> bin_sg
+    | MatchedSum(_) => "▸+" |> bin_sg
     | NumLit(i) => string_of_int(i) |> op_sg
     | Val(_) => "val" |> post_sg
     | Neg(_) => "-" |> pre_sg

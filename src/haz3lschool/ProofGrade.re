@@ -5,6 +5,7 @@ module ExternalError = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t =
     | NoRule
+    | NotAvailable
     | NoAbbr
     | PremiseNotReady
     | NotAJudgment
@@ -18,6 +19,7 @@ module ExternalError = {
   let show =
     fun
     | NoRule => "Rule not specified"
+    | NotAvailable => "Rule not available, try other rules or change version"
     | NoAbbr => "Abbreviation not specified"
     | PremiseNotReady => "Premise(s) not ready"
     | NotAJudgment => "Conclusion not a judgement"
@@ -112,6 +114,7 @@ module F = (ExerciseEnv: Exercise.ExerciseEnv) => {
 
     let verify_single =
         (
+          version: RuleImage.version,
           acc: list((tree(info), option(DrvSyntax.t))),
           concl: abbr(ProofTree.res),
           prems: list((tree(info), option(DrvSyntax.t))),
@@ -124,24 +127,28 @@ module F = (ExerciseEnv: Exercise.ExerciseEnv) => {
         | Just(Error(exn)) => {res: Pending(exn), rule: None}
         | Just(Ok({rule: None, _})) => {res: Pending(NoRule), rule: None}
         | Just(Ok({rule: Some(rule), jdmt: concl})) =>
-          let spec = RuleSpec.of_spec(rule);
-          let tests = RuleTest.of_tests(rule);
-          let (spec, tests) = RuleVerify.fill_eq_tests(spec, tests);
-          let res =
-            if (List.for_all(Option.is_some, prems)) {
-              let prems = prems |> List.map(Option.get);
-              let res = RuleVerify.verify(spec, tests, (concl, prems));
-              switch (res) {
-              | [] => Correct
-              // Note(zhiyao): we only show the first failure
-              // i.e. the last one in the list
-              | _ => Incorrect(res |> List.rev |> List.hd)
+          switch (RuleImage.image(version, rule)) {
+          | None => {res: Pending(NotAvailable), rule: None}
+          | Some(rule) =>
+            let spec = RuleSpec.of_spec(rule);
+            let tests = RuleTest.of_tests(rule);
+            let (spec, tests) = RuleVerify.fill_eq_tests(spec, tests);
+            let res =
+              if (List.for_all(Option.is_some, prems)) {
+                let prems = prems |> List.map(Option.get);
+                let res = RuleVerify.verify(spec, tests, (concl, prems));
+                switch (res) {
+                | [] => Correct
+                // Note(zhiyao): we only show the first failure
+                // i.e. the last one in the list
+                | _ => Incorrect(res |> List.rev |> List.hd)
+                };
+              } else {
+                Pending(PremiseNotReady);
               };
-            } else {
-              Pending(PremiseNotReady);
-            };
-          let tests = RuleVerify.test_remove_eq_test(tests);
-          {res, rule: Some({rule, spec, tests})};
+            let tests = RuleVerify.test_remove_eq_test(tests);
+            {res, rule: Some({rule, spec, tests})};
+          }
         };
       let concl =
         switch (concl) {
@@ -152,13 +159,14 @@ module F = (ExerciseEnv: Exercise.ExerciseEnv) => {
       (Tree.Node(res, sub_trees), concl);
     };
 
-    let verify =
+    let verify = version =>
       List.fold_left(
-        (acc, tree) => acc @ [Tree.fold_deep(verify_single(acc), tree)],
+        (acc, tree) =>
+          acc @ [Tree.fold_deep(verify_single(version, acc), tree)],
         [],
       );
 
-    let verify = ts => ts |> verify |> List.map(fst);
+    let verify = (version, ts) => ts |> verify(version) |> List.map(fst);
   };
 
   module ProofReport = {
@@ -212,7 +220,7 @@ module F = (ExerciseEnv: Exercise.ExerciseEnv) => {
     let mk =
         (eds: model(Editor.t), stitch_dynamic: stitched(DynamicsItem.t)): t => {
       let proof_tree = ProofTree.mk(eds, stitch_dynamic);
-      let verified_tree = VerifiedTree.verify(proof_tree);
+      let verified_tree = VerifiedTree.verify(eds.version, proof_tree);
       let combined_tree =
         List.map2(Tree.combine, proof_tree, verified_tree)
         |> List.map(

@@ -510,6 +510,7 @@ let of_spec = (rule: Rule.t): (t, list(t)) => {
     | T_Num => (has(gamma, NumLit(n), Num), [])
     | S_Num => (syn(gamma, NumLit(n), Num), [])
     | V_Num => (val_(NumLit(n)), [])
+    | E_Num => (eval(NumLit(n), NumLit(n)), [])
     | T_Neg => (has(gamma, Neg(e), Num), [has(gamma, e, Num)])
     | S_Neg => (syn(gamma, Neg(e), Num), [ana(gamma, e, Num)])
     | E_Neg => (eval(Neg(e), NumLit(n')), [eval(e, NumLit(n))])
