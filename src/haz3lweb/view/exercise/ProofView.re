@@ -572,8 +572,12 @@ let proof_view =
       ~attrs=[Attr.class_("version-name"), Attr.title("Toggle Version")],
       [
         div(~attrs=[Attr.class_("version-label")], [text("Version: ")]),
+        text(Unicode.nbsp),
+        text(RuleImage.show_version(eds.version)),
+        text(Unicode.nbsp),
         select(
           ~attrs=[
+            Attr.class_("version-select"),
             Attr.on_change((_, name) =>
               inject(
                 UpdateAction.MapExercise(

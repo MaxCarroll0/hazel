@@ -546,3 +546,14 @@
   display: flex;
   padding-left: 1.2em;
 }
+
+.version-select {
+  border-radius: 2rem;
+  color: transparent;
+  width: 1.2rem;
+  background: var(--BR1);
+}
+
+.version-select:hover {
+  background: var(--BR2);
+}
