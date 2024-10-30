@@ -527,6 +527,7 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
         );
       Model.save_and_return({...model, editors});
     | SwitchScratchSlide(n) =>
+      Model.save(model);
       let instructor_mode = model.settings.instructor_mode;
       switch (
         switch_scratch_slide(
@@ -547,7 +548,7 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
     | MapExercise(f) =>
       switch (map_exercise(model.editors, ~f)) {
       | None => Error(FailedToSwitch)
-      | Some(editors) => Ok({...model, editors})
+      | Some(editors) => Model.save_and_return({...model, editors})
       }
     | SwitchEditor(pos) =>
       let instructor_mode = model.settings.instructor_mode;
