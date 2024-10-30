@@ -156,11 +156,19 @@ module F = (ExerciseEnv: ExerciseEnv) => {
          ),
   };
 
-  let editor_of_serialization = (zipper: Zipper.t, ~settings: CoreSettings.t) =>
-    Editor.init(zipper, ~settings, ~sort=Exp);
+  let editor_of_serialization =
+      (zipper: Zipper.t, ~settings: CoreSettings.t, ~sort) =>
+    Editor.init(zipper, ~settings, ~sort);
 
   let eds_of_spec = (~settings: CoreSettings.t, {model, _}: spec) =>
-    model |> ModelUtil.map(editor_of_serialization(~settings));
+    model
+    |> ModelUtil.mapi((pos, z) =>
+         editor_of_serialization(
+           z,
+           ~settings,
+           ~sort=ModelUtil.root_sort(pos),
+         )
+       );
 
   let switch_editor = (~pos: pos, instructor_mode, ~state: state) =>
     if (ModelUtil.switch_editor(pos, instructor_mode)) {
