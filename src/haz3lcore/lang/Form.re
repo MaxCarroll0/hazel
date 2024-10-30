@@ -425,37 +425,37 @@ let forms: list((string, t)) = [
   ),
   (
     "fake_matched_arrow",
-    mk(ds, ["matched_arrow", "=>"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
+    mk(ds, ["matched_arrow", "with"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
   ),
   (
     "matched_arrow",
     mk(
       ds,
-      ["matched_arrow", "=>"],
+      ["matched_arrow", "with"],
       mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
     ),
   ),
   (
     "fake_matched_prod",
-    mk(ds, ["matched_prod", "=>"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
+    mk(ds, ["matched_prod", "with"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
   ),
   (
     "matched_prod",
     mk(
       ds,
-      ["matched_prod", "=>"],
+      ["matched_prod", "with"],
       mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
     ),
   ),
   (
     "fake_matched_sum",
-    mk(ds, ["matched_sum", "=>"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
+    mk(ds, ["matched_sum", "with"], mk_pre(P.fun_, Exp, [Drv(Typ)])),
   ),
   (
     "matched_sum",
     mk(
       ds,
-      ["matched_sum", "=>"],
+      ["matched_sum", "with"],
       mk_pre'(P.fun_, Drv(Exp), Drv(Exp), [Drv(Typ)], Drv(Typ)),
     ),
   ),

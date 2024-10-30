@@ -295,9 +295,9 @@ and alfa_exp_term: unsorted => (Drv.Exp.term, list(Id.t)) = {
   | Pre(([(_id, (labels, [Drv(Typ(l))]))], []), Drv(Typ(r))) as tm =>
     switch (labels) {
     | ["consistent", "~"] => ret(Consistent(l, r))
-    | ["matched_arrow", "=>"] => ret(MatchedArrow(l, r))
-    | ["matched_prod", "=>"] => ret(MatchedProd(l, r))
-    | ["matched_sum", "=>"] => ret(MatchedSum(l, r))
+    | ["matched_arrow", "with"] => ret(MatchedArrow(l, r))
+    | ["matched_prod", "with"] => ret(MatchedProd(l, r))
+    | ["matched_sum", "with"] => ret(MatchedSum(l, r))
     | _ => ret(hole(tm))
     }
   | Post(Drv(Exp(l)), ([(_id, t)], [])) as tm =>
