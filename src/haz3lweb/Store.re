@@ -115,7 +115,7 @@ module Scratch = {
   type persistent = PersistentData.scratch;
 
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type t = (int, list(Editor.t), ModelResults.M.t(ModelResult.t));
+  type t = (int, list(ScratchSlide.state), ModelResults.M.t(ModelResult.t));
 
   let to_persistent = ((idx, slides, results)): persistent => (
     idx,
@@ -184,7 +184,7 @@ module Documentation = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t = (
     string,
-    list((string, Editor.t)),
+    list((string, ScratchSlide.state)),
     ModelResults.M.t(ModelResult.t),
   );
 
@@ -197,19 +197,49 @@ module Documentation = {
     (name, Editor.init(zipper, ~read_only=false, ~settings));
   };
 
-  let to_persistent = ((string, slides, results)): persistent => (
-    string,
-    List.map(persist, slides),
+  let to_persistent = ((doc_name, slides, results)): persistent => (
+    doc_name,
+    List.map(
+      ((name, editor): (string, Editor.t)) => {
+        let persistent_slide: ScratchSlide.persistent_state = {
+          title: name,
+          description: "Description for " ++ name,
+          hidden_tests: {
+            tests: PersistentZipper.persist(editor.state.zipper),
+            hints: [],
+          },
+        };
+        (name, persistent_slide);
+      },
+      slides,
+    ),
     results
     |> ModelResults.map(ModelResult.to_persistent)
     |> ModelResults.bindings,
   );
 
   let of_persistent =
-      (~settings: CoreSettings.t, (string, slides, results): persistent): t => {
+      (~settings: CoreSettings.t, (id, slides, results): persistent): t => {
+    let convert_to_editor_tuple =
+        ((name, slide): (string, ScratchSlide.persistent_state))
+        : (string, ScratchSlide.state) => {
+      let zipper = PersistentZipper.unpersist(slide.hidden_tests.tests);
+      let editor = Editor.init(zipper, ~read_only=false, ~settings);
+
+      let state: ScratchSlide.state = {
+        title: slide.title,
+        description: slide.description,
+        hidden_tests: {
+          tests: editor,
+          hints: slide.hidden_tests.hints,
+        },
+      };
+      (name, state);
+    };
+
     (
-      string,
-      List.map(unpersist(~settings), slides),
+      id,
+      List.map(convert_to_editor_tuple, slides),
       results
       |> List.to_seq
       |> ModelResults.of_seq
@@ -220,7 +250,21 @@ module Documentation = {
   };
 
   let serialize = (slides: t): string => {
-    slides |> to_persistent |> sexp_of_persistent |> Sexplib.Sexp.to_string;
+    let (id, slides_with_ids, results) = slides;
+
+    let slides_as_editors =
+      List.map(
+        ((name, slide: ScratchSlide.state)) => {
+          let editor = slide.hidden_tests.tests;
+          (name, editor);
+        },
+        slides_with_ids,
+      );
+
+    (id, slides_as_editors, results)
+    |> to_persistent
+    |> sexp_of_persistent
+    |> Sexplib.Sexp.to_string;
   };
 
   let deserialize = (~settings: CoreSettings.t, data: string): t => {

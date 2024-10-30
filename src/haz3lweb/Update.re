@@ -318,20 +318,57 @@ let switch_exercise_editor =
    state. The latter is intentional as we don't want to persist
    this between users. The former is a TODO, currently difficult
    due to the more complex architecture of Exercises. */
+let to_persistent_documentation =
+    (docs: Store.Documentation.t): PersistentData.documentation => {
+  let (doc_name, slides_with_ids, results) = docs;
+
+  let convert_slide =
+      (slide: ScratchSlide.state): ScratchSlide.persistent_state => {
+    {
+      title: slide.title,
+      description: slide.description,
+      hidden_tests:
+        // Persisting the tests correctly
+        {
+          tests:
+            PersistentZipper.persist(slide.hidden_tests.tests.state.zipper),
+          hints: slide.hidden_tests.hints,
+        },
+    };
+  };
+
+  let persistent_slides =
+    List.map(
+      ((id, slide): (string, ScratchSlide.state)) =>
+        (id, convert_slide(slide)),
+      slides_with_ids,
+    );
+
+  let persistent_results =
+    ModelResults.bindings(results)
+    |> List.map(((key, result)) =>
+         (key, ModelResult.to_persistent(result))
+       );
+
+  (doc_name, persistent_slides, persistent_results);
+};
+
 let export_persistent_data = () => {
-  // TODO Is this parsing and reserializing?
   let settings = Store.Settings.load();
+
   let data: PersistentData.t = {
     documentation:
       Store.Documentation.load(~settings=settings.core)
-      |> Store.Documentation.to_persistent,
+      |> to_persistent_documentation,
     scratch:
       Store.Scratch.load(~settings=settings.core)
       |> Store.Scratch.to_persistent,
     settings,
   };
+
   let contents =
     "let startup : PersistentData.t = " ++ PersistentData.show(data);
+
   JsUtil.download_string_file(
     ~filename="Init.ml",
     ~content_type="text/plain",
@@ -339,8 +376,19 @@ let export_persistent_data = () => {
   );
   print_endline("INFO: Persistent data exported to Init.ml");
 };
+
 let export_scratch_slide = (editor: Editor.t): unit => {
-  let json_data = ScratchSlide.export(editor);
+  let scratch_slide: ScratchSlide.state = {
+    title: "",
+    description: "",
+    hidden_tests: {
+      tests: editor,
+      hints: [],
+    },
+  };
+
+  // Export the slide as JSON
+  let json_data = ScratchSlide.export(scratch_slide);
   JsUtil.download_json("hazel-scratchpad", json_data);
 };
 

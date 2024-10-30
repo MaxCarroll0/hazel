@@ -1,20 +1,49 @@
 open Haz3lcore;
+open Util;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
-type state = Editor.t;
+type hidden_tests('code) = {
+  tests: 'code,
+  hints: list(string),
+};
 
 [@deriving (show({with_path: false}), sexp, yojson)]
-type persistent_state = PersistentZipper.t;
+type p('code) = {
+  title: string,
+  description: string,
+  hidden_tests: hidden_tests('code),
+};
+
+[@deriving (show({with_path: false}), sexp, yojson)]
+type state = p(Editor.t);
+
+[@deriving (show({with_path: false}), sexp, yojson)]
+type persistent_state = p(PersistentZipper.t);
 
 let scratch_key = n => "scratch_" ++ n;
 
-let persist = (editor: Editor.t): persistent_state => {
-  PersistentZipper.persist(editor.state.zipper);
+let persist = (state: state): persistent_state => {
+  {
+    title: state.title,
+    description: state.description,
+    hidden_tests: {
+      tests: PersistentZipper.persist(state.hidden_tests.tests.state.zipper),
+      hints: state.hidden_tests.hints,
+    },
+  };
 };
 
 let unpersist = (zipper: persistent_state, ~settings: CoreSettings.t): state => {
-  let zipper = PersistentZipper.unpersist(zipper);
-  Editor.init(zipper, ~read_only=false, ~settings);
+  let editor_zipped = PersistentZipper.unpersist(zipper.hidden_tests.tests);
+  let editor = Editor.init(editor_zipped, ~read_only=false, ~settings);
+  {
+    title: zipper.title,
+    description: zipper.description,
+    hidden_tests: {
+      tests: editor,
+      hints: zipper.hidden_tests.hints,
+    },
+  };
 };
 
 let serialize = (state: state): string => {

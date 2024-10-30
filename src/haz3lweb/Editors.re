@@ -20,10 +20,10 @@ let get_editor = (editors: t): Editor.t =>
   switch (editors) {
   | Scratch(n, slides) =>
     assert(n < List.length(slides));
-    List.nth(slides, n);
+    List.nth(slides, n).hidden_tests.tests;
   | Documentation(name, slides) =>
     assert(List.mem_assoc(name, slides));
-    List.assoc(name, slides);
+    List.assoc(name, slides).hidden_tests.tests;
   | Exercises(_, _, exercise) => Exercise.editor_of_state(exercise)
   };
 
@@ -31,10 +31,31 @@ let put_editor = (ed: Editor.t, eds: t): t =>
   switch (eds) {
   | Scratch(n, slides) =>
     assert(n < List.length(slides));
-    Scratch(n, Util.ListUtil.put_nth(n, ed, slides));
+    let originalSlide = List.nth(slides, n);
+    let updatedSlide: ScratchSlide.state = {
+      title: originalSlide.title,
+      description: originalSlide.description,
+      hidden_tests: {
+        tests: ed,
+        hints: originalSlide.hidden_tests.hints,
+      },
+    };
+    Scratch(n, Util.ListUtil.put_nth(n, updatedSlide, slides));
   | Documentation(name, slides) =>
     assert(List.mem_assoc(name, slides));
-    Documentation(name, slides |> ListUtil.update_assoc((name, ed)));
+    let originalSlide = List.assoc(name, slides);
+    let updatedSlide: ScratchSlide.state = {
+      title: originalSlide.title,
+      description: originalSlide.description,
+      hidden_tests: {
+        tests: ed,
+        hints: originalSlide.hidden_tests.hints,
+      },
+    };
+    Documentation(
+      name,
+      slides |> ListUtil.update_assoc((name, updatedSlide)),
+    );
   | Exercises(n, specs, exercise) =>
     Exercises(n, specs, Exercise.put_editor(exercise, ed))
   };
@@ -115,19 +136,41 @@ let set_instructor_mode = (editors: t, instructor_mode: bool): t =>
     )
   };
 
-let reset_nth_slide = (~settings: CoreSettings.t, n, slides): list(Editor.t) => {
+let reset_nth_slide =
+    (~settings: CoreSettings.t, n, slides): list(ScratchSlide.state) => {
   let (_, init_editors, _) = Init.startup.scratch;
   let data = List.nth(init_editors, n);
   let init_nth = ScratchSlide.unpersist(~settings, data);
-  Util.ListUtil.put_nth(n, init_nth, slides);
+
+  // Wrap the unpersisted Editor.t in a ScratchSlide.state structure
+  let updated_slide: ScratchSlide.state = {
+    title: init_nth.title, // Assuming title and other fields are available
+    description: init_nth.description,
+    hidden_tests: {
+      tests: init_nth.hidden_tests.tests,
+      hints: init_nth.hidden_tests.hints,
+    },
+  };
+  Util.ListUtil.put_nth(n, updated_slide, slides);
 };
 
 let reset_named_slide =
-    (~settings: CoreSettings.t, name, slides): list((string, Editor.t)) => {
+    (~settings: CoreSettings.t, name, slides)
+    : list((string, ScratchSlide.state)) => {
   let (_, init_editors, _) = Init.startup.documentation;
   let data = List.assoc(name, init_editors);
   let init_name = ScratchSlide.unpersist(~settings, data);
-  slides |> List.remove_assoc(name) |> List.cons((name, init_name));
+
+  // Wrap the unpersisted Editor.t in a ScratchSlide.state structure
+  let updated_slide: ScratchSlide.state = {
+    title: init_name.title,
+    description: init_name.description,
+    hidden_tests: {
+      tests: init_name.hidden_tests.tests,
+      hints: init_name.hidden_tests.hints,
+    },
+  };
+  slides |> List.remove_assoc(name) |> List.cons((name, updated_slide));
 };
 
 let reset_current =
