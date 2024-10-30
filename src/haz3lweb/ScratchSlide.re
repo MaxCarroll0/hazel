@@ -1,6 +1,10 @@
 open Sexplib.Std;
 open Haz3lcore;
+<<<<<<< Updated upstream
 // open SyntaxTest;
+=======
+open Util;
+>>>>>>> Stashed changes
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type hidden_tests('code) = {
@@ -20,6 +24,7 @@ type state = p(Editor.t);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type persistent_state = p(PersistentZipper.t);
+<<<<<<< Updated upstream
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type hint = string;
@@ -64,6 +69,8 @@ let fromEditor = (editor: Editor.t): state => {
     hints: [],
   },
 };
+=======
+>>>>>>> Stashed changes
 
 let scratch_key = n => "scratch_" ++ n;
 
@@ -71,6 +78,7 @@ let persist = (editor: Editor.t) => {
   PersistentZipper.persist(editor.state.zipper);
 };
 
+<<<<<<< Updated upstream
 // let persist = (editor: p(Editor.t)) => {
 //   let zip = editor.hidden_tests.tests.state.zipper;
 //   PersistentZipper.persist(zip);
@@ -86,6 +94,21 @@ let unpersist = (zipper: persistent_state) => {
 //   Editor.init(zipper, ~read_only=false);
 // };
 
+=======
+let unpersist = (zipper: persistent_state, ~settings: CoreSettings.t): state => {
+  let editor_zipped = PersistentZipper.unpersist(zipper.hidden_tests.tests);
+  let editor = Editor.init(editor_zipped, ~read_only=false, ~settings);
+  {
+    title: zipper.title,
+    description: zipper.description,
+    hidden_tests: {
+      tests: editor,
+      hints: zipper.hidden_tests.hints,
+    },
+  };
+};
+
+>>>>>>> Stashed changes
 let serialize = (state: state) => {
   let editor = persist(state.hidden_tests.tests);
   let persistent_state: persistent_state = {
@@ -96,9 +119,13 @@ let serialize = (state: state) => {
       hints: state.hidden_tests.hints,
     },
   };
+<<<<<<< Updated upstream
   // Sexplib.Sexp.to_string (sexp_of_persistent_state persistent_state)
   persistent_state |> sexp_of_persistent_state |> Sexplib.Sexp.to_string;
   // Persist(editor) |> sexp_of_persistent_state |> Sexplib.Sexp.to_string;
+=======
+  persistent_state |> sexp_of_persistent_state |> Sexplib.Sexp.to_string;
+>>>>>>> Stashed changes
 };
 
 let deserialize = (data: string) => {
@@ -145,6 +172,7 @@ let export_init = (state: state) => {
     },
   };
   persistent_state |> show_persistent_state;
+<<<<<<< Updated upstream
 };
 
 // let export_init = (state: persistent_state) => {
@@ -159,4 +187,6 @@ let mk_statics =
   let error_ids =
     Statics.Map.error_ids(editor.state.meta.term_ranges, info_map);
   {term, info_map, error_ids};
+=======
+>>>>>>> Stashed changes
 };

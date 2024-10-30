@@ -27,6 +27,7 @@ let startup : PersistentData.t =
         context_inspector = false;
         instructor_mode = true;
         benchmark = false;
+<<<<<<< Updated upstream
         mode = Tutorial;
         explainThis =
           {
@@ -35,6 +36,11 @@ let startup : PersistentData.t =
             highlight = NoHighlight;
             (* mode = Tutorial; *)
           };
+=======
+        mode = Documentation;
+        explainThis =
+          { show = true; show_feedback = false; highlight = NoHighlight };
+>>>>>>> Stashed changes
       };
     scratch =
       ( 0,
@@ -215,7 +221,11 @@ let startup : PersistentData.t =
         ],
         [ ("scratch_0", Evaluation) ] );
     documentation =
+<<<<<<< Updated upstream
       ( "Casting",
+=======
+      ( "Programming Expressively",
+>>>>>>> Stashed changes
         [
           ( "Casting",
             {
@@ -18209,6 +18219,7 @@ let startup : PersistentData.t =
                   hints = [];
                 };
             } );
+<<<<<<< Updated upstream
           (* ( "Programming Expressively",
                {
                  title = "";
@@ -18418,11 +18429,23 @@ let startup : PersistentData.t =
                       (* tests =
                          { *)
                       zipper =
+=======
+          ( "Programming Expressively",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+                    {
+                      zipper =
+>>>>>>> Stashed changes
                         "((selection((focus Left)(content())(mode \
                          Normal)))(backpack())(relatives((siblings(()((Grout((id \
                          73cb2f1d-94b4-42eb-9d77-a832748556b0)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
@@ -18447,6 +18470,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Composing Arithmetic Expressions",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18454,6 +18490,7 @@ let startup : PersistentData.t =
                          41444a61-1cf6-408b-82c6-464f3ca6750e)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
@@ -18478,6 +18515,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Computing Equationally",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18485,6 +18535,7 @@ let startup : PersistentData.t =
                          c7e3b9bd-efaa-41f2-800d-9986a6e814d6)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
@@ -18509,6 +18560,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Variables",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18516,6 +18580,7 @@ let startup : PersistentData.t =
                          92e68905-30cc-415b-b920-6323180c56d1)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
@@ -18540,6 +18605,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Compositionality",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18547,6 +18625,7 @@ let startup : PersistentData.t =
                          661cbe22-ffdc-4fa3-b227-f7b56a1c8ed6)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
@@ -18571,6 +18650,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Scope",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18578,6 +18670,7 @@ let startup : PersistentData.t =
                          f213697c-e203-41c4-8888-fc12e3ac46bf)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
@@ -18602,6 +18695,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Shadowing",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18609,6 +18715,7 @@ let startup : PersistentData.t =
                          3d8e1707-1e20-4160-946e-73cdb9e98ee1)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
@@ -18633,6 +18740,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Booleans and Types",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18640,6 +18760,7 @@ let startup : PersistentData.t =
                          f49430b2-1265-4e87-a6d6-795eb57c37f8)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
@@ -18664,6 +18785,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Conditional Expressions",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18671,6 +18805,7 @@ let startup : PersistentData.t =
                          e2b7d6b9-5b95-4fad-9278-60097f30375f)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = []; *)
                     (* }; *) );
@@ -18695,6 +18830,19 @@ let startup : PersistentData.t =
                     (* hidden_tests = *)
                     (* {
                        tests = *)
+=======
+                    };
+                  hints = [];
+                };
+            } );
+          ( "Functions",
+            {
+              title = "";
+              description = "";
+              hidden_tests =
+                {
+                  tests =
+>>>>>>> Stashed changes
                     {
                       zipper =
                         "((selection((focus Left)(content())(mode \
@@ -18702,10 +18850,16 @@ let startup : PersistentData.t =
                          b60e7d0e-e290-4b23-b03c-7fe121fb5dcd)(shape \
                          Convex))))))(ancestors())))(caret Outer))";
                       backup_text = " ";
+<<<<<<< Updated upstream
                     }
                     (* hints = [];
                        }; *) );
                 ];
+=======
+                    };
+                  hints = [];
+                };
+>>>>>>> Stashed changes
             } );
         ],
         [

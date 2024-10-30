@@ -114,6 +114,7 @@ module Scratch = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type persistent = PersistentData.scratch;
 
+<<<<<<< Updated upstream
   let pzipper_to_pstate =
       (slide: PersistentZipper.t): ScratchSlide.persistent_state => {
     // {
@@ -129,6 +130,35 @@ module Scratch = {
   let to_persistent = ((idx, slides, results)): persistent => {
     let slides = List.map(ScratchSlide.persist, slides);
     let slides = List.map(pzipper_to_pstate, slides);
+=======
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type t = (int, list(ScratchSlide.state), ModelResults.M.t(ModelResult.t));
+
+  let to_persistent = ((idx, slides, results)): persistent => {
+    // Helper function to create a ScratchSlide.persistent_state from each slide
+    let slide_to_persistent_state =
+        (slide: ScratchSlide.state): ScratchSlide.persistent_state => {
+      {
+        title: slide.title,
+        description: slide.description,
+        hidden_tests: {
+          tests: ScratchSlide.persist(slide.hidden_tests.tests),
+          hints: slide.hidden_tests.hints,
+        },
+      };
+    };
+    (
+      idx,
+      List.map(slide_to_persistent_state, slides),
+      results
+      |> ModelResults.map(ModelResult.to_persistent)
+      |> ModelResults.bindings,
+    );
+  };
+
+  let of_persistent =
+      (~settings: CoreSettings.t, (idx, slides, results): persistent): t => {
+>>>>>>> Stashed changes
     (
       idx,
       slides,
@@ -186,6 +216,16 @@ module Documentation = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type persistent = PersistentData.documentation;
 
+<<<<<<< Updated upstream
+=======
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type t = (
+    string,
+    list((string, ScratchSlide.state)),
+    ModelResults.M.t(ModelResult.t),
+  );
+
+>>>>>>> Stashed changes
   let persist = ((name, editor: Editor.t)) => {
     (name, PersistentZipper.persist(editor.state.zipper));
   };
@@ -196,6 +236,7 @@ module Documentation = {
     (name, Editor.init(zipper, ~read_only=false));
   };
 
+<<<<<<< Updated upstream
   // let fromEditor = (editor: Editor.t): ScratchSlide.persistent_state => {
   //   title: "",
   //   description: "",
@@ -224,12 +265,61 @@ module Documentation = {
     (
       string,
       slides,
+=======
+  let to_persistent = ((id, slides, results)): persistent => {
+    // Helper function to create (string, ScratchSlide.persistent_state) from each slide
+    let slide_to_persistent_state =
+        (slide: ScratchSlide.state): (string, ScratchSlide.persistent_state) => {
+      let persistent_slide: ScratchSlide.persistent_state = {
+        title: slide.title,
+        description: slide.description,
+        hidden_tests: {
+          tests: ScratchSlide.persist(slide.hidden_tests.tests),
+          hints: slide.hidden_tests.hints,
+        },
+      };
+      (slide.title, persistent_slide);
+    };
+
+    (
+      id,
+      List.map(slide_to_persistent_state, slides),
       results
       |> ModelResults.map(ModelResult.to_persistent)
       |> ModelResults.bindings,
     );
   };
 
+  let of_persistent =
+      (~settings: CoreSettings.t, (id, slides, results): persistent): t => {
+    // Helper function to convert (string, ScratchSlide.persistent_state) to (string, ScratchSlide.state)
+    let convert_to_editor_tuple =
+        ((name, slide): (string, ScratchSlide.persistent_state))
+        : (string, ScratchSlide.state) => {
+      let zipper = PersistentZipper.unpersist(slide.hidden_tests.tests);
+      let editor = Editor.init(zipper, ~read_only=false, ~settings);
+      let state: ScratchSlide.state = {
+        title: slide.title,
+        description: slide.description,
+        hidden_tests: {
+          tests: editor,
+          hints: slide.hidden_tests.hints,
+        },
+      };
+      (name, state);
+    };
+
+    (
+      id,
+      List.map(convert_to_editor_tuple, slides),
+>>>>>>> Stashed changes
+      results
+      |> ModelResults.map(ModelResult.to_persistent)
+      |> ModelResults.bindings,
+    );
+  };
+
+<<<<<<< Updated upstream
   let of_persistent = (~settings, (string, slides, results): persistent) => {
     let state_to_zipper =
         ((str: string, status: ScratchSlide.persistent_state)) => {
@@ -249,6 +339,17 @@ module Documentation = {
 
   let serialize = slides => {
     slides |> to_persistent |> sexp_of_persistent |> Sexplib.Sexp.to_string;
+=======
+  let serialize = (slides: t): string => {
+    let (id, slides_with_ids, results) = slides;
+    let slides_without_ids =
+      List.map(((_, slide)) => slide, slides_with_ids); // Remove the identifiers
+
+    (id, slides_without_ids, results)
+    |> to_persistent
+    |> sexp_of_persistent
+    |> Sexplib.Sexp.to_string;
+>>>>>>> Stashed changes
   };
 
   let deserialize = data => {

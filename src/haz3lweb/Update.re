@@ -333,29 +333,134 @@ let switch_doc_editor =
    state. The latter is intentional as we don't want to persist
    this between users. The former is a TODO, currently difficult
    due to the more complex architecture of Exercises. */
+// Conversion helper to adapt Store.Documentation.t to PersistentData.documentation
+let to_persistent_documentation =
+    (docs: Store.Documentation.t): PersistentData.documentation => {
+  let (doc_name, slides_with_ids, results) = docs;
+
+  // Helper function to convert a single slide
+  let convert_slide =
+      (slide: ScratchSlide.state): ScratchSlide.persistent_state => {
+    {
+      title: slide.title,
+      description: slide.description,
+      hidden_tests: {
+        tests: ScratchSlide.persist(slide.hidden_tests.tests), // Persist the Editor.t
+        hints: slide.hidden_tests.hints,
+      },
+    };
+  };
+
+  // Convert slides to `list((string, ScratchSlide.persistent_state))`
+  let persistent_slides =
+    List.map(
+      ((id, slide): (string, ScratchSlide.state)) =>
+        (id, convert_slide(slide)), // Use the helper function to convert each slide
+      slides_with_ids,
+    );
+
+  // Convert results to `list((string, ModelResult.persistent))`
+  let persistent_results =
+    ModelResults.bindings(results)
+    |> List.map(((key, result)) =>
+         (key, ModelResult.to_persistent(result))
+       );
+
+  (doc_name, persistent_slides, persistent_results);
+};
+
 let export_persistent_data = () => {
   let settings = Store.Settings.load();
+
   let data: PersistentData.t = {
     documentation:
+<<<<<<< Updated upstream
       Store.Documentation.load(~settings=settings.core.evaluation)
       |> Store.Documentation.to_persistent,
     tutorial:
       Store.Tutorial.load(~settings=settings.core.evaluation)
       |> Store.Tutorial.to_persistent,
+=======
+      Store.Documentation.load(~settings=settings.core)
+      |> to_persistent_documentation, // Apply conversion to expected type
+>>>>>>> Stashed changes
     scratch:
       Store.Scratch.load(~settings=settings.core.evaluation)
       |> Store.Scratch.to_persistent,
     settings,
   };
+
   let contents =
     "let startup : PersistentData.t = " ++ PersistentData.show(data);
+
   JsUtil.download_string_file(
     ~filename="Init.ml",
     ~content_type="text/plain",
     ~contents,
   );
+
   print_endline("INFO: Persistent data exported to Init.ml");
 };
+<<<<<<< Updated upstream
+=======
+
+let export_scratch_slide = (editor: Editor.t): unit => {
+  // Create a temporary ScratchSlide.state from the Editor.t
+  let scratch_slide: ScratchSlide.state = {
+    title: "", // You can replace this with a real title if available
+    description: "", // Replace with real description if needed
+    hidden_tests: {
+      tests: editor, // Use the editor directly
+      hints: [],
+    } // Optionally, provide any hints
+  };
+
+  // Export the slide as JSON
+  let json_data = ScratchSlide.export(scratch_slide);
+  JsUtil.download_json("hazel-scratchpad", json_data);
+};
+let export_exercise_module = (exercise: Exercise.state): unit => {
+  let module_name = exercise.eds.module_name;
+  let filename = exercise.eds.module_name ++ ".ml";
+  let content_type = "text/plain";
+  let contents = Exercise.export_module(module_name, exercise);
+  JsUtil.download_string_file(~filename, ~content_type, ~contents);
+};
+
+let export_submission = (~instructor_mode) =>
+  Log.get_and(log => {
+    let data = Export.export_all(~instructor_mode, ~log);
+    JsUtil.download_json(ExerciseSettings.filename, data);
+  });
+
+let export_transitionary = (exercise: Exercise.state) => {
+  // .ml files because show uses OCaml syntax (dune handles seamlessly)
+  let module_name = exercise.eds.module_name;
+  let filename = exercise.eds.module_name ++ ".ml";
+  let content_type = "text/plain";
+  let contents = Exercise.export_transitionary_module(module_name, exercise);
+  JsUtil.download_string_file(~filename, ~content_type, ~contents);
+};
+
+let export_instructor_grading_report = (exercise: Exercise.state) => {
+  // .ml files because show uses OCaml syntax (dune handles seamlessly)
+  let module_name = exercise.eds.module_name;
+  let filename = exercise.eds.module_name ++ "_grading.ml";
+  let content_type = "text/plain";
+  let contents = Exercise.export_grading_module(module_name, exercise);
+  JsUtil.download_string_file(~filename, ~content_type, ~contents);
+};
+
+let instructor_exercise_update =
+    (model: Model.t, fn: Exercise.state => unit): Result.t(Model.t) => {
+  switch (model.editors) {
+  | Exercises(_, _, exercise) when model.settings.instructor_mode =>
+    fn(exercise);
+    Ok(model);
+  | _ => Error(InstructorOnly) // TODO Make command palette contextual and figure out how to represent that here
+  };
+};
+>>>>>>> Stashed changes
 
 let ui_state_update =
     (ui_state: Model.ui_state, update: set_meta, ~schedule_action as _)

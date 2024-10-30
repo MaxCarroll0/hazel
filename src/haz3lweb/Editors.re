@@ -33,9 +33,13 @@ let get_editor = (editors: t): Editor.t =>
     List.assoc(name, slides).hidden_tests.tests
   | Tutorial(name, slides) =>
     assert(List.mem_assoc(name, slides));
+<<<<<<< Updated upstream
     let slide_state = List.assoc(name, slides);
     DocumentationEnv.editor_of_state(slide_state);
   // List.assoc(name, slides).eds.your_impl;
+=======
+    List.assoc(name, slides).hidden_tests.tests;
+>>>>>>> Stashed changes
   | Exercises(_, _, exercise) => Exercise.editor_of_state(exercise)
   };
 
@@ -46,6 +50,7 @@ let put_editor = (editor: Editor.t, eds: t): t =>
   switch (eds) {
   | Scratch(n, slides) =>
     assert(n < List.length(slides));
+<<<<<<< Updated upstream
 
     let new_ed: state = {
       title: "",
@@ -104,6 +109,33 @@ let put_editor = (editor: Editor.t, eds: t): t =>
       );
 
     Tutorial(name, updatedSlides);
+=======
+    let originalSlide = List.nth(slides, n);
+    let updatedSlide: ScratchSlide.state = {
+      title: originalSlide.title,
+      description: originalSlide.description,
+      hidden_tests: {
+        tests: ed,
+        hints: originalSlide.hidden_tests.hints,
+      },
+    };
+    Scratch(n, Util.ListUtil.put_nth(n, updatedSlide, slides));
+  | Documentation(name, slides) =>
+    assert(List.mem_assoc(name, slides));
+    let originalSlide = List.assoc(name, slides);
+    let updatedSlide: ScratchSlide.state = {
+      title: originalSlide.title,
+      description: originalSlide.description,
+      hidden_tests: {
+        tests: ed,
+        hints: originalSlide.hidden_tests.hints,
+      },
+    };
+    Documentation(
+      name,
+      slides |> ListUtil.update_assoc((name, updatedSlide)),
+    );
+>>>>>>> Stashed changes
   | Exercises(n, specs, exercise) =>
     // For Exercises, update the hidden_tests with `editor`
     Exercises(n, specs, Exercise.put_editor(exercise, editor))
@@ -239,6 +271,7 @@ let set_instructor_mode = (editors: t, instructor_mode: bool): t =>
     )
   };
 
+<<<<<<< Updated upstream
 let reset_nth_slide = (n, slides) => {
   let (_, init_editors, _) = Init.startup.scratch;
   let data = List.nth(init_editors, n);
@@ -258,6 +291,39 @@ let reset_named_slide_2 = (name, slides) => {
   let data = List.assoc(name, init_editors);
   let init_name = DocumentationEnv.unpersist_state(data);
   slides |> List.remove_assoc(name) |> List.cons((name, init_name));
+=======
+let reset_nth_slide =
+    (~settings: CoreSettings.t, n, slides): list(ScratchSlide.state) => {
+  let (_, init_editors, _) = Init.startup.scratch;
+  let data = List.nth(init_editors, n);
+  let init_nth = ScratchSlide.unpersist(~settings, data);
+  let updated_slide: ScratchSlide.state = {
+    title: init_nth.title,
+    description: init_nth.description,
+    hidden_tests: {
+      tests: init_nth.hidden_tests.tests,
+      hints: init_nth.hidden_tests.hints,
+    },
+  };
+  Util.ListUtil.put_nth(n, updated_slide, slides);
+};
+
+let reset_named_slide =
+    (~settings: CoreSettings.t, name, slides)
+    : list((string, ScratchSlide.state)) => {
+  let (_, init_editors, _) = Init.startup.documentation;
+  let data = List.assoc(name, init_editors);
+  let init_name = ScratchSlide.unpersist(~settings, data);
+  let updated_slide: ScratchSlide.state = {
+    title: init_name.title,
+    description: init_name.description,
+    hidden_tests: {
+      tests: init_name.hidden_tests.tests,
+      hints: init_name.hidden_tests.hints,
+    },
+  };
+  slides |> List.remove_assoc(name) |> List.cons((name, updated_slide));
+>>>>>>> Stashed changes
 };
 
 let reset_named_slide = (name, slides) => {
