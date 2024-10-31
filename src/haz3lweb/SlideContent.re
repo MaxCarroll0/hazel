@@ -23,7 +23,7 @@ let em = content => span(~attrs=[Attr.class_("em")], [text(content)]);
 
 let get_content =
   fun
-  | Documentation("Expressive Programming", _) =>
+  | Tutorial("Expressive Programming", _) =>
     Some(
       slide(
         "Expressive Programming",
@@ -51,7 +51,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Composing Expressions", _) =>
+  | Tutorial("Composing Expressions", _) =>
     Some(
       slide(
         "Composing Expressions",
@@ -96,7 +96,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Computing Equationally", _) =>
+  | Tutorial("Computing Equationally", _) =>
     Some(
       slide(
         "Computing Equationally",
@@ -120,7 +120,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Variables", _) =>
+  | Tutorial("Variables", _) =>
     Some(
       slide(
         "Variables",
@@ -153,7 +153,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Compositionality", _) =>
+  | Tutorial("Compositionality", _) =>
     Some(
       slide(
         "Compositionality",
@@ -164,7 +164,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Scope", _) =>
+  | Tutorial("Scope", _) =>
     Some(
       slide(
         "Scope",
@@ -179,7 +179,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Shadowing", _) =>
+  | Tutorial("Shadowing", _) =>
     Some(
       slide(
         "Shadowing",
@@ -201,7 +201,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Booleans and Types", _) =>
+  | Tutorial("Booleans and Types", _) =>
     Some(
       slide(
         "Booleans and Types",
@@ -256,7 +256,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Conditional Expressions", _) =>
+  | Tutorial("Conditional Expressions", _) =>
     Some(
       slide(
         "Conditional Expressions",
@@ -275,7 +275,7 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Functions", _) =>
+  | Tutorial("Functions", _) =>
     Some(
       slide(
         "Functions",
@@ -306,19 +306,19 @@ let get_content =
         ],
       ),
     )
-  | Documentation("Tuples", _) => Some(slide("Tuples", []))
-  | Documentation("Pattern Matching on Tuples", _) =>
+  | Tutorial("Tuples", _) => Some(slide("Tuples", []))
+  | Tutorial("Pattern Matching on Tuples", _) =>
     Some(slide("Pattern Matching on Tuples", []))
-  | Documentation("Recursion", _) => Some(slide("Recursion", []))
-  | Documentation("Lists", _) => Some(slide("Lists", []))
-  | Documentation("Pattern Matching on Lists", _) =>
+  | Tutorial("Recursion", _) => Some(slide("Recursion", []))
+  | Tutorial("Lists", _) => Some(slide("Lists", []))
+  | Tutorial("Pattern Matching on Lists", _) =>
     Some(slide("Pattern Matching on Lists", []))
-  | Documentation("Recursion on Lists: length", _) =>
+  | Tutorial("Recursion on Lists: length", _) =>
     Some(slide("Recursion on Lists: length", []))
-  | Documentation("Recursion on Lists: sum", _) =>
+  | Tutorial("Recursion on Lists: sum", _) =>
     Some(slide("Recursion on Lists: sum", []))
-  | Documentation("Recursion on Lists: num_zeros", _) =>
+  | Tutorial("Recursion on Lists: num_zeros", _) =>
     Some(slide("Recursion on Lists: num_zeros", []))
-  | Documentation("Higher-Order Functions", _) =>
+  | Tutorial("Higher-Order Functions", _) =>
     Some(slide("Higher-Order Functions", []))
   | _ => None;

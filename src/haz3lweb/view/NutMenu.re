@@ -174,6 +174,10 @@ let file_menu = (~inject, ~settings: Settings.t, editors: Editors.t) =>
       file_group_scratch(~inject),
       reset_group_scratch(~inject),
     ]
+  | Tutorial(_) => [
+      ScratchMode.import_button(inject),
+      ScratchMode.reset_button(inject),
+    ]
   | Documentation(_) => [
       file_group_scratch(~inject),
       reset_group_scratch(~inject),

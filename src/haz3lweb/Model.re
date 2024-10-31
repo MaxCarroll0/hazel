@@ -64,6 +64,11 @@ let load_editors =
   | Documentation =>
     let (name, slides, results) = Store.Documentation.load(~settings);
     (Documentation(name, slides), results);
+  | Tutorial =>
+    print_endline("hi im in load editors");
+    let (name, slides, results) = Store.Tutorial.load(~settings);
+
+    (Tutorial(name, slides), results);
   | Exercises =>
     let (n, specs, exercise) =
       Store.Exercise.load(
@@ -81,6 +86,11 @@ let save_editors =
   | Scratch(n, slides) => Store.Scratch.save((n, slides, results))
   | Documentation(name, slides) =>
     Store.Documentation.save((name, slides, results))
+  | Tutorial(name, slides) =>
+    print_endline("hi im in save editors");
+
+    // Call save with the converted slides
+    Store.Tutorial.save((name, slides, results));
   | Exercises(n, specs, exercise) =>
     Store.Exercise.save((n, specs, exercise), ~instructor_mode)
   };
@@ -117,6 +127,7 @@ let reset = (model: t): t => {
   ignore(Store.ExplainThisModel.init());
   ignore(Store.Scratch.init(~settings));
   ignore(Store.Documentation.init(~settings));
+  ignore(Store.Tutorial.init(~settings));
   ignore(Store.Exercise.init(~settings, ~instructor_mode=true));
   let new_model = load(blank);
   {

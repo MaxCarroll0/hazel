@@ -285,6 +285,7 @@ let switch_scratch_slide =
     : option(Editors.t) =>
   switch (editors) {
   | Documentation(_) => None
+  | Tutorial(_) => None
   | Scratch(n, _) when n == idx => None
   | Scratch(_, slides) when idx >= List.length(slides) => None
   | Scratch(_, slides) => Some(Scratch(idx, slides))
@@ -301,12 +302,38 @@ let switch_exercise_editor =
     (editors: Editors.t, ~pos, ~instructor_mode): option(Editors.t) =>
   switch (editors) {
   | Documentation(_)
+  | Tutorial(_)
   | Scratch(_) => None
   | Exercises(m, specs, exercise) =>
     let exercise = Exercise.switch_editor(~pos, instructor_mode, ~exercise);
     //Note: now saving after each edit (delayed by 1 second) so no need to save here
     //Store.Exercise.save_exercise(exercise, ~instructor_mode);
     Some(Exercises(m, specs, exercise));
+  };
+
+let switch_tut_editor =
+    (editors: Editors.t, ~pos, ~instructor_mode): option(Editors.t) =>
+  switch (editors) {
+  | Tutorial(name, slides) =>
+    let tutorial_states =
+      List.map(
+        ((hint, tutorial_state)) =>
+          if (hint == name) {
+            print_endline("Inside switch_doc_editor");
+            let updated_state =
+              Tutorial.switch_editor(
+                ~pos,
+                instructor_mode,
+                ~documentation=tutorial_state,
+              );
+            (hint, updated_state);
+          } else {
+            (hint, tutorial_state);
+          },
+        slides,
+      );
+    Some(Tutorial(name, tutorial_states));
+  | _ => None
   };
 
 /* This action saves a file which serializes all current editor
@@ -360,6 +387,9 @@ let export_persistent_data = () => {
     documentation:
       Store.Documentation.load(~settings=settings.core)
       |> to_persistent_documentation,
+    tutorial:
+      Store.Tutorial.load(~settings=settings.core)
+      |> Store.Tutorial.to_persistent,
     scratch:
       Store.Scratch.load(~settings=settings.core)
       |> Store.Scratch.to_persistent,
@@ -551,9 +581,20 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
       | None => Error(FailedToSwitch)
       | Some(editors) => Model.save_and_return({...model, editors})
       }
+    | SwitchTutorialSlide(name) =>
+      switch (Editors.switch_example_slide(model.editors, name)) {
+      | None => Error(FailedToSwitch)
+      | Some(editors) => Model.save_and_return({...model, editors})
+      }
     | SwitchEditor(pos) =>
       let instructor_mode = model.settings.instructor_mode;
       switch (switch_exercise_editor(model.editors, ~pos, ~instructor_mode)) {
+      | None => Error(FailedToSwitch)
+      | Some(editors) => Ok({...model, editors})
+      };
+    | SwitchTutEditor(pos) =>
+      let instructor_mode = model.settings.instructor_mode;
+      switch (switch_tut_editor(model.editors, ~pos, ~instructor_mode)) {
       | None => Error(FailedToSwitch)
       | Some(editors) => Ok({...model, editors})
       };

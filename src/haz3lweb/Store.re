@@ -299,6 +299,167 @@ module Documentation = {
     save(deserialize(~settings, data));
 };
 
+module Tutorial = {
+  let save_tutorial_key: string = "SAVE_TUTORIAL";
+
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type t = (
+    string,
+    list((string, Tutorial.state)),
+    ModelResults.M.t(ModelResult.t),
+  );
+
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type persistent = PersistentData.tutorial;
+
+  let persist = ((name, editor: Editor.t)) => {
+    (name, PersistentZipper.persist(editor.state.zipper));
+  };
+
+  let pzipper_to_pstate =
+      (slide: PersistentZipper.t): Tutorial.persistent_state => {
+    focus: YourImpl,
+    title: "",
+    description: "",
+    editors: [(HiddenTests, slide)],
+  };
+
+  let state_to_persistent = (state: Tutorial.state): Tutorial.persistent_state => {
+    {
+      focus: YourImpl,
+      title: state.eds.title,
+      description: state.eds.description,
+      editors: [
+        (
+          YourImpl,
+          PersistentZipper.persist(state.eds.your_impl.state.zipper),
+        ),
+        (
+          HiddenTests,
+          PersistentZipper.persist(state.eds.hidden_tests.tests.state.zipper),
+        ),
+      ],
+    };
+  };
+
+  let to_persistent =
+      ((name, slides: list((string, Tutorial.state)), results)): persistent => {
+    let persistent_slides: list((string, Tutorial.persistent_state)) =
+      List.map(
+        ((id, state): (string, Tutorial.state)) => {
+          let persistent_state = state_to_persistent(state);
+          (id, persistent_state);
+        },
+        slides,
+      );
+
+    (
+      name,
+      persistent_slides,
+      results
+      |> ModelResults.map(ModelResult.to_persistent)
+      |> ModelResults.bindings,
+    );
+  };
+
+  // let to_persistent =
+  //     (
+  //       (string, slides: list((string, Tutorial.state)), results),
+  //     )
+  //     : persistent => {
+  //   (
+  //     // Convert slides from PersistentZipper.t to Tutorial.persistent_state
+  //     // let slides =
+  //     //   List.map(
+  //     //     ((name, zipper)) => (name, pzipper_to_pstate(zipper)), // Convert using pzipper_to_pstate
+  //     //     List.map(persist, slides) // Get list of (name, PersistentZipper.t)
+  //     //   );
+  //     string,
+  //     slides,
+  //     results
+  //     |> ModelResults.map(ModelResult.to_persistent)
+  //     |> ModelResults.bindings,
+  //   );
+  // };
+
+  let unpersist = ((name, zipper), ~settings: CoreSettings.t) => {
+    let zipper = PersistentZipper.unpersist(zipper);
+    (name, Editor.init(zipper, ~read_only=false, ~settings));
+  };
+
+  let of_persistent = (~settings, (name, slides, results): persistent): t => {
+    let state_to_editor = ((str: string, status: Tutorial.persistent_state)) => {
+      let your_impl_zipper = List.assoc(Tutorial.YourImpl, status.editors);
+      let hidden_tests_zipper =
+        List.assoc(Tutorial.HiddenTests, status.editors);
+
+      let (_, your_impl_editor) =
+        unpersist((str, your_impl_zipper), ~settings);
+      let (_, hidden_tests_editor) =
+        unpersist((str, hidden_tests_zipper), ~settings);
+
+      let tutorial_state: Tutorial.state = {
+        pos: YourImpl,
+        eds: {
+          title: status.title,
+          description: status.description,
+          your_impl: your_impl_editor,
+          hidden_tests: {
+            tests: hidden_tests_editor,
+            hints: [],
+          },
+        },
+      };
+
+      (str, tutorial_state);
+    };
+
+    let converted_slides = List.map(state_to_editor, slides);
+
+    let mapped_results =
+      results
+      |> List.to_seq
+      |> ModelResults.of_seq
+      |> ModelResults.map(
+           ModelResult.of_persistent(~settings=settings.evaluation),
+         );
+
+    (name, converted_slides, mapped_results);
+  };
+
+  let serialize = (slides: t): string => {
+    slides |> to_persistent |> sexp_of_persistent |> Sexplib.Sexp.to_string;
+  };
+
+  let deserialize = (~settings: CoreSettings.t, data: string): t => {
+    data
+    |> Sexplib.Sexp.of_string
+    |> persistent_of_sexp
+    |> of_persistent(~settings);
+  };
+
+  let save = (slides: t): unit => {
+    JsUtil.set_localstore(save_tutorial_key, serialize(slides));
+  };
+
+  let init = (~settings: CoreSettings.t): t => {
+    let documentation = of_persistent(~settings, Init.startup.tutorial);
+    save(documentation);
+    documentation;
+  };
+  let load = (~settings: CoreSettings.t): t =>
+    switch (JsUtil.get_localstore(save_tutorial_key)) {
+    | None => init(~settings)
+    | Some(data) =>
+      try(deserialize(~settings, data)) {
+      | _ => init(~settings)
+      }
+    };
+
+  let export = (~settings) => serialize(load(~settings));
+  let import = (settings, data) => save(deserialize(~settings, data));
+};
+
 module Exercise = {
   open Exercise;
 

@@ -17,8 +17,16 @@ type documentation = (
 );
 
 [@deriving (show({with_path: false}), sexp, yojson)]
+type tutorial = (
+  string,
+  list((string, Tutorial.persistent_state)),
+  [@default []] list((string, ModelResult.persistent)),
+);
+
+[@deriving (show({with_path: false}), sexp, yojson)]
 type t = {
   settings: Settings.t,
   scratch,
+  tutorial,
   documentation,
 };

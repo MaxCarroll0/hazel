@@ -27,7 +27,7 @@ let startup : PersistentData.t =
         context_inspector = false;
         instructor_mode = true;
         benchmark = false;
-        mode = Documentation;
+        mode = Tutorial;
         explainThis =
           { show = true; show_feedback = false; highlight = NoHighlight };
       };
@@ -210,7 +210,7 @@ let startup : PersistentData.t =
         ],
         [ ("scratch_0", Evaluation) ] );
     documentation =
-      ( "Programming Expressively",
+      ( "Casting",
         [
           ( "Casting",
             {
@@ -18383,6 +18383,324 @@ let startup : PersistentData.t =
                     };
                   hints = [];
                 };
+            } );
+        ],
+        [
+          ("scratch_Basic Reference", Evaluation);
+          ("scratch_Casting Expressively", Evaluation);
+        ] );
+    tutorial =
+      ( "Programming Expressively",
+        [
+          ( "Programming Expressively",
+            {
+              focus = YourImpl;
+              title = "Programming Expressively";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    {
+                      (* tests =
+                         { *)
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         73cb2f1d-94b4-42eb-9d77-a832748556b0)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
+            } );
+          ( "Composing Arithmetic Expressions",
+            {
+              focus = YourImpl;
+              title = "Composing Arithmetic Expressions";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         41444a61-1cf6-408b-82c6-464f3ca6750e)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
+            } );
+          ( "Computing Equationally",
+            {
+              focus = YourImpl;
+              title = "Computing Equationally";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         c7e3b9bd-efaa-41f2-800d-9986a6e814d6)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
+            } );
+          ( "Variables",
+            {
+              focus = YourImpl;
+              title = "Variables";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         92e68905-30cc-415b-b920-6323180c56d1)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
+            } );
+          ( "Compositionality",
+            {
+              focus = YourImpl;
+              title = "Compositionality";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         661cbe22-ffdc-4fa3-b227-f7b56a1c8ed6)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
+            } );
+          ( "Scope",
+            {
+              focus = YourImpl;
+              title = "Scope";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         f213697c-e203-41c4-8888-fc12e3ac46bf)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
+            } );
+          ( "Shadowing",
+            {
+              focus = YourImpl;
+              title = "Shadowing";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         3d8e1707-1e20-4160-946e-73cdb9e98ee1)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
+            } );
+          ( "Booleans and Types",
+            {
+              focus = YourImpl;
+              title = "Booleans and Types";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         f49430b2-1265-4e87-a6d6-795eb57c37f8)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
+            } );
+          ( "Conditional Expressions",
+            {
+              focus = YourImpl;
+              title = "Conditional Expressions";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         e2b7d6b9-5b95-4fad-9278-60097f30375f)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = []; *)
+                    (* }; *) );
+                ];
+            } );
+          ( "Functions",
+            {
+              focus = YourImpl;
+              title = "Functions";
+              description = "";
+              editors =
+                [
+                  ( YourImpl,
+                    {
+                      zipper =
+                        "((selection((focus \
+                         Left)(content())))(backpack())(relatives((siblings(()((Grout((id \
+                         0)(shape Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    } );
+                  ( HiddenTests,
+                    (* hidden_tests = *)
+                    (* {
+                       tests = *)
+                    {
+                      zipper =
+                        "((selection((focus Left)(content())(mode \
+                         Normal)))(backpack())(relatives((siblings(()((Grout((id \
+                         b60e7d0e-e290-4b23-b03c-7fe121fb5dcd)(shape \
+                         Convex))))))(ancestors())))(caret Outer))";
+                      backup_text = " ";
+                    }
+                    (* hints = [];
+                       }; *) );
+                ];
             } );
         ],
         [

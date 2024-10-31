@@ -4,12 +4,14 @@ open Util;
 type mode =
   | Scratch
   | Documentation
+  | Tutorial
   | Exercises;
 
 let mode_of_string = (s: string): mode =>
   switch (s) {
   | "Scratch" => Scratch
   | "Documentation" => Documentation
+  | "Tutorial" => Tutorial
   | "Exercises" => Exercises
   | _ => failwith("mode_of_string: unknown mode:" ++ s)
   };

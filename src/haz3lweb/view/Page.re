@@ -109,6 +109,35 @@ let main_view =
           editor,
         );
       (view, cursor_info);
+
+    | Tutorial(name, slides) =>
+      print_endline("hi" ++ name);
+      let info =
+        SlideContent.get_content(editors)
+        |> Option.map(i => div(~attrs=[Attr.id("slide")], [i]))
+        |> Option.to_list;
+
+      let matching_slide =
+        List.find_opt(((slide_name, _)) => slide_name == name, slides);
+
+      let result =
+        switch (matching_slide) {
+        | None => []
+        | Some((_, tutorial_state)) =>
+          TutorialMode.view(
+            ~inject,
+            ~ui_state,
+            ~settings,
+            ~highlights,
+            ~results,
+            ~tutorial=tutorial_state,
+            // ~results,
+            // ~highlights,
+            // ~editor,
+          )
+        };
+
+      (info @ result, cursor_info);
     | Documentation(name, _) =>
       let result_key = ScratchSlide.scratch_key(name);
       let view =
