@@ -214,7 +214,11 @@ module F = (ExerciseEnv: Exercise.ExerciseEnv) => {
             "Exercise configuration error: Hint without a test.",
           )
         };
-      {hints, test_results, hinted_results};
+      {
+        hints,
+        test_results,
+        hinted_results,
+      };
     };
 
     let total = (report: t) => List.length(report.hinted_results);

@@ -8,7 +8,12 @@ module CachedStatics = {
   };
 
   let empty: t = {
-    term: UExp.{ids: [Id.invalid], copied: false, term: Tuple([])},
+    term:
+      UExp.{
+        ids: [Id.invalid],
+        copied: false,
+        term: Tuple([]),
+      },
     info_map: Id.Map.empty,
     error_ids: [],
   };
@@ -19,7 +24,11 @@ module CachedStatics = {
     let term = MakeTerm.from_zip_for_sem(z).term;
     let info_map = Statics.mk(settings, ctx_init, term);
     let error_ids = Statics.Map.error_ids(info_map);
-    {term, info_map, error_ids};
+    {
+      term,
+      info_map,
+      error_ids,
+    };
   };
 
   let init = (~settings: CoreSettings.t, z: Zipper.t) =>
@@ -81,7 +90,10 @@ module CachedSyntax = {
   let next = (a: Action.t, z: Zipper.t, info_map, old: t) =>
     Action.is_edit(a)
       ? init(z, info_map)
-      : {...old, selection_ids: Selection.selection_ids(z.selection)};
+      : {
+        ...old,
+        selection_ids: Selection.selection_ids(z.selection),
+      };
 };
 
 module Meta = {
@@ -93,7 +105,11 @@ module Meta = {
 
   let init = (~settings: CoreSettings.t, z: Zipper.t) => {
     let statics = CachedStatics.init(~settings, z);
-    {col_target: 0, statics, syntax: CachedSyntax.init(z, statics.info_map)};
+    {
+      col_target: 0,
+      statics,
+      syntax: CachedSyntax.init(z, statics.info_map),
+    };
   };
 
   module type S = {
@@ -124,7 +140,11 @@ module Meta = {
       | Select(Resize(Local(Up | Down))) => meta.col_target
       | _ => (Zipper.caret_point(syntax.measured))(. z).col
       };
-    {col_target, syntax, statics};
+    {
+      col_target,
+      syntax,
+      statics,
+    };
   };
 };
 
@@ -180,7 +200,11 @@ let new_state =
   let history =
     Action.is_historic(a)
       ? History.add(a, ed.state, ed.history) : ed.history;
-  {state, history, read_only: ed.read_only};
+  {
+    state,
+    history,
+    read_only: ed.read_only,
+  };
 };
 
 let update_statics = (~settings: CoreSettings.t, ed: t): t => {
@@ -223,7 +247,10 @@ let redo = (ed: t) =>
 let can_undo = ed => Option.is_some(undo(ed));
 let can_redo = ed => Option.is_some(redo(ed));
 
-let set_read_only = (ed, read_only) => {...ed, read_only};
+let set_read_only = (ed, read_only) => {
+  ...ed,
+  read_only,
+};
 
 let trailing_hole_ctx = (ed: t, info_map: Statics.Map.t) => {
   let segment = Zipper.unselect_and_zip(ed.state.zipper);

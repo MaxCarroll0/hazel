@@ -76,8 +76,8 @@ module D = (TutorialEnv: TutorialEnv) => {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type spec = p(Zipper.t);
 
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type transitionary_spec = p(CodeString.t);
+  // [@deriving (show({with_path: false}), sexp, yojson)]
+  // type transitionary_spec = p(CodeString.t);
 
   let map = (p: p('a), f: 'a => 'b): p('b) => {
     {
@@ -176,10 +176,16 @@ module D = (TutorialEnv: TutorialEnv) => {
     if (!instructor_mode) {
       switch (pos) {
       | HiddenTests
-      | _ => {eds: documentation.eds, pos}
+      | _ => {
+          eds: documentation.eds,
+          pos,
+        }
       };
     } else {
-      {eds: documentation.eds, pos};
+      {
+        eds: documentation.eds,
+        pos,
+      };
     };
 
   let zipper_of_code = code => {
@@ -189,28 +195,24 @@ module D = (TutorialEnv: TutorialEnv) => {
     };
   };
 
-  let transition: transitionary_spec => spec =
-    ({title, description, your_impl, hidden_tests}) => {
-      let your_impl = zipper_of_code(your_impl);
-      let hidden_tests = {
-        let {tests, hints} = hidden_tests;
-        let tests = zipper_of_code(tests);
-        {tests, hints};
-      };
-      {title, description, your_impl, hidden_tests};
-    };
-
-  let transition: transitionary_spec => spec =
-    ({title, description, your_impl, hidden_tests}) => {
-      let your_impl = zipper_of_code(your_impl);
-
-      let hidden_tests = {
-        let {tests, hints} = hidden_tests;
-        let tests = zipper_of_code(tests);
-        {tests, hints};
-      };
-      {title, description, your_impl, hidden_tests};
-    };
+  // let transition: transitionary_spec => spec =
+  //   ({title, description, your_impl, hidden_tests}) => {
+  //     let your_impl = zipper_of_code(your_impl);
+  //     let hidden_tests = {
+  //       let {tests, hints} = hidden_tests;
+  //       let tests = zipper_of_code(tests);
+  //       {
+  //         tests,
+  //         hints,
+  //       };
+  //     };
+  //     {
+  //       title,
+  //       description,
+  //       your_impl,
+  //       hidden_tests,
+  //     };
+  //   };
 
   let eds_of_spec =
       (
@@ -223,9 +225,17 @@ module D = (TutorialEnv: TutorialEnv) => {
     let hidden_tests = {
       let {tests, hints} = hidden_tests;
       let tests = editor_of_serialization(tests);
-      {tests, hints};
+      {
+        tests,
+        hints,
+      };
     };
-    {title, description, your_impl, hidden_tests};
+    {
+      title,
+      description,
+      your_impl,
+      hidden_tests,
+    };
   };
 
   let set_instructor_mode = ({eds, _} as state: state, new_mode: bool) => {
@@ -253,7 +263,13 @@ module D = (TutorialEnv: TutorialEnv) => {
   let state_of_spec =
       (spec, ~instructor_mode: bool, ~settings: CoreSettings.t): state => {
     let eds = eds_of_spec(~settings, spec);
-    set_instructor_mode({pos: YourImpl, eds}, instructor_mode);
+    set_instructor_mode(
+      {
+        pos: YourImpl,
+        eds,
+      },
+      instructor_mode,
+    );
   };
 
   let persistent_state_of_state = (state: state, ~instructor_mode: bool) => {
@@ -378,7 +394,11 @@ module D = (TutorialEnv: TutorialEnv) => {
     let hidden_tests_term =
       EditorUtil.append_exp(user_impl_term, term_of(eds.hidden_tests.tests));
 
-    {user_impl: user_impl_term, instructor, hidden_tests: hidden_tests_term};
+    {
+      user_impl: user_impl_term,
+      instructor,
+      hidden_tests: hidden_tests_term,
+    };
   };
 
   let stitch_term = Core.Memo.general(stitch_term);
@@ -395,7 +415,11 @@ module D = (TutorialEnv: TutorialEnv) => {
       (settings: CoreSettings.t, t: stitched(UExp.t)): stitched_statics => {
     let mk = (term: UExp.t): Editor.CachedStatics.t => {
       let info_map = Statics.mk(settings, Builtins.ctx_init, term);
-      {term, error_ids: Statics.Map.error_ids(info_map), info_map};
+      {
+        term,
+        error_ids: Statics.Map.error_ids(info_map),
+        info_map,
+      };
     };
     let instructor = mk(t.instructor);
     {
@@ -460,7 +484,10 @@ module D = (TutorialEnv: TutorialEnv) => {
       statics: Editor.CachedStatics.t,
       result: ModelResult.t,
     };
-    let empty: t = {statics: Editor.CachedStatics.empty, result: NoElab};
+    let empty: t = {
+      statics: Editor.CachedStatics.empty,
+      result: NoElab,
+    };
     let statics_only = (statics: Editor.CachedStatics.t): t => {
       statics,
       result: NoElab,
@@ -503,10 +530,16 @@ module D = (TutorialEnv: TutorialEnv) => {
       };
 
     let user_impl =
-      DynamicsItem.{statics: user_impl, result: result_of(user_impl_key)};
+      DynamicsItem.{
+        statics: user_impl,
+        result: result_of(user_impl_key),
+      };
 
     let instructor =
-      DynamicsItem.{statics: instructor, result: result_of(instructor_key)};
+      DynamicsItem.{
+        statics: instructor,
+        result: result_of(instructor_key),
+      };
 
     let hidden_tests =
       DynamicsItem.{

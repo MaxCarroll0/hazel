@@ -127,7 +127,10 @@ let rects =
   |> List.fold_left_map(
        (start: MeasuredPosition.t, (i, box: MeasuredLayout.box)) =>
          (
-           {row: start.row + box.height, col: indent},
+           {
+             row: start.row + box.height,
+             col: indent,
+           },
            mk_rect(~is_first=i == 0, ~is_last=i == n - 1, start, box),
          ),
        start,
@@ -144,7 +147,13 @@ module ErrHole = {
       )
       : Node.t =>
     subject
-    |> rects(~vtrim, {row: 0, col: offset})
+    |> rects(
+         ~vtrim,
+         {
+           row: 0,
+           col: offset,
+         },
+       )
     |> SvgUtil.OrthogonalPolygon.mk(~corner_radii)
     |> SvgUtil.Path.view(
          ~attrs=
@@ -164,7 +173,13 @@ module VarErrHole = {
       )
       : Node.t =>
     subject
-    |> rects(~vtrim, {row: 0, col: offset})
+    |> rects(
+         ~vtrim,
+         {
+           row: 0,
+           col: offset,
+         },
+       )
     |> SvgUtil.OrthogonalPolygon.mk(~corner_radii)
     |> SvgUtil.Path.view(
          ~attrs=

@@ -47,7 +47,11 @@ let rec matches =
     switch (ctx) {
     | Mark => (act, idx, EvalCtx.Mark)
     | Term({term, ids}) =>
-      let rewrap = term => EvalCtx.Term({term, ids});
+      let rewrap = term =>
+        EvalCtx.Term({
+          term,
+          ids,
+        });
       switch ((term: EvalCtx.term)) {
       | Closure(env, ctx) =>
         let+ ctx = matches(env, flt, ctx, exp, act, idx);
@@ -167,7 +171,10 @@ let rec matches =
   | _ when midx > pidx && mact |> snd == All => (
       ract,
       ridx,
-      Term({term: Filter(Residue(midx, mact), rctx), ids: [Id.mk()]}),
+      Term({
+        term: Filter(Residue(midx, mact), rctx),
+        ids: [Id.mk()],
+      }),
     )
   | _ => (ract, ridx, rctx)
   };
@@ -181,8 +188,20 @@ let should_hide_eval_obj =
     let (act, _, ctx) =
       matches(ClosureEnvironment.empty, [], x.ctx, x.d_loc, (Step, One), 0);
     switch (act) {
-    | (Eval, _) => (Eval, {...x, ctx})
-    | (Step, _) => (Step, {...x, ctx})
+    | (Eval, _) => (
+        Eval,
+        {
+          ...x,
+          ctx,
+        },
+      )
+    | (Step, _) => (
+        Step,
+        {
+          ...x,
+          ctx,
+        },
+      )
     };
   };
 
@@ -193,8 +212,20 @@ let should_hide_step = (~settings, x: step): (FilterAction.action, step) =>
     let (act, _, ctx) =
       matches(ClosureEnvironment.empty, [], x.ctx, x.d_loc, (Step, One), 0);
     switch (act) {
-    | (Eval, _) => (Eval, {...x, ctx})
-    | (Step, _) => (Step, {...x, ctx})
+    | (Eval, _) => (
+        Eval,
+        {
+          ...x,
+          ctx,
+        },
+      )
+    | (Step, _) => (
+        Step,
+        {
+          ...x,
+          ctx,
+        },
+      )
     };
   };
 
@@ -210,7 +241,10 @@ let current_expr = ({history, _}: t) => Aba.hd(history) |> fst;
 let current_state = ({history, _}: t) => Aba.hd(history) |> snd;
 
 let step_pending = (idx: int, stepper: t) => {
-  {...stepper, stepper_state: StepPending(idx)};
+  {
+    ...stepper,
+    stepper_state: StepPending(idx),
+  };
 };
 
 let init = (~settings, {d}: Elaborator.Elaboration.t) => {
@@ -232,8 +266,15 @@ let rec evaluate_pending = (~settings, s: t) => {
       List.find_opt(((_, (act, _))) => act == FilterAction.Eval, next')
     ) {
     | Some((i, (_, _))) =>
-      {...s, stepper_state: StepPending(i)} |> evaluate_pending(~settings)
-    | None => {...s, stepper_state: StepperDone}
+      {
+        ...s,
+        stepper_state: StepPending(i),
+      }
+      |> evaluate_pending(~settings)
+    | None => {
+        ...s,
+        stepper_state: StepperDone,
+      }
     };
   | StepPending(i) =>
     let (_, eo) = List.nth(s.next_options, i);
@@ -392,7 +433,12 @@ let get_history = (~settings, stepper) => {
         (Option.map(x => (x, x.d_loc' |> DHExp.rep_id), previous_step), []),
         hidden_steps,
       );
-    {d, previous_step, hidden_steps, chosen_step};
+    {
+      d,
+      previous_step,
+      hidden_steps,
+      chosen_step,
+    };
   };
   let padded = grouped_steps |> Aba.bab_triples;
   let result = padded |> List.map(track_ids);

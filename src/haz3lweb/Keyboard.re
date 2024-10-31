@@ -21,7 +21,13 @@ let meta = (sys: Key.sys): string => {
 
 let mk_shortcut =
     (~hotkey=?, ~mdIcon=?, ~section=?, label, update_action): shortcut => {
-  {update_action: Some(update_action), hotkey, label, mdIcon, section};
+  {
+    update_action: Some(update_action),
+    hotkey,
+    label,
+    mdIcon,
+    section,
+  };
 };
 
 let instructor_shortcuts: list(shortcut) = [

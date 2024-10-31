@@ -11,17 +11,51 @@ let term_of: t => term = IdTagged.term_of;
 let fast_copy: (Id.t, t) => t = IdTagged.fast_copy;
 
 let mk = (ids, term): t => {
-  {ids, copied: true, term};
+  {
+    ids,
+    copied: true,
+    term,
+  };
 };
 
 // TODO: make this function emit a map of changes
 let replace_all_ids =
   map_term(
-    ~f_exp=(continue, exp) => {...exp, ids: [Id.mk()]} |> continue,
-    ~f_pat=(continue, exp) => {...exp, ids: [Id.mk()]} |> continue,
-    ~f_typ=(continue, exp) => {...exp, ids: [Id.mk()]} |> continue,
-    ~f_tpat=(continue, exp) => {...exp, ids: [Id.mk()]} |> continue,
-    ~f_rul=(continue, exp) => {...exp, ids: [Id.mk()]} |> continue,
+    ~f_exp=
+      (continue, exp) =>
+        {
+          ...exp,
+          ids: [Id.mk()],
+        }
+        |> continue,
+    ~f_pat=
+      (continue, exp) =>
+        {
+          ...exp,
+          ids: [Id.mk()],
+        }
+        |> continue,
+    ~f_typ=
+      (continue, exp) =>
+        {
+          ...exp,
+          ids: [Id.mk()],
+        }
+        |> continue,
+    ~f_tpat=
+      (continue, exp) =>
+        {
+          ...exp,
+          ids: [Id.mk()],
+        }
+        |> continue,
+    ~f_rul=
+      (continue, exp) =>
+        {
+          ...exp,
+          ids: [Id.mk()],
+        }
+        |> continue,
   );
 
 // TODO: make this function emit a map of changes

@@ -48,12 +48,23 @@ let advance_evaluator_result =
   switch (lookup(results, key)) {
   | Some(Stepper(_)) => None
   | Some(Evaluation({evaluation: previous, _})) =>
-    Some((key, Evaluation({elab, evaluation: ResultPending, previous})))
+    Some((
+      key,
+      Evaluation({
+        elab,
+        evaluation: ResultPending,
+        previous,
+      }),
+    ))
   | Some(NoElab)
   | None =>
     Some((
       key,
-      Evaluation({elab, evaluation: ResultPending, previous: ResultPending}),
+      Evaluation({
+        elab,
+        evaluation: ResultPending,
+        previous: ResultPending,
+      }),
     ))
   };
 

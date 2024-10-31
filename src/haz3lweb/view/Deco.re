@@ -167,11 +167,21 @@ module HighlightSegment =
     |> ListUtil.split_at_nones
     |> ListUtil.first_and_last
     |> List.map((((m1, (l1, _)), (m2, (_, r2)))) =>
-         (Measured.{origin: m1.origin, last: m2.last}, (l1, r2))
+         (
+           Measured.{
+             origin: m1.origin,
+             last: m2.last,
+           },
+           (l1, r2),
+         )
        )
     |> List.map(((measurement, tips)) =>
          PieceDec.simple_shard(
-           {font_metrics: M.font_metrics, measurement, tips},
+           {
+             font_metrics: M.font_metrics,
+             measurement,
+             tips,
+           },
            classes,
          )
        );
@@ -208,7 +218,14 @@ module Deco =
       | Some((_, side, _)) => Direction.toggle(side)
       | _ => Right
       };
-    CaretDec.view(~font_metrics, ~profile={side, origin, shape});
+    CaretDec.view(
+      ~font_metrics,
+      ~profile={
+        side,
+        origin,
+        shape,
+      },
+    );
   };
 
   let segment_selected = (z: Zipper.t) =>
@@ -316,7 +333,10 @@ module Deco =
                      p,
                      M.meta.syntax.measured,
                    );
-                 Measured.{origin: m.origin, last: m.origin};
+                 Measured.{
+                   origin: m.origin,
+                   last: m.origin,
+                 };
                | (Some(p), _) =>
                  let m =
                    Measured.find_p(
@@ -324,9 +344,16 @@ module Deco =
                      p,
                      M.meta.syntax.measured,
                    );
-                 Measured.{origin: m.last, last: m.last};
+                 Measured.{
+                   origin: m.last,
+                   last: m.last,
+                 };
                };
-             let profile = CaretPosDec.Profile.{style: `Sibling, measurement};
+             let profile =
+               CaretPosDec.Profile.{
+                 style: `Sibling,
+                 measurement,
+               };
              [CaretPosDec.view(~font_metrics, profile)];
            };
          });
@@ -388,7 +415,10 @@ module Deco =
       [m(~x=l.col, ~y=l.row), ...r_edge]
       @ l_edge
       @ [Z]
-      |> translate({dx: Float.of_int(- l.col), dy: Float.of_int(- l.row)});
+      |> translate({
+           dx: Float.of_int(- l.col),
+           dy: Float.of_int(- l.row),
+         });
     (l, r, path) |> deco;
   };
 
@@ -397,7 +427,10 @@ module Deco =
       term_decoration(~id, ((origin, last, path)) =>
         DecUtil.code_svg_sized(
           ~font_metrics,
-          ~measurement={origin, last},
+          ~measurement={
+            origin,
+            last,
+          },
           ~base_cls=clss,
           path,
         )

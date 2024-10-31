@@ -106,7 +106,11 @@ let view_of_layout =
                    ~font_metrics,
                    ~height=MeasuredLayout.height(m),
                    ~width=MeasuredLayout.width(~offset, m),
-                   ~origin=MeasuredPosition.{row: start.row, col: indent},
+                   ~origin=
+                     MeasuredPosition.{
+                       row: start.row,
+                       col: indent,
+                     },
                    ~cls="err-hole",
                    [DHDecoration.ErrHole.view(~corner_radii, (offset, m))],
                  );

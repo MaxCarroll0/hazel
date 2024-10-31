@@ -31,7 +31,12 @@ let fresh: term => t = IdTagged.fresh;
 /* fresh assigns a random id, whereas temp assigns Id.invalid, which
    is a lot faster, and since we so often make types and throw them away
    shortly after, it makes sense to use it. */
-let temp: term => t = term => {term, ids: [Id.invalid], copied: false};
+let temp: term => t =
+  term => {
+    term,
+    ids: [Id.invalid],
+    copied: false,
+  };
 let rep_id: t => Id.t = IdTagged.rep_id;
 
 let hole = (tms: list(TermBase.Any.t)) =>

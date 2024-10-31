@@ -193,7 +193,10 @@ module F = (ExerciseEnv: ExerciseEnv) => {
           hidden_bugs:
             Util.ListUtil.put_nth(
               n,
-              {...List.nth(eds.hidden_bugs, n), impl: editor},
+              {
+                ...List.nth(eds.hidden_bugs, n),
+                impl: editor,
+              },
               eds.hidden_bugs,
             ),
         },
@@ -269,10 +272,16 @@ module F = (ExerciseEnv: ExerciseEnv) => {
       switch (pos) {
       | HiddenTests
       | HiddenBugs(_) => exercise
-      | _ => {eds: exercise.eds, pos}
+      | _ => {
+          eds: exercise.eds,
+          pos,
+        }
       };
     } else {
-      {eds: exercise.eds, pos};
+      {
+        eds: exercise.eds,
+        pos,
+      };
     };
 
   let zipper_of_code = code => {
@@ -303,14 +312,24 @@ module F = (ExerciseEnv: ExerciseEnv) => {
       let correct_impl = zipper_of_code(correct_impl);
       let your_tests = {
         let tests = zipper_of_code(your_tests.tests);
-        {tests, required: your_tests.required, provided: your_tests.provided};
+        {
+          tests,
+          required: your_tests.required,
+          provided: your_tests.provided,
+        };
       };
       let your_impl = zipper_of_code(your_impl);
       let hidden_bugs =
         List.fold_left(
           (acc, {impl, hint}) => {
             let impl = zipper_of_code(impl);
-            acc @ [{impl, hint}];
+            acc
+            @ [
+              {
+                impl,
+                hint,
+              },
+            ];
           },
           [],
           hidden_bugs,
@@ -318,7 +337,10 @@ module F = (ExerciseEnv: ExerciseEnv) => {
       let hidden_tests = {
         let {tests, hints} = hidden_tests;
         let tests = zipper_of_code(tests);
-        {tests, hints};
+        {
+          tests,
+          hints,
+        };
       };
       {
         title,
@@ -360,19 +382,29 @@ module F = (ExerciseEnv: ExerciseEnv) => {
     let correct_impl = editor_of_serialization(correct_impl);
     let your_tests = {
       let tests = editor_of_serialization(your_tests.tests);
-      {tests, required: your_tests.required, provided: your_tests.provided};
+      {
+        tests,
+        required: your_tests.required,
+        provided: your_tests.provided,
+      };
     };
     let your_impl = editor_of_serialization(your_impl);
     let hidden_bugs =
       hidden_bugs
       |> List.map(({impl, hint}) => {
            let impl = editor_of_serialization(impl);
-           {impl, hint};
+           {
+             impl,
+             hint,
+           };
          });
     let hidden_tests = {
       let {tests, hints} = hidden_tests;
       let tests = editor_of_serialization(tests);
-      {tests, hints};
+      {
+        tests,
+        hints,
+      };
     };
     {
       title,
@@ -482,7 +514,13 @@ module F = (ExerciseEnv: ExerciseEnv) => {
   let state_of_spec =
       (spec, ~instructor_mode: bool, ~settings: CoreSettings.t): state => {
     let eds = eds_of_spec(~settings, spec);
-    set_instructor_mode({pos: YourImpl, eds}, instructor_mode);
+    set_instructor_mode(
+      {
+        pos: YourImpl,
+        eds,
+      },
+      instructor_mode,
+    );
   };
 
   let persistent_state_of_state =
@@ -520,7 +558,16 @@ module F = (ExerciseEnv: ExerciseEnv) => {
       List.fold_left(
         ((i, hidden_bugs: list(wrong_impl(Editor.t))), {impl, hint}) => {
           let impl = lookup(HiddenBugs(i), impl);
-          (i + 1, hidden_bugs @ [{impl, hint}]);
+          (
+            i + 1,
+            hidden_bugs
+            @ [
+              {
+                impl,
+                hint,
+              },
+            ],
+          );
         },
         (0, []),
         spec.hidden_bugs,
@@ -639,7 +686,11 @@ module F = (ExerciseEnv: ExerciseEnv) => {
       (settings: CoreSettings.t, t: stitched(UExp.t)): stitched_statics => {
     let mk = (term: UExp.t): Editor.CachedStatics.t => {
       let info_map = Statics.mk(settings, Builtins.ctx_init, term);
-      {term, error_ids: Statics.Map.error_ids(info_map), info_map};
+      {
+        term,
+        error_ids: Statics.Map.error_ids(info_map),
+        info_map,
+      };
     };
     let instructor = mk(t.instructor);
     {
@@ -710,7 +761,10 @@ module F = (ExerciseEnv: ExerciseEnv) => {
       statics: Editor.CachedStatics.t,
       result: ModelResult.t,
     };
-    let empty: t = {statics: Editor.CachedStatics.empty, result: NoElab};
+    let empty: t = {
+      statics: Editor.CachedStatics.empty,
+      result: NoElab,
+    };
     let statics_only = (statics: Editor.CachedStatics.t): t => {
       statics,
       result: NoElab,
@@ -764,17 +818,33 @@ module F = (ExerciseEnv: ExerciseEnv) => {
       };
 
     let user_impl =
-      DynamicsItem.{statics: user_impl, result: result_of(user_impl_key)};
+      DynamicsItem.{
+        statics: user_impl,
+        result: result_of(user_impl_key),
+      };
 
     let user_tests =
-      DynamicsItem.{statics: user_tests, result: result_of(user_tests_key)};
-    let prelude = DynamicsItem.{statics: prelude, result: NoElab};
+      DynamicsItem.{
+        statics: user_tests,
+        result: result_of(user_tests_key),
+      };
+    let prelude =
+      DynamicsItem.{
+        statics: prelude,
+        result: NoElab,
+      };
     let instructor =
-      DynamicsItem.{statics: instructor, result: result_of(instructor_key)};
+      DynamicsItem.{
+        statics: instructor,
+        result: result_of(instructor_key),
+      };
     let hidden_bugs =
       List.mapi(
         (n, statics: Editor.CachedStatics.t) =>
-          DynamicsItem.{statics, result: result_of(hidden_bugs_key(n))},
+          DynamicsItem.{
+            statics,
+            result: result_of(hidden_bugs_key(n)),
+          },
         hidden_bugs,
       );
     let hidden_tests =
@@ -892,7 +962,10 @@ module F = (ExerciseEnv: ExerciseEnv) => {
         num_wrong_impls,
         i => {
           let zipper = Zipper.next_blank();
-          {impl: zipper, hint: "TODO: hint " ++ string_of_int(i)};
+          {
+            impl: zipper,
+            hint: "TODO: hint " ++ string_of_int(i),
+          };
         },
       );
     let hidden_tests_tests = Zipper.next_blank();

@@ -11,16 +11,29 @@ let mk_map = Statics.mk(CoreSettings.on, Builtins.ctx_init);
 let dhexp_of_uexp = u => Elaborator.elaborate(mk_map(u), u) |> fst;
 let alco_check = dhexp_typ |> Alcotest.check;
 
-let u1: Exp.t = {ids: [id_at(0)], term: Int(8), copied: false};
+let u1: Exp.t = {
+  ids: [id_at(0)],
+  term: Int(8),
+  copied: false,
+};
 let single_integer = () =>
   alco_check("Integer literal 8", u1, dhexp_of_uexp(u1));
 
-let u2: Exp.t = {ids: [id_at(0)], term: EmptyHole, copied: false};
+let u2: Exp.t = {
+  ids: [id_at(0)],
+  term: EmptyHole,
+  copied: false,
+};
 let empty_hole = () => alco_check("Empty hole", u2, dhexp_of_uexp(u2));
 
 let u3: Exp.t = {
   ids: [id_at(0)],
-  term: Parens({ids: [id_at(1)], term: Var("y"), copied: false}),
+  term:
+    Parens({
+      ids: [id_at(1)],
+      term: Var("y"),
+      copied: false,
+    }),
   copied: false,
 };
 

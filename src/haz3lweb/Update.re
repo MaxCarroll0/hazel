@@ -95,7 +95,10 @@ let update_settings =
           ...evaluation,
           show_fn_bodies: !evaluation.show_fn_bodies,
         }
-      | ShowCasts => {...evaluation, show_casts: !evaluation.show_casts}
+      | ShowCasts => {
+          ...evaluation,
+          show_casts: !evaluation.show_casts,
+        }
       | ShowFixpoints => {
           ...evaluation,
           show_fixpoints: !evaluation.show_fixpoints,
@@ -133,15 +136,27 @@ let update_settings =
       ...settings.explainThis,
       show: !settings.explainThis.show,
     };
-    let settings = {...settings, explainThis};
-    {...model, settings};
+    let settings = {
+      ...settings,
+      explainThis,
+    };
+    {
+      ...model,
+      settings,
+    };
   | ExplainThis(ToggleShowFeedback) =>
     let explainThis = {
       ...settings.explainThis,
       show_feedback: !settings.explainThis.show_feedback,
     };
-    let settings = {...settings, explainThis};
-    {...model, settings};
+    let settings = {
+      ...settings,
+      explainThis,
+    };
+    {
+      ...model,
+      settings,
+    };
   | ExplainThis(SetHighlight(a)) =>
     let highlight: ExplainThisModel.Settings.highlight =
       switch (a, settings.explainThis.highlight) {
@@ -152,9 +167,18 @@ let update_settings =
       | (UnsetHover, All) => All
       | (UnsetHover, _) => NoHighlight
       };
-    let explainThis = {...settings.explainThis, highlight};
-    let settings = {...settings, explainThis};
-    {...model, settings};
+    let explainThis = {
+      ...settings.explainThis,
+      highlight,
+    };
+    let settings = {
+      ...settings,
+      explainThis,
+    };
+    {
+      ...model,
+      settings,
+    };
   | Benchmark => {
       ...model,
       settings: {
@@ -354,13 +378,13 @@ let to_persistent_documentation =
     {
       title: slide.title,
       description: slide.description,
-      hidden_tests:
+      hidden_tests: {
         // Persisting the tests correctly
-        {
-          tests:
-            PersistentZipper.persist(slide.hidden_tests.tests.state.zipper),
-          hints: slide.hidden_tests.hints,
-        },
+
+        tests:
+          PersistentZipper.persist(slide.hidden_tests.tests.state.zipper),
+        hints: slide.hidden_tests.hints,
+      },
     };
   };
 
@@ -468,10 +492,22 @@ let ui_state_update =
     (ui_state: Model.ui_state, update: set_meta, ~schedule_action as _)
     : Model.ui_state => {
   switch (update) {
-  | Mousedown => {...ui_state, mousedown: true}
-  | Mouseup => {...ui_state, mousedown: false}
-  | ShowBackpackTargets(b) => {...ui_state, show_backpack_targets: b}
-  | FontMetrics(font_metrics) => {...ui_state, font_metrics}
+  | Mousedown => {
+      ...ui_state,
+      mousedown: true,
+    }
+  | Mouseup => {
+      ...ui_state,
+      mousedown: false,
+    }
+  | ShowBackpackTargets(b) => {
+      ...ui_state,
+      show_backpack_targets: b,
+    }
+  | FontMetrics(font_metrics) => {
+      ...ui_state,
+      font_metrics,
+    }
   };
 };
 
@@ -481,7 +517,11 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
       Editors.perform_action(~settings=model.settings.core, model.editors, a)
     ) {
     | Error(err) => Error(err)
-    | Ok(editors) => Ok({...model, editors})
+    | Ok(editors) =>
+      Ok({
+        ...model,
+        editors,
+      })
     };
   };
   let m: Result.t(Model.t) =
@@ -500,11 +540,17 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
     | SetMeta(action) =>
       let ui_state =
         ui_state_update(model.ui_state, action, ~schedule_action);
-      Ok({...model, ui_state});
+      Ok({
+        ...model,
+        ui_state,
+      });
     | UpdateExplainThisModel(u) =>
       let explainThisModel =
         ExplainThisUpdate.set_update(model.explainThisModel, u);
-      Model.save_and_return({...model, explainThisModel});
+      Model.save_and_return({
+        ...model,
+        explainThisModel,
+      });
     | DebugConsole(key) =>
       DebugConsole.print(model, key);
       Ok(model);
@@ -533,7 +579,10 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
           model.editors,
           data,
         );
-      Model.save_and_return({...model, editors});
+      Model.save_and_return({
+        ...model,
+        editors,
+      });
     | Export(ExportPersistentData) =>
       Model.save(model);
       export_persistent_data();
@@ -564,7 +613,10 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
           model.editors,
           ~instructor_mode,
         );
-      Model.save_and_return({...model, editors});
+      Model.save_and_return({
+        ...model,
+        editors,
+      });
     | SwitchScratchSlide(n) =>
       let instructor_mode = model.settings.instructor_mode;
       switch (
@@ -576,29 +628,49 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
         )
       ) {
       | None => Error(FailedToSwitch)
-      | Some(editors) => Model.save_and_return({...model, editors})
+      | Some(editors) =>
+        Model.save_and_return({
+          ...model,
+          editors,
+        })
       };
     | SwitchDocumentationSlide(name) =>
       switch (Editors.switch_example_slide(model.editors, name)) {
       | None => Error(FailedToSwitch)
-      | Some(editors) => Model.save_and_return({...model, editors})
+      | Some(editors) =>
+        Model.save_and_return({
+          ...model,
+          editors,
+        })
       }
     | SwitchTutorialSlide(name) =>
       switch (Editors.switch_example_slide(model.editors, name)) {
       | None => Error(FailedToSwitch)
-      | Some(editors) => Model.save_and_return({...model, editors})
+      | Some(editors) =>
+        Model.save_and_return({
+          ...model,
+          editors,
+        })
       }
     | SwitchEditor(pos) =>
       let instructor_mode = model.settings.instructor_mode;
       switch (switch_exercise_editor(model.editors, ~pos, ~instructor_mode)) {
       | None => Error(FailedToSwitch)
-      | Some(editors) => Ok({...model, editors})
+      | Some(editors) =>
+        Ok({
+          ...model,
+          editors,
+        })
       };
     | SwitchTutEditor(pos) =>
       let instructor_mode = model.settings.instructor_mode;
       switch (switch_tut_editor(model.editors, ~pos, ~instructor_mode)) {
       | None => Error(FailedToSwitch)
-      | Some(editors) => Ok({...model, editors})
+      | Some(editors) =>
+        Ok({
+          ...model,
+          editors,
+        })
       };
     | TAB =>
       /* Attempt to act intelligently when TAB is pressed.
@@ -620,12 +692,20 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
     | Undo =>
       switch (Editors.update_opt(model.editors, Editor.undo)) {
       | None => Error(CantUndo)
-      | Some(editors) => Ok({...model, editors})
+      | Some(editors) =>
+        Ok({
+          ...model,
+          editors,
+        })
       }
     | Redo =>
       switch (Editors.update_opt(model.editors, Editor.redo)) {
       | None => Error(CantRedo)
-      | Some(editors) => Ok({...model, editors})
+      | Some(editors) =>
+        Ok({
+          ...model,
+          editors,
+        })
       }
     | Benchmark(Start) =>
       List.iter(schedule_action, Benchmark.actions_1);
@@ -639,13 +719,19 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
         model.results
         |> ModelResults.find(key)
         |> ModelResult.step_forward(idx);
-      Ok({...model, results: model.results |> ModelResults.add(key, r)});
+      Ok({
+        ...model,
+        results: model.results |> ModelResults.add(key, r),
+      });
     | StepperAction(key, StepBackward) =>
       let r =
         model.results
         |> ModelResults.find(key)
         |> ModelResult.step_backward(~settings=model.settings.core.evaluation);
-      Ok({...model, results: model.results |> ModelResults.add(key, r)});
+      Ok({
+        ...model,
+        results: model.results |> ModelResults.add(key, r),
+      });
     | ToggleStepper(key) =>
       Ok({
         ...model,
@@ -664,7 +750,10 @@ let apply = (model: Model.t, update: t, ~schedule_action): Result.t(Model.t) => 
     | UpdateResult(results) =>
       let results =
         ModelResults.union((_, _a, b) => Some(b), model.results, results);
-      Ok({...model, results});
+      Ok({
+        ...model,
+        results,
+      });
     };
   m |> Result.map(~f=update_cached_data(~schedule_action, update));
 };

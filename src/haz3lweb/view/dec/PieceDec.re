@@ -146,7 +146,12 @@ let bi_lines =
            (
              l.origin,
              SvgUtil.Path.[
-               shadowfudge(M({x: offset, y: 1.0})),
+               shadowfudge(
+                 M({
+                   x: offset,
+                   y: 1.0,
+                 }),
+               ),
                H({x: length}),
              ],
            );
@@ -166,7 +171,12 @@ let bi_lines =
          (
            origin,
            SvgUtil.Path.[
-             shadowfudge(M({x: offset, y: 1.0})),
+             shadowfudge(
+               M({
+                 x: offset,
+                 y: 1.0,
+               }),
+             ),
              h_(~dx=indent - origin.col),
              shadowfudge(v_(~dy=origin'.row - origin.row + v_delta)),
              h_(~dx=origin'.col - indent),
@@ -222,9 +232,17 @@ let uni_lines =
           ? (
             m_first.origin,
             [
-              shadowfudge(M({x: 0., y: 1.0})),
+              shadowfudge(
+                M({
+                  x: 0.,
+                  y: 1.0,
+                }),
+              ),
               h(~x=l.col - m_first.origin.col),
-              L_({dx: -. hook_dx, dy: -. hook_dy}),
+              L_({
+                dx: -. hook_dx,
+                dy: -. hook_dy,
+              }),
             ],
           )
           : (
@@ -238,7 +256,12 @@ let uni_lines =
                   shadowfudge(v(~y=l.row - m_last_of_first.origin.row)),
                 ]
                 : [
-                  shadowfudge(M({x: offset, y: 1.0})),
+                  shadowfudge(
+                    M({
+                      x: offset,
+                      y: 1.0,
+                    }),
+                  ),
                   h(~x=indent - m_first.origin.col),
                   shadowfudge(v(~y=l.row + 1 - m_first.origin.row)),
                   h(~x=max_col - m_first.origin.col),
@@ -247,7 +270,10 @@ let uni_lines =
             )
             @ [
               h(~x=l.col - m_first.origin.col),
-              L_({dx: -. hook_dx, dy: hook_dy}),
+              L_({
+                dx: -. hook_dx,
+                dy: hook_dy,
+              }),
             ],
           ),
       ];
@@ -257,7 +283,12 @@ let uni_lines =
   };
   let r_line = {
     let (_, m_last) = ListUtil.last(shards);
-    let hook = [L_({dx: hook_dx, dy: -. hook_dy})];
+    let hook = [
+      L_({
+        dx: hook_dx,
+        dy: -. hook_dy,
+      }),
+    ];
     if (r.row == m_last.last.row && r.col > m_last.last.col) {
       [
         (

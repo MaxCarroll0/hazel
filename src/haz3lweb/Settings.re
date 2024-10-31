@@ -31,7 +31,10 @@ type t = {
 
 let fix_instructor_mode = settings =>
   if (settings.instructor_mode && !ExerciseSettings.show_instructor) {
-    {...settings, instructor_mode: false};
+    {
+      ...settings,
+      instructor_mode: false,
+    };
   } else {
     settings;
   };
