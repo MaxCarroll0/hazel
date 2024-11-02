@@ -469,7 +469,9 @@ and uexp_to_info_map =
             (def, p, p_syn);
           | None => (def, p, p_syn) // Use the original code
           };
-
+        print_endline("STA def = " ++ UExp.show(def));
+        print_endline("STA p = " ++ UPat.show(p));
+        // print_endline("STA p_syn = " ++ Info.show_pat(p_syn));
         let (def, m) = go(~mode=Ana(p_syn.ty), def, m);
         let ty_p_ana = def.ty;
 
