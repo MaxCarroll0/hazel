@@ -224,6 +224,12 @@ let shortcuts = (sys: Key.sys): list(shortcut) =>
       "Run Benchmark",
       Benchmark(Start),
     ),
+    mk_shortcut(
+      ~mdIcon="bolt",
+      ~section="Refactoring",
+      "Refine",
+      PerformAction(Refine),
+    ),
   ]
   @ (if (ExerciseSettings.show_instructor) {instructor_shortcuts} else {[]});
 

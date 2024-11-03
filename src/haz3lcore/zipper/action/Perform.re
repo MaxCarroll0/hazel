@@ -30,6 +30,32 @@ let go_z =
   module Move = Move.Make(M);
   module Select = Select.Make(M);
 
+  let refine = (z: Zipper.t) => {
+    switch (Indicated.ci_of(z, meta.statics.info_map)) {
+    | None => None
+    | Some(
+        InfoExp({
+          cls: Exp(EmptyHole),
+          status: NotInHole(Common(Ana(Consistent({ana, _})))),
+          ctx,
+          _,
+        }),
+      ) =>
+      let z =
+        Printer.zipper_of_string(
+          ~zipper_init=z,
+          switch (Typ.term_of(Typ.weak_head_normalize(ctx, ana))) {
+          | Arrow(_, _) => "fun -> "
+          | Prod(tys) =>
+            "(" ++ StringUtil.repeat(List.length(tys) - 1, ", ") ++ ") "
+          | _ => ""
+          },
+        );
+      Option.map(remold_regrout(Left, _), z);
+    | _ => None
+    };
+  };
+
   let paste = (z: Zipper.t, str: string): option(Zipper.t) => {
     open Util.OptUtil.Syntax;
     let* z = Printer.zipper_of_string(~zipper_init=z, str);
@@ -88,6 +114,7 @@ let go_z =
     | None => Error(CantPaste)
     | Some(z) => Ok(z)
     }
+  | Refine => refine(z) |> Result.of_option(~error=Action.Failure.CantRefine)
   | Cut =>
     /* System clipboard handling is done in Page.view handlers */
     switch (Destruct.go(Left, z)) {
