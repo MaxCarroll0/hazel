@@ -20,6 +20,7 @@ let name = (p: kind): string =>
   | Slider => "slider"
   | SliderF => "sliderf"
   | TextArea => "text"
+  | Markdown => "markdown"
   };
 
 /* This must be updated and kept 1-to-1 with the above
@@ -33,6 +34,7 @@ let of_name = (p: string): kind =>
   | "slider" => Slider
   | "sliderf" => SliderF
   | "text" => TextArea
+  | "markdown" => Markdown
   | _ => failwith("Unknown projector kind")
   };
 
@@ -214,7 +216,7 @@ module Panel = {
       | Exp(Float)
       | Pat(Float) => [SliderF]
       | Exp(String)
-      | Pat(String) => [TextArea]
+      | Pat(String) => [TextArea, Markdown]
       | _ => []
       }
     )
