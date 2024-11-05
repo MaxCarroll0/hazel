@@ -1,4 +1,5 @@
 open Virtual_dom.Vdom;
+open Haz3lcore;
 
 module Profile = {
   type style = [ | `Sibling];

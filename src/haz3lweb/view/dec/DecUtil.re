@@ -1,7 +1,7 @@
 open Virtual_dom.Vdom;
 open Node;
 open Util;
-
+open Haz3lcore;
 let caret_width = 0.2;
 
 let tip_width = 0.32;

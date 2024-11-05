@@ -60,27 +60,39 @@ let key_handler = (id, ~parent, evt) => {
 let safe_html_to_node = (html_string: string): Node.t =>
   Node.div(~attrs=[Attr.create("innerHTML", html_string)], []);
 let textarea =
-    (id, ~parent: external_action => Ui_effect.t(unit), text: string) => {
+    (
+      id,
+      ~parent as _: external_action => Ui_effect.t(unit),
+      ~font_metrics: FontMetrics.t,
+      text: string,
+    ) => {
   let foo = Omd.of_string(text);
   let bar = Omd.to_html(foo);
+  let size =
+    Css_gen.concat([
+      Css_gen.overflow(`Auto),
+      Css_gen.height(`Px(int_of_float(30. *. font_metrics.row_height))),
+      Css_gen.width(`Px(int_of_float(150. *. font_metrics.col_width))),
+    ]);
   // Node.innerHtml(bar);
   let foo =
     Node.inner_html(
-      ~attrs=[Attr.id(of_id(id))],
+      ~attrs=[Attr.id(of_id(id)), Attr.style(size)],
       ~this_html_is_sanitized_and_is_totally_safe_trust_me=bar, // ;)
       ~tag="div",
     );
   foo();
 };
 
-let view = (_, ~info, ~local as _, ~parent) => {
+let view = (_, ~info, ~local as _, ~parent, ~font_metrics) => {
   let text = info.syntax |> get |> Form.strip_quotes;
   Node.div(
     ~attrs=[Attr.classes(["wrapper"])],
     [
       Node.div(
         ~attrs=[Attr.classes(["cols", "code"])],
-        [Node.text("·")] @ [textarea(info.id, ~parent, text)],
+        [Node.text("·")]
+        @ [textarea(info.id, ~parent, ~font_metrics, text)],
       ),
     ],
   );
@@ -94,12 +106,11 @@ module M: Projector = {
   let init = ();
   let can_project = _ => true; //TODO(andrew): restrict somehow
   let can_focus = true;
-  let placeholder = (_, info) => {
-    let str = Form.strip_quotes(get(info.syntax));
+  let placeholder = (_, _info) => {
     Block({
-      row: StringUtil.num_lines(str),
+      row: 30,
       /* +2 for left and right padding */
-      col: 2 + StringUtil.max_line_width(str),
+      col: 150,
     });
   };
   let update = (model, _) => model;

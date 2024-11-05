@@ -13,7 +13,7 @@ module M: Projector = {
   let can_focus = false;
   let placeholder = (_, _) => Inline(2);
   let update = (_, _) => ();
-  let view = (_, ~info as _, ~local as _, ~parent) =>
+  let view = (_, ~info as _, ~local as _, ~parent, ~font_metrics as _) =>
     div(
       ~attrs=[Attr.on_double_click(_ => parent(Remove))],
       [text("⋱")],

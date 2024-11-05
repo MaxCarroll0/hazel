@@ -1,4 +1,5 @@
 open Util;
+open Haz3lcore;
 
 module Profile = {
   type t = {

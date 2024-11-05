@@ -83,7 +83,8 @@ module type Projector = {
       model,
       ~info: info,
       ~local: action => Ui_effect.t(unit),
-      ~parent: external_action => Ui_effect.t(unit)
+      ~parent: external_action => Ui_effect.t(unit),
+      ~font_metrics: FontMetrics.t
     ) =>
     Node.t;
   /* How much space should be left in the code view for
@@ -123,12 +124,13 @@ module Cook = (C: Projector) : Cooked => {
   let init = C.init |> serialize_m;
   let can_project = C.can_project;
   let can_focus = C.can_focus;
-  let view = (m, ~info, ~local, ~parent) =>
+  let view = (m, ~info, ~local, ~parent, ~font_metrics) =>
     C.view(
       deserialize_m(m),
       ~info,
       ~local=a => local(serialize_a(a)),
       ~parent,
+      ~font_metrics,
     );
   let placeholder = m =>
     m |> Sexplib.Sexp.of_string |> C.model_of_sexp |> C.placeholder;

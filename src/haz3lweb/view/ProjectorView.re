@@ -146,7 +146,7 @@ let setup_view =
     ~info,
     ~selected=List.mem(id, meta.syntax.selection_ids),
     p,
-    P.view(p.model, ~info, ~local, ~parent),
+    P.view(p.model, ~font_metrics, ~info, ~local, ~parent),
   );
 };
 

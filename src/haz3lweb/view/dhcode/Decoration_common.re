@@ -1,5 +1,5 @@
 open Virtual_dom.Vdom;
-
+open Haz3lcore;
 module MeasuredPosition = Pretty.MeasuredPosition;
 module MeasuredLayout = Pretty.MeasuredLayout;
 
