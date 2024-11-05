@@ -161,11 +161,7 @@ module Transition = (EV: EV_MODE) => {
   let transition = (req, state, env, d): 'a => {
     // Split DHExp into term and id information
     let (term, rewrap) = DHExp.unwrap(d);
-    let wrap_ctx = (term): EvalCtx.t =>
-      Term({
-        term,
-        ids: [rep_id(d)],
-      });
+    let wrap_ctx = (term): EvalCtx.t => Term({term, ids: [rep_id(d)]});
 
     // Transition rules
     switch (term) {
@@ -185,12 +181,7 @@ module Transition = (EV: EV_MODE) => {
       let. _ = otherwise(env, d1 => Seq(d1, d2) |> rewrap)
       and. _ =
         req_final(req(state, env), d1 => Seq1(d1, d2) |> wrap_ctx, d1);
-      Step({
-        expr: d2,
-        state_update,
-        kind: Seq,
-        is_value: false,
-      });
+      Step({expr: d2, state_update, kind: Seq, is_value: false});
     | Let(dp, d1, d2) =>
       let. _ = otherwise(env, d1 => Let(dp, d1, d2) |> rewrap)
       and. d1' =
@@ -744,12 +735,7 @@ module Transition = (EV: EV_MODE) => {
       let. _ = otherwise(env, d => Closure(env', d) |> rewrap)
       and. d' =
         req_final(req(state, env'), d1 => Closure(env', d1) |> wrap_ctx, d);
-      Step({
-        expr: d',
-        state_update,
-        kind: CompleteClosure,
-        is_value: true,
-      });
+      Step({expr: d', state_update, kind: CompleteClosure, is_value: true});
     | MultiHole(_) =>
       let. _ = otherwise(env, d);
       // and. _ =
@@ -769,13 +755,7 @@ module Transition = (EV: EV_MODE) => {
       and. d' =
         req_final(req(state, env), d => Cast(d, t1, t2) |> wrap_ctx, d);
       switch (Casts.transition(Cast(d', t1, t2) |> rewrap)) {
-      | Some(d) =>
-        Step({
-          expr: d,
-          state_update,
-          kind: Cast,
-          is_value: false,
-        })
+      | Some(d) => Step({expr: d, state_update, kind: Cast, is_value: false})
       | None => Constructor
       };
     | FailedCast(d1, t1, t2) =>
@@ -792,30 +772,15 @@ module Transition = (EV: EV_MODE) => {
       Indet;
     | Parens(d) =>
       let. _ = otherwise(env, d);
-      Step({
-        expr: d,
-        state_update,
-        kind: RemoveParens,
-        is_value: false,
-      });
+      Step({expr: d, state_update, kind: RemoveParens, is_value: false});
     | TyAlias(_, _, d) =>
       let. _ = otherwise(env, d);
-      Step({
-        expr: d,
-        state_update,
-        kind: RemoveTypeAlias,
-        is_value: false,
-      });
+      Step({expr: d, state_update, kind: RemoveTypeAlias, is_value: false});
     | Filter(f1, d1) =>
       let. _ = otherwise(env, d1 => Filter(f1, d1) |> rewrap)
       and. d1 =
         req_final(req(state, env), d1 => Filter(f1, d1) |> wrap_ctx, d1);
-      Step({
-        expr: d1,
-        state_update,
-        kind: CompleteFilter,
-        is_value: true,
-      });
+      Step({expr: d1, state_update, kind: CompleteFilter, is_value: true});
     };
   };
 };

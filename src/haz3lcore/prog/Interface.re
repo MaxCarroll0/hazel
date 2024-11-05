@@ -29,10 +29,6 @@ let evaluate =
     | exception exn =>
       print_endline("EXN:" ++ Printexc.to_string(exn));
       ResultFail(UnknownException(Printexc.to_string(exn)));
-    | (state, result) =>
-      ResultOk({
-        result,
-        state,
-      })
+    | (state, result) => ResultOk({result, state})
     }
   };

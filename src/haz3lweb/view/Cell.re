@@ -271,10 +271,7 @@ let editor_view =
     /* For exercises modes */
     switch (override_statics) {
     | None => editor.state.meta
-    | Some(statics) => {
-        ...editor.state.meta,
-        statics,
-      }
+    | Some(statics) => {...editor.state.meta, statics}
     };
   let mousedown_overlay =
     selected && mousedown

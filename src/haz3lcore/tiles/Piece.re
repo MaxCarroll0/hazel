@@ -31,34 +31,12 @@ let nibs =
     _ => None,
     g => {
       let (l, r) = Grout.shapes(g);
-      Some(
-        Nib.(
-          {
-            shape: l,
-            sort: Any,
-          },
-          {
-            shape: r,
-            sort: Any,
-          },
-        ),
-      );
+      Some(Nib.({shape: l, sort: Any}, {shape: r, sort: Any}));
     },
     t => Some(Tile.nibs(t)),
     p => {
       let (l, r) = ProjectorBase.shapes(p);
-      Some(
-        Nib.(
-          {
-            shape: l,
-            sort: Any,
-          },
-          {
-            shape: r,
-            sort: Any,
-          },
-        ),
-      );
+      Some(Nib.({shape: l, sort: Any}, {shape: r, sort: Any}));
     },
   );
 
@@ -151,26 +129,10 @@ let is_complete: t => bool =
 
 let replace_id = (id: Id.t, p: t): t =>
   switch (p) {
-  | Tile(t) =>
-    Tile({
-      ...t,
-      id,
-    })
-  | Grout(g) =>
-    Grout({
-      ...g,
-      id,
-    })
-  | Secondary(w) =>
-    Secondary({
-      ...w,
-      id,
-    })
-  | Projector(p) =>
-    Projector({
-      ...p,
-      id,
-    })
+  | Tile(t) => Tile({...t, id})
+  | Grout(g) => Grout({...g, id})
+  | Secondary(w) => Secondary({...w, id})
+  | Projector(p) => Projector({...p, id})
   };
 
 let mk_tile: (Form.t, list(list(t))) => t =

@@ -31,14 +31,7 @@ let mk_all = (~instructor_mode, ~log) => {
       ~specs=ExerciseSettings.exercises,
       ~instructor_mode,
     );
-  {
-    settings,
-    explainThisModel,
-    scratch,
-    documentation,
-    exercise,
-    log,
-  };
+  {settings, explainThisModel, scratch, documentation, exercise, log};
 };
 
 let export_all = (~instructor_mode, ~log) => {

@@ -101,10 +101,7 @@ module Main = {
       ++ item_to_summary("Test Validation", test_validation)
       ++ item_to_summary("Mutation Testing", mutation_testing)
       ++ item_to_summary("Impl Grading", impl_grading);
-    {
-      summary,
-      overall,
-    };
+    {summary, overall};
   };
   let run = () => {
     let hw_path = Sys.get_argv()[1];
@@ -122,10 +119,7 @@ module Main = {
                  ~instructor_mode=true,
                );
              let report = exercise |> gen_grading_report;
-             {
-               name,
-               report,
-             };
+             {name, report};
            | None => failwith("Invalid spec")
            //  | None => (key |> yojson_of_key |> Yojson.Safe.to_string, "?")
            }

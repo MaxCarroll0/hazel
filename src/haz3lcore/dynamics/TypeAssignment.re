@@ -35,12 +35,7 @@ let dhpat_extend_ctx = (dhpat: DHPat.t, ty: Typ.t, ctx: Ctx.t): option(Ctx.t) =>
           (dhpat: DHPat.t, ty: Typ.t): option(list(Ctx.entry)) => {
     switch (dhpat |> Pat.term_of) {
     | Var(name) =>
-      let entry =
-        Ctx.VarEntry({
-          name,
-          id: Id.invalid,
-          typ: ty,
-        });
+      let entry = Ctx.VarEntry({name, id: Id.invalid, typ: ty});
       Some([entry]);
     | Tuple(l1) =>
       let* ts = Typ.matched_prod_strict(ctx, List.length(l1), ty);
@@ -120,11 +115,7 @@ let rec env_extend_ctx =
     |> ClosureEnvironment.to_list
     |> List.map(((name, de)) => {
          let+ ty = typ_of_dhexp(ctx, m, de);
-         Ctx.VarEntry({
-           name,
-           id: Id.invalid,
-           typ: ty,
-         });
+         Ctx.VarEntry({name, id: Id.invalid, typ: ty});
        })
     |> OptUtil.sequence;
   List.fold_left((ctx, var_entry) => Ctx.extend(ctx, var_entry), ctx, l);
@@ -174,14 +165,7 @@ and typ_of_dhexp = (ctx: Ctx.t, m: Statics.Map.t, dh: DHExp.t): option(Typ.t) =>
   | TypFun({term: Var(name), _} as utpat, d, _)
       when !Ctx.shadows_typ(ctx, name) =>
     let ctx =
-      Ctx.extend_tvar(
-        ctx,
-        {
-          name,
-          id: TPat.rep_id(utpat),
-          kind: Abstract,
-        },
-      );
+      Ctx.extend_tvar(ctx, {name, id: TPat.rep_id(utpat), kind: Abstract});
     let* ty = typ_of_dhexp(ctx, m, d);
     Some(Typ.Forall(utpat, ty) |> Typ.temp);
   | TypFun(_, d, _) =>

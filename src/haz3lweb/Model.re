@@ -105,13 +105,7 @@ let load = (init_model: t): t => {
       ~instructor_mode=settings.instructor_mode,
     );
   let ui_state = init_model.ui_state;
-  {
-    editors,
-    settings,
-    results,
-    explainThisModel,
-    ui_state,
-  };
+  {editors, settings, results, explainThisModel, ui_state};
 };
 
 let save = ({editors, settings, explainThisModel, results, _}: t) => {

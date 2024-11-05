@@ -22,10 +22,7 @@ let cls_of = (s: t): cls =>
   | Comment(_) => Comment
   };
 
-let mk_space = id => {
-  content: Whitespace(Form.space),
-  id,
-};
+let mk_space = id => {content: Whitespace(Form.space), id};
 
 let construct_comment = content =>
   if (String.equal(content, "#")) {
