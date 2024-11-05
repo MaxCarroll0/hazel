@@ -64,7 +64,6 @@ let textarea =
   let foo = Omd.of_string(text);
   let bar = Omd.to_html(foo);
   // Node.innerHtml(bar);
-  let foo = safe_html_to_node(bar);
   let foo =
     Node.inner_html(
       ~attrs=[Attr.id(of_id(id))],
