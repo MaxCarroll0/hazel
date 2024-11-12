@@ -37,6 +37,12 @@ let jump_to_test = (~inject, pos, id, _) => {
   Effect.bind(effect1, ~f=_result1 => effect2);
 };
 
+let jump_to_test_tutorial = (~inject, pos, id, _) => {
+  let effect1 = inject(Update.SwitchTutEditor(pos));
+  let effect2 = inject(Update.PerformAction(Jump(TileId(id))));
+  Effect.bind(effect1, ~f=_result1 => effect2);
+};
+
 let test_report_view =
     (
       ~settings,
@@ -117,10 +123,28 @@ let test_bar_segment = (~inject, pos, (id, reports)) => {
   );
 };
 
+let test_bar_segment_tutorial = (~inject, pos: Tutorial.pos, (id, reports)) => {
+  let status = reports |> TestMap.joint_status |> TestStatus.to_string;
+  div(
+    ~attrs=[
+      clss(["segment", status]),
+      Attr.on_click(jump_to_test_tutorial(~inject, pos, id)),
+    ],
+    [],
+  );
+};
+
 let test_bar = (~inject, ~test_results: TestResults.t, pos) =>
   div(
     ~attrs=[Attr.class_("test-bar")],
     List.map(test_bar_segment(~inject, pos), test_results.test_map),
+  );
+
+let test_bar_tutorial =
+    (~inject, ~test_results: TestResults.t, pos: Tutorial.pos) =>
+  div(
+    ~attrs=[Attr.class_("test-bar")],
+    List.map(test_bar_segment_tutorial(~inject, pos), test_results.test_map),
   );
 
 // result_summary_str and test_summary_str have been moved to haz3lcore/TestResults.re

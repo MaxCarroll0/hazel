@@ -25,6 +25,7 @@ let view =
       ~settings: Settings.t,
       ~tutorial,
       ~results,
+      // ~stitched_dynamics,
       ~highlights,
     ) => {
   // editor : Editor.t,
@@ -38,7 +39,7 @@ let view =
       settings.core.dynamics ? Some(results) : None,
     );
   let {
-    // test_validation,
+    test_validation,
     user_impl,
     // user_tests,
     // prelude,
@@ -47,6 +48,10 @@ let view =
     hidden_tests: _,
   }:
     Tutorial.stitched(Tutorial.DynamicsItem.t) = stitched_dynamics;
+  let grading_report =
+    TutorialGrading.GradingReport.mk(eds, ~stitched_dynamics);
+  let score_view =
+    TutorialGrading.GradingReport.view_overall_score(grading_report);
 
   let editor_view =
       (
@@ -106,7 +111,49 @@ let view =
         ),
     );
 
-  [title_view] @ render_cells(settings, [your_impl_view, hidden_tests_view]);
+  // let your_tests_view =
+  //   Always(
+  //     editor_view(
+  //       YourTestsValidation,
+  //       ~caption="Test Validation",
+  //       ~subcaption=": Your Tests vs. Correct Implementation",
+  //       ~editor=eds.hidden_tests.tests,
+  //       ~di=test_validation,
+  //       ~footer=[] // TutorialGrading.TestValidationReport.view(
+  //       //   ~inject,
+  //       //   grading_report.test_validation_report,
+  //       //   grading_report.point_distribution.test_validation,
+  //       // ),
+  //     ),
+  //   );
+
+  let impl_validation_view =
+    Always(
+      editor_view(
+        YourTestsValidation,
+        ~caption="Implementation Validation",
+        ~subcaption=": Hidden Tests vs. Your Implementation",
+        ~editor=eds.your_impl,
+        ~di=test_validation,
+        ~footer=[
+          Cell.test_report_footer_view(
+            ~inject,
+            ~test_results=ModelResult.test_results(test_validation.result),
+          ),
+        ],
+      ),
+    );
+
+  [score_view, title_view]
+  @ render_cells(
+      settings,
+      [
+        your_impl_view,
+        hidden_tests_view,
+        // your_tests_view,
+        impl_validation_view,
+      ],
+    );
 };
 
 let reset_button = inject =>

@@ -401,7 +401,7 @@ module Tutorial = {
       let tutorial_state: Tutorial.state = {
         pos: YourImpl,
         eds: {
-          title: status.title,
+          title: "",
           description: status.description,
           your_impl: your_impl_editor,
           hidden_tests: {
