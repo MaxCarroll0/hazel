@@ -62,7 +62,7 @@ let view =
         ),
       ]
       : [];
-  let bottom_bar = [div(~attr=Attr.class_("bottom-bar"), ci_view)];
+  let bottom_bar = [div(~attrs=[Attr.class_("bottom-bar")], ci_view)];
   let right_panel =
     langDocMessages.show && settings.statics
       ? [
@@ -78,7 +78,7 @@ let view =
       : [];
 
   div(
-    ~attr=clss(["editor", "single"]),
+    ~attrs=[clss(["editor", "single"])],
     [editor_view] @ bottom_bar @ right_panel,
   );
 };

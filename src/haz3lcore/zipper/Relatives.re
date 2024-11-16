@@ -6,7 +6,10 @@ type t = {
   ancestors: Ancestors.t,
 };
 
-let empty = {siblings: Siblings.empty, ancestors: Ancestors.empty};
+let empty = {
+  siblings: Siblings.empty,
+  ancestors: Ancestors.empty,
+};
 
 let push = (d: Direction.t, p: Piece.t, rs: t): t => {
   ...rs,
@@ -15,12 +18,22 @@ let push = (d: Direction.t, p: Piece.t, rs: t): t => {
 
 let prepend = (d: Direction.t, seg: Segment.t, rs: t): t => {
   let siblings = Siblings.prepend(d, seg, rs.siblings);
-  {...rs, siblings};
+  {
+    ...rs,
+    siblings,
+  };
 };
 
 let pop = (d: Direction.t, rs: t): option((Piece.t, t)) =>
   switch (Siblings.pop(d, rs.siblings)) {
-  | Some((p, siblings)) => Some((p, {...rs, siblings}))
+  | Some((p, siblings)) =>
+    Some((
+      p,
+      {
+        ...rs,
+        siblings,
+      },
+    ))
   | None =>
     switch (rs.ancestors) {
     | [] => None
@@ -29,7 +42,13 @@ let pop = (d: Direction.t, rs: t): option((Piece.t, t)) =>
       let siblings' = Ancestor.disassemble(ancestor);
       let+ (p, siblings) =
         Siblings.(pop(d, concat([rs.siblings, siblings', siblings])));
-      (p, {siblings, ancestors});
+      (
+        p,
+        {
+          siblings,
+          ancestors,
+        },
+      );
     }
   };
 
@@ -60,7 +79,10 @@ let disassemble = ({siblings, ancestors}: t): Siblings.t =>
 let remold = ({siblings, ancestors}: t): t => {
   let s = Ancestors.sort(ancestors);
   let siblings = Siblings.remold(siblings, s);
-  {ancestors, siblings};
+  {
+    ancestors,
+    siblings,
+  };
 };
 
 let regrout = (d: Direction.t, {siblings, ancestors}: t): IdGen.t(t) => {
@@ -113,7 +135,10 @@ let regrout = (d: Direction.t, {siblings, ancestors}: t): IdGen.t(t) => {
     };
     (pre @ trim_l, trim_r @ suf);
   };
-  {siblings, ancestors};
+  {
+    siblings,
+    ancestors,
+  };
 };
 
 let prepend_generation = ((a, sibs): Ancestors.generation, rs: t): t => {
@@ -176,7 +201,10 @@ let reassemble_parent = (rs: t): t =>
         };
         (a, inner_r);
       };
-    {siblings: (l, r), ancestors: [(a, sibs), ...ancs]};
+    {
+      siblings: (l, r),
+      ancestors: [(a, sibs), ...ancs],
+    };
   };
 
 let reassemble_siblings = (rs: t) => {
@@ -197,21 +225,34 @@ let reassemble = (rs: t): t => {
       | (_, None) => failwith("impossible")
       | (None, Some((inner_r, match_r, outer_r))) =>
         let {siblings: (pre, suf), ancestors} =
-          go({...rs, siblings: (fst(rs.siblings), outer_r)});
+          go({
+            ...rs,
+            siblings: (fst(rs.siblings), outer_r),
+          });
         let t = Tile.reassemble(match_r);
         let suf = Segment.concat([inner_r, [Tile.to_piece(t), ...suf]]);
-        {siblings: (pre, suf), ancestors};
+        {
+          siblings: (pre, suf),
+          ancestors,
+        };
       | (
           Some((outer_l, match_l, inner_l)),
           Some((inner_r, match_r, outer_r)),
         ) =>
-        let rs = go({...rs, siblings: (outer_l, outer_r)});
+        let rs =
+          go({
+            ...rs,
+            siblings: (outer_l, outer_r),
+          });
         let ancestors = [
           (Ancestor.reassemble(match_l, match_r), rs.siblings),
           ...rs.ancestors,
         ];
         let siblings = (inner_l, inner_r);
-        {ancestors, siblings};
+        {
+          ancestors,
+          siblings,
+        };
       }
     };
   rs |> reassemble_siblings |> reassemble_parent |> go;

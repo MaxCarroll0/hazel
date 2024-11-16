@@ -1,5 +1,5 @@
 /* types with holes */
-[@deriving (show({with_path: false}), sexp, yojson)]
+[@deriving (show({with_path: false}), sexp, of_yojson)]
 type t =
   | Hole
   | Int

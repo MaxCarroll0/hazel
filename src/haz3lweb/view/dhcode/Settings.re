@@ -29,7 +29,10 @@ module Evaluation = {
 
   let apply_update = (u: update, settings: t) =>
     switch (u) {
-    | Toggle_evaluate => {...settings, evaluate: !settings.evaluate}
+    | Toggle_evaluate => {
+        ...settings,
+        evaluate: !settings.evaluate,
+      }
     | Toggle_show_case_clauses => {
         ...settings,
         show_case_clauses: !settings.show_case_clauses,
@@ -38,7 +41,10 @@ module Evaluation = {
         ...settings,
         show_fn_bodies: !settings.show_fn_bodies,
       }
-    | Toggle_show_casts => {...settings, show_casts: !settings.show_casts}
+    | Toggle_show_casts => {
+        ...settings,
+        show_casts: !settings.show_casts,
+      }
     | Toggle_show_unevaluated_elaboration => {
         ...settings,
         show_unevaluated_elaboration: !settings.show_unevaluated_elaboration,
@@ -88,7 +94,10 @@ module Performance = {
 
   let apply_update = (u: update, settings: t) =>
     switch (u) {
-    | Toggle_measure => {...settings, measure: !settings.measure}
+    | Toggle_measure => {
+        ...settings,
+        measure: !settings.measure,
+      }
     | Toggle_model_perform_edit_action => {
         ...settings,
         model_perform_edit_action: !settings.model_perform_edit_action,
@@ -101,9 +110,18 @@ module Performance = {
         ...settings,
         layoutOfDoc_layout_of_doc: !settings.layoutOfDoc_layout_of_doc,
       }
-    | Toggle_uhcode_view => {...settings, uhcode_view: !settings.uhcode_view}
-    | Toggle_cell_view => {...settings, cell_view: !settings.cell_view}
-    | Toggle_page_view => {...settings, page_view: !settings.page_view}
+    | Toggle_uhcode_view => {
+        ...settings,
+        uhcode_view: !settings.uhcode_view,
+      }
+    | Toggle_cell_view => {
+        ...settings,
+        cell_view: !settings.cell_view,
+      }
+    | Toggle_page_view => {
+        ...settings,
+        page_view: !settings.page_view,
+      }
     | Toggle_hazel_create => {
         ...settings,
         hazel_create: !settings.hazel_create,
@@ -135,7 +153,10 @@ type update =
 
 let apply_update = (u: update, settings: t) =>
   switch (u) {
-  | Toggle_memoize_doc => {...settings, memoize_doc: !settings.memoize_doc}
+  | Toggle_memoize_doc => {
+      ...settings,
+      memoize_doc: !settings.memoize_doc,
+    }
   | Evaluation(u) => {
       ...settings,
       evaluation: Evaluation.apply_update(u, settings.evaluation),

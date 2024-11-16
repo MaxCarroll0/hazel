@@ -1,5 +1,6 @@
 open Sexplib.Std;
 open Util;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type row = int;
@@ -12,7 +13,10 @@ module Point = {
     row,
     col,
   };
-  let zero = {row: 0, col: 0};
+  let zero = {
+    row: 0,
+    col: 0,
+  };
 
   let equals: (t, t) => bool = (p, q) => p.row == q.row && p.col == q.col;
 
@@ -185,7 +189,10 @@ let find_t = (t: Tile.t, map): measurement => {
   let shards = Id.Map.find(t.id, map.tiles);
   let first = List.assoc(Tile.l_shard(t), shards);
   let last = List.assoc(Tile.r_shard(t), shards);
-  {origin: first.origin, last: last.last};
+  {
+    origin: first.origin,
+    last: last.last,
+  };
 };
 // let find_a = ({shards: (l, r), _} as a: Ancestor.t, map) =>
 //   List.assoc(l @ r, Id.Map.find(a.id, map.tiles));
@@ -208,7 +215,10 @@ let find_by_id = (id: Id.t, map: t): option(measurement) => {
       | Some(shards) =>
         let first = List.assoc(List.hd(shards) |> fst, shards);
         let last = List.assoc(ListUtil.last(shards) |> fst, shards);
-        Some({origin: first.origin, last: last.last});
+        Some({
+          origin: first.origin,
+          last: last.last,
+        });
       | None =>
         Printf.printf("Measured.WARNING: id %d not found", id);
         None;
@@ -354,23 +364,57 @@ let of_segment = (~old: t=empty, ~touched=Touched.empty, seg: Segment.t): t => {
                 };
               };
             let last =
-              Point.{row: origin.row + 1, col: container_indent + indent};
+              Point.{
+                row: origin.row + 1,
+                col: container_indent + indent,
+              };
             let map =
               map
-              |> add_w(w, {origin, last})
+              |> add_w(
+                   w,
+                   {
+                     origin,
+                     last,
+                   },
+                 )
               |> add_row(
                    origin.row,
-                   {indent: row_indent, max_col: origin.col},
+                   {
+                     indent: row_indent,
+                     max_col: origin.col,
+                   },
                  )
               |> add_lb(w.id, indent);
             (indent, last, map);
           | Whitespace(w) =>
-            let last = {...origin, col: origin.col + 1};
-            let map = map |> add_w(w, {origin, last});
+            let last = {
+              ...origin,
+              col: origin.col + 1,
+            };
+            let map =
+              map
+              |> add_w(
+                   w,
+                   {
+                     origin,
+                     last,
+                   },
+                 );
             (contained_indent, last, map);
           | Grout(g) =>
-            let last = {...origin, col: origin.col + 1};
-            let map = map |> add_g(g, {origin, last});
+            let last = {
+              ...origin,
+              col: origin.col + 1,
+            };
+            let map =
+              map
+              |> add_g(
+                   g,
+                   {
+                     origin,
+                     last,
+                   },
+                 );
             (contained_indent, last, map);
           | Tile(t) =>
             let token = List.nth(t.label);
@@ -380,7 +424,16 @@ let of_segment = (~old: t=empty, ~touched=Touched.empty, seg: Segment.t): t => {
                   ...origin,
                   col: origin.col + String.length(token(shard)),
                 };
-              let map = map |> add_s(t.id, shard, {origin, last});
+              let map =
+                map
+                |> add_s(
+                     t.id,
+                     shard,
+                     {
+                       origin,
+                       last,
+                     },
+                   );
               (last, map);
             };
             let (last, map) =

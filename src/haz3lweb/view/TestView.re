@@ -8,8 +8,7 @@ module TestMap = Haz3lcore.TestMap;
 let test_instance_view =
     (~font_metrics, (d, status): TestMap.instance_report) =>
   div(
-    ~attr=
-      Attr.many([clss(["test-instance", TestStatus.to_string(status)])]),
+    ~attrs=[clss(["test-instance", TestStatus.to_string(status)])],
     [
       DHCode.view_tylr(
         ~settings=Settings.Evaluation.init,
@@ -34,26 +33,25 @@ let test_report_view =
   let status =
     instance_reports |> TestMap.joint_status |> TestStatus.to_string;
   div(
-    ~attr=
-      Attr.many([
-        Attr.class_("test-report"),
-        Attr.on_click(jump_to_test(~inject)),
-      ]),
+    ~attrs=[
+      Attr.class_("test-report"),
+      Attr.on_click(jump_to_test(~inject)),
+    ],
     [
       div(
-        ~attr=clss(["test-id", "Test" ++ status]),
+        ~attrs=[clss(["test-id", "Test" ++ status])],
         // note: prints lexical index, not id
         [text(string_of_int(i + 1))],
       ),
       div(
-        ~attr=Attr.class_("test-instances"),
+        ~attrs=[Attr.class_("test-instances")],
         List.map(test_instance_view(~font_metrics), instance_reports),
       ),
     ]
     @ (
       switch (description) {
       | None => []
-      | Some(d) => [div(~attr=clss(["test-description"]), [text(d)])]
+      | Some(d) => [div(~attrs=[clss(["test-description"])], [text(d)])]
       }
     ),
   );
@@ -62,7 +60,7 @@ let test_report_view =
 let test_reports_view =
     (~inject, ~font_metrics, ~test_results: option(Interface.test_results)) =>
   div(
-    ~attr=clss(["panel-body", "test-reports"]),
+    ~attrs=[clss(["panel-body", "test-reports"])],
     switch (test_results) {
     | None => [Node.text("No test report available.")]
     | Some(test_results) =>
@@ -83,18 +81,17 @@ let test_reports_view =
 let test_bar_segment = (~inject, (_id, reports)) => {
   let status = reports |> TestMap.joint_status |> TestStatus.to_string;
   div(
-    ~attr=
-      Attr.many([
-        clss(["segment", status]),
-        Attr.on_click(jump_to_test(~inject)),
-      ]),
+    ~attrs=[
+      clss(["segment", status]),
+      Attr.on_click(jump_to_test(~inject)),
+    ],
     [],
   );
 };
 
 let test_bar = (~inject, ~test_results: Interface.test_results) =>
   div(
-    ~attr=Attr.class_("test-bar"),
+    ~attrs=[Attr.class_("test-bar")],
     List.map(test_bar_segment(~inject), test_results.test_map),
   );
 
@@ -170,7 +167,7 @@ let percent_view = (n: int, p: int): Node.t => {
   let percentage =
     n == 0 ? 100. : 100. *. float_of_int(p) /. float_of_int(n);
   div(
-    ~attr=clss(["test-percent", n == p ? "all-pass" : "some-fail"]),
+    ~attrs=[clss(["test-percent", n == p ? "all-pass" : "some-fail"])],
     [text(Printf.sprintf("%.0f%%", percentage))],
   );
 };
@@ -180,7 +177,7 @@ let test_percentage = (test_results: Interface.test_results): Node.t =>
 
 let test_text = (test_results: Interface.test_results): Node.t =>
   div(
-    ~attr=Attr.class_("test-text"),
+    ~attrs=[Attr.class_("test-text")],
     [
       test_percentage(test_results),
       div([text(":")]),
@@ -190,7 +187,7 @@ let test_text = (test_results: Interface.test_results): Node.t =>
 
 let test_summary = (~inject, ~test_results: option(Interface.test_results)) => {
   div(
-    ~attr=clss(["test-summary"]),
+    ~attrs=[clss(["test-summary"])],
     {
       switch (test_results) {
       | None => [Node.text("No test results available.")]
@@ -205,7 +202,7 @@ let test_summary = (~inject, ~test_results: option(Interface.test_results)) => {
 
 let view_of_main_title_bar = (title_text: string) =>
   div(
-    ~attr=Attr.many([clss(["title-bar", "panel-title-bar"])]),
+    ~attrs=[clss(["title-bar", "panel-title-bar"])],
     [Node.text(title_text)],
   );
 
@@ -215,10 +212,10 @@ let inspector_view =
   | Some(instances) when TestMap.joint_status(instances) != Indet =>
     Some(
       div(
-        ~attr=Attr.class_("test-inspector"),
+        ~attrs=[Attr.class_("test-inspector")],
         [
           div(
-            ~attr=Attr.class_("test-instances"),
+            ~attrs=[Attr.class_("test-instances")],
             List.map(test_instance_view(~font_metrics), instances),
           ),
         ],

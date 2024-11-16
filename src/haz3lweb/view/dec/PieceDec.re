@@ -31,15 +31,27 @@ let adj: Nib.Shape.t => float =
 
 let l_hook = (l: Nib.Shape.t): list(Path.cmd) => [
   H_({dx: -. adj(l)}),
-  L_({dx: -. run(l), dy: (-0.5)}),
-  L_({dx: +. run(l), dy: (-0.5)}),
+  L_({
+    dx: -. run(l),
+    dy: (-0.5),
+  }),
+  L_({
+    dx: +. run(l),
+    dy: (-0.5),
+  }),
   H_({dx: +. adj(l)}),
 ];
 
 let r_hook = (r: Nib.Shape.t): list(Path.cmd) => [
   H_({dx: +. adj(r)}),
-  L_({dx: +. run(r), dy: 0.5}),
-  L_({dx: -. run(r), dy: 0.5}),
+  L_({
+    dx: +. run(r),
+    dy: 0.5,
+  }),
+  L_({
+    dx: -. run(r),
+    dy: 0.5,
+  }),
   H_({dx: -. adj(r)}),
 ];
 
@@ -148,7 +160,15 @@ let chunky_shard =
     |> List.map(r => Measured.Rows.find(r, rows).max_col)
     |> List.fold_left(max, 0);
   let path =
-    chunky_shard_path({origin, last}, (nib_l, nib_r), indent_col, max_col);
+    chunky_shard_path(
+      {
+        origin,
+        last,
+      },
+      (nib_l, nib_r),
+      indent_col,
+      max_col,
+    );
   let clss = ["tile-path", "selected", "raised"];
   DecUtil.code_svg(
     ~font_metrics,

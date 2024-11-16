@@ -17,20 +17,19 @@ let backpack_sel_view =
     });
   // TODO(andrew): Maybe use init sort at caret to prime this
   div(
-    ~attr=
-      Attr.many([
-        Attr.classes(["code-text", "backpack-selection"]),
-        Attr.create(
-          "style",
-          Printf.sprintf(
-            "position: absolute; transform-origin: bottom left; transform: translate(%fpx, %fpx) scale(%f); opacity: %f%%;",
-            x_off,
-            y_off,
-            scale,
-            opacity,
-          ),
+    ~attrs=[
+      Attr.classes(["code-text", "backpack-selection"]),
+      Attr.create(
+        "style",
+        Printf.sprintf(
+          "position: absolute; transform-origin: bottom left; transform: translate(%fpx, %fpx) scale(%f); opacity: %f%%;",
+          x_off,
+          y_off,
+          scale,
+          opacity,
         ),
-      ]),
+      ),
+    ],
     // zwsp necessary for containing box to stretch to contain trailing newline
     Text.of_segment(~no_sorts=true, content) @ [text(Unicode.zwsp)],
   );
@@ -106,11 +105,10 @@ let view =
     );
   let selections_view =
     div(
-      ~attr=
-        Attr.many([
-          Attr.create("style", selections_style),
-          Attr.classes(["backpack"]),
-        ]),
+      ~attrs=[
+        Attr.create("style", selections_style),
+        Attr.classes(["backpack"]),
+      ],
       selections,
     );
   let length =
@@ -130,22 +128,27 @@ let view =
     );
   let joiner =
     div(
-      ~attr=
-        Attr.many([
-          Attr.create("style", joiner_style),
-          Attr.classes(["backpack-joiner"]),
-        ]),
+      ~attrs=[
+        Attr.create("style", joiner_style),
+        Attr.classes(["backpack-joiner"]),
+      ],
       [],
     );
   //TODO(andrew): break out backpack decoration into its own module
   let genie_view =
     DecUtil.code_svg(
       ~font_metrics,
-      ~origin={row: 0, col: 0},
+      ~origin={
+        row: 0,
+        col: 0,
+      },
       ~base_cls=["restructuring-genie"],
       ~path_cls=["restructuring-genie-path"],
       SvgUtil.Path.[
-        M({x: 0., y: 0.}),
+        M({
+          x: 0.,
+          y: 0.,
+        }),
         V({y: (-1.0)}),
         H_({dx: Float.of_int(length)}),
         V_({dy: 0.0}),
@@ -161,15 +164,12 @@ let view =
       +. 1.,
     );
   div(
-    ~attr=
-      Attr.many([
-        Attr.classes(
-          ["backpack"] @ (can_put_down ? [] : ["cant-put-down"]),
-        ),
-      ]),
+    ~attrs=[
+      Attr.classes(["backpack"] @ (can_put_down ? [] : ["cant-put-down"])),
+    ],
     [
       selections_view,
-      div(~attr=Attr.create("style", genie_style), [genie_view]),
+      div(~attrs=[Attr.create("style", genie_style)], [genie_view]),
     ]
     @ (backpack != [] ? [joiner] : []),
   );

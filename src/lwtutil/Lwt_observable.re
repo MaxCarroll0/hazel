@@ -108,8 +108,14 @@ let subscribe =
       next: next('a),
       complete: complete,
     ) => {
-  let ob = {next, complete};
-  let s = {id: count^, observable: ref(o)};
+  let ob = {
+    next,
+    complete,
+  };
+  let s = {
+    id: count^,
+    observable: ref(o),
+  };
 
   if (is_complete^) {
     /* If execution is already complete, send signal to new observer without

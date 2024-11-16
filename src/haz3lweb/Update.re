@@ -88,18 +88,28 @@ let update_settings = (a: settings_action, model: Model.t): Model.t => {
 let load_model = (model: Model.t): Model.t => {
   let settings = LocalStorage.Settings.load();
   let langDocMessages = LocalStorage.LangDocMessages.load();
-  let model = {...model, settings, langDocMessages};
+  let model = {
+    ...model,
+    settings,
+    langDocMessages,
+  };
   let model =
     switch (model.settings.mode) {
     | Scratch =>
       let (idx, slides) = LocalStorage.Scratch.load();
-      {...model, editors: Scratch(idx, slides)};
+      {
+        ...model,
+        editors: Scratch(idx, slides),
+      };
     | School =>
       let instructor_mode = model.settings.instructor_mode;
       let specs = School.exercises;
       let (n, specs, exercise) =
         LocalStorage.School.load(~specs, ~instructor_mode);
-      {...model, editors: School(n, specs, exercise)};
+      {
+        ...model,
+        editors: School(n, specs, exercise),
+      };
     };
   {
     ...model,
@@ -115,11 +125,17 @@ let load_default_editor = (model: Model.t): Model.t =>
   switch (model.editors) {
   | Scratch(_) =>
     let (idx, editors) = LocalStorage.Scratch.init();
-    {...model, editors: Scratch(idx, editors)};
+    {
+      ...model,
+      editors: Scratch(idx, editors),
+    };
   | School(_) =>
     let instructor_mode = model.settings.instructor_mode;
     let (n, specs, exercise) = LocalStorage.School.init(~instructor_mode);
-    {...model, editors: School(n, specs, exercise)};
+    {
+      ...model,
+      editors: School(n, specs, exercise),
+    };
   };
 
 let delete_past_evaluation_result =
@@ -241,7 +257,10 @@ let evaluate_and_schedule =
 
 let delete_past_evaluation = (model: Model.t): Model.t => {
   let results = ModelResults.map(ModelResult.clear_past, model.results);
-  {...model, results};
+  {
+    ...model,
+    results,
+  };
 };
 
 let perform_action =
@@ -251,7 +270,10 @@ let perform_action =
   switch (Haz3lcore.Perform.go(a, ed_init, id)) {
   | Error(err) => Error(FailedToPerform(err))
   | Ok((ed, id)) =>
-    Ok({...model, editors: Editors.put_editor_and_id(id, ed, model.editors)})
+    Ok({
+      ...model,
+      editors: Editors.put_editor_and_id(id, ed, model.editors),
+    })
   };
 };
 
@@ -261,9 +283,21 @@ let apply =
   let m: Result.t(Model.t) =
     switch (update) {
     | Set(s_action) => Ok(update_settings(s_action, model))
-    | UpdateDoubleTap(double_tap) => Ok({...model, double_tap})
-    | Mousedown => Ok({...model, mousedown: true})
-    | Mouseup => Ok({...model, mousedown: false})
+    | UpdateDoubleTap(double_tap) =>
+      Ok({
+        ...model,
+        double_tap,
+      })
+    | Mousedown =>
+      Ok({
+        ...model,
+        mousedown: true,
+      })
+    | Mouseup =>
+      Ok({
+        ...model,
+        mousedown: false,
+      })
     | Save =>
       save_editors(model);
       Ok(model);
@@ -294,7 +328,10 @@ let apply =
           let slides = Util.ListUtil.put_nth(idx, state, slides);
           LocalStorage.Scratch.save((idx, slides));
 
-          Ok({...model, editors: Scratch(idx, slides)});
+          Ok({
+            ...model,
+            editors: Scratch(idx, slides),
+          });
         }
       }
     | ResetSlide =>
@@ -303,7 +340,10 @@ let apply =
         | Scratch(n, slides) =>
           let slides =
             Util.ListUtil.put_nth(n, ScratchSlidesInit.init_nth(n), slides);
-          {...model, editors: Scratch(n, slides)};
+          {
+            ...model,
+            editors: Scratch(n, slides),
+          };
         | School(n, specs, _) =>
           let instructor_mode = model.settings.instructor_mode;
           {
@@ -327,7 +367,10 @@ let apply =
         | false => Error(FailedToSwitch)
         | true =>
           LocalStorage.Scratch.save((n, slides));
-          Ok({...model, editors: Scratch(n, slides)});
+          Ok({
+            ...model,
+            editors: Scratch(n, slides),
+          });
         }
       | School(_, specs, _) =>
         switch (n < List.length(specs)) {
@@ -338,7 +381,10 @@ let apply =
           let key = SchoolExercise.key_of(spec);
           let exercise =
             LocalStorage.School.load_exercise(key, spec, ~instructor_mode);
-          Ok({...model, editors: School(n, specs, exercise)});
+          Ok({
+            ...model,
+            editors: School(n, specs, exercise),
+          });
         }
       }
     | SwitchEditor(n) =>
@@ -350,16 +396,30 @@ let apply =
           exercise,
           ~instructor_mode=model.settings.instructor_mode,
         );
-        Ok({...model, editors: School(m, specs, exercise)});
+        Ok({
+          ...model,
+          editors: School(m, specs, exercise),
+        });
       }
     | ToggleMode =>
       let new_mode = Editors.rotate_mode(model.editors);
       let model = update_settings(Mode(new_mode), model);
       Ok(load_model(model));
-    | SetShowBackpackTargets(b) => Ok({...model, show_backpack_targets: b})
-    | SetFontMetrics(font_metrics) => Ok({...model, font_metrics})
+    | SetShowBackpackTargets(b) =>
+      Ok({
+        ...model,
+        show_backpack_targets: b,
+      })
+    | SetFontMetrics(font_metrics) =>
+      Ok({
+        ...model,
+        font_metrics,
+      })
     | SetLogoFontMetrics(logo_font_metrics) =>
-      Ok({...model, logo_font_metrics})
+      Ok({
+        ...model,
+        logo_font_metrics,
+      })
     | PerformAction(a) => perform_action(model, a, state, ~schedule_action)
     | FailedInput(reason) => Error(UnrecognizedInput(reason))
     | Cut =>
@@ -396,7 +456,10 @@ let apply =
         //TODO: add correct action to history (Pick_up is wrong)
         let editor = Haz3lcore.Editor.new_state(Pick_up, z, ed);
         let editors = Editors.put_editor_and_id(id, editor, model.editors);
-        Ok({...model, editors});
+        Ok({
+          ...model,
+          editors,
+        });
       };
     | Undo =>
       let (id, ed) = Editors.get_editor_and_id(model.editors);
@@ -425,7 +488,10 @@ let apply =
       let langDocMessages =
         LangDocMessages.set_update(model.langDocMessages, u);
       LocalStorage.LangDocMessages.save(langDocMessages);
-      Ok({...model, langDocMessages});
+      Ok({
+        ...model,
+        langDocMessages,
+      });
     | UpdateResult(key, res) =>
       /* If error, print a message. */
       switch (res) {
@@ -444,7 +510,10 @@ let apply =
         |> ModelResults.find(key)
         |> ModelResult.update_current(res);
       let results = model.results |> ModelResults.add(key, r);
-      Ok({...model, results});
+      Ok({
+        ...model,
+        results,
+      });
     };
   let m =
     reevaluate_post_update(update)

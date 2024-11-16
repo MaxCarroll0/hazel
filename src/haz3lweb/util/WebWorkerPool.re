@@ -29,7 +29,10 @@ module Make = (W: WebWorker.ClientS) => {
   let init = (~timeout, ~max) => {
     let pool =
       Lwt_timed_pool_js.init(~max, ~create, ~validate, ~check, ~dispose);
-    {pool, timeout};
+    {
+      pool,
+      timeout,
+    };
   };
 
   let add = ({pool, _}: t) => Lwt_timed_pool_js.add(pool);

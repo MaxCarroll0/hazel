@@ -45,7 +45,11 @@ let dark_hole = (~ids=[], s: Sort.t): t => {
   let id = dark_id();
   switch (s) {
   // put dark id last to avoid messing with rep id
-  | Exp => Exp({ids: ids @ [id], term: EmptyHole})
+  | Exp =>
+    Exp({
+      ids: ids @ [id],
+      term: EmptyHole,
+    })
   | _ => failwith("dark_hole todo")
   };
 };
@@ -203,7 +207,14 @@ let rec go_s = (s: Sort.t, skel: Skel.t, seg: Segment.t): any =>
 and exp = unsorted => {
   let (term, inner_ids) = exp_term(unsorted);
   let ids = ids(unsorted) @ inner_ids;
-  return(e => Exp(e), ids, {ids, term});
+  return(
+    e => Exp(e),
+    ids,
+    {
+      ids,
+      term,
+    },
+  );
 }
 and exp_term: unsorted => (UExp.term, list(Id.t)) = {
   let ret = (tm: UExp.term) => (tm, []);
@@ -308,7 +319,14 @@ and exp_term: unsorted => (UExp.term, list(Id.t)) = {
 and pat = unsorted => {
   let (term, inner_ids) = pat_term(unsorted);
   let ids = ids(unsorted) @ inner_ids;
-  return(p => Pat(p), ids, {ids, term});
+  return(
+    p => Pat(p),
+    ids,
+    {
+      ids,
+      term,
+    },
+  );
 }
 and pat_term: unsorted => (UPat.term, list(Id.t)) = {
   let ret = (term: UPat.term) => (term, []);
@@ -373,7 +391,14 @@ and pat_term: unsorted => (UPat.term, list(Id.t)) = {
 and typ = unsorted => {
   let term = typ_term(unsorted);
   let ids = ids(unsorted);
-  return(ty => Typ(ty), ids, {ids, term});
+  return(
+    ty => Typ(ty),
+    ids,
+    {
+      ids,
+      term,
+    },
+  );
 }
 and typ_term: unsorted => UTyp.term = {
   let _unrecog = UTyp.Invalid(UnrecognizedTerm);
@@ -425,11 +450,20 @@ and rul = (unsorted: unsorted): URul.t => {
           term:
             Rules(scrut, List.combine(ps, leading_clauses @ [last_clause])),
         }
-      | None => {ids: ids(unsorted), term: hole}
+      | None => {
+          ids: ids(unsorted),
+          term: hole,
+        }
       }
-    | _ => {ids: ids(unsorted), term: hole}
+    | _ => {
+        ids: ids(unsorted),
+        term: hole,
+      }
     }
-  | e => {ids: [], term: Rules(e, [])}
+  | e => {
+      ids: [],
+      term: Rules(e, []),
+    }
   };
 }
 

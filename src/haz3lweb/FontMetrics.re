@@ -1,4 +1,5 @@
 open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@warning "-33"]
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -7,4 +8,7 @@ type t = {
   col_width: float,
 };
 
-let init = {row_height: 10., col_width: 10.};
+let init = {
+  row_height: 10.,
+  col_width: 10.,
+};

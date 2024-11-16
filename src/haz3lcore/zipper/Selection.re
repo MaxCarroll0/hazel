@@ -6,11 +6,17 @@ type t = {
   content: Segment.t,
 };
 
-let mk = (focus, content) => {focus, content};
+let mk = (focus, content) => {
+  focus,
+  content,
+};
 
 let empty = mk(Left, Segment.empty);
 
-let map = (f, sel) => {...sel, content: f(sel.content)};
+let map = (f, sel) => {
+  ...sel,
+  content: f(sel.content),
+};
 
 let toggle_focus = selection => {
   ...selection,
@@ -21,7 +27,10 @@ let toggle_focus = selection => {
 
 let is_empty = (selection: t) => selection.content == Segment.empty;
 
-let clear = (selection: t) => {...selection, content: Segment.empty};
+let clear = (selection: t) => {
+  ...selection,
+  content: Segment.empty,
+};
 
 let push = (p: Piece.t, {focus, content}: t): t => {
   let content =
@@ -31,7 +40,10 @@ let push = (p: Piece.t, {focus, content}: t): t => {
       | Right => Segment.snoc(content, p)
       },
     );
-  {focus, content};
+  {
+    focus,
+    content,
+  };
 };
 
 let pop = (sel: t): option((Piece.t, t)) =>
@@ -40,10 +52,22 @@ let pop = (sel: t): option((Piece.t, t)) =>
   | (_, _, None) => None
   | (Left, [p, ...content], _) =>
     let (p, rest) = Piece.pop_l(p);
-    Some((p, {...sel, content: rest @ content}));
+    Some((
+      p,
+      {
+        ...sel,
+        content: rest @ content,
+      },
+    ));
   | (Right, _, Some((content, p))) =>
     let (rest, p) = Piece.pop_r(p);
-    Some((p, {...sel, content: content @ rest}));
+    Some((
+      p,
+      {
+        ...sel,
+        content: content @ rest,
+      },
+    ));
   };
 
 let split_piece = _: option((Piece.t, t)) => failwith("todo split_piece");

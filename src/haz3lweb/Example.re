@@ -9,7 +9,11 @@ let mk_id = (): int => {
 };
 
 let mk_whitespace: string => Piece.t =
-  content => Whitespace({id: mk_id(), content});
+  content =>
+    Whitespace({
+      id: mk_id(),
+      content,
+    });
 
 let mk_tile: (Form.t, list(list(Piece.t))) => Piece.t =
   //TODO: asserts
@@ -45,10 +49,22 @@ let mk_parens_ancestor = mk_ancestor(Form.get("parens_exp"));
 let mk_let_ancestor = mk_ancestor(Form.get("let_"));
 let plus = mk_monotile(Form.get("plus"));
 
-let l_sibling: Segment.t = [plus, Grout({id: mk_id(), shape: Convex})];
+let l_sibling: Segment.t = [
+  plus,
+  Grout({
+    id: mk_id(),
+    shape: Convex,
+  }),
+];
 let r_sibling: Segment.t = [mk_parens_exp([[int("1"), plus, int("2")]])];
 
-let content: Segment.t = [exp("foo"), Grout({id: mk_id(), shape: Concave})];
+let content: Segment.t = [
+  exp("foo"),
+  Grout({
+    id: mk_id(),
+    shape: Concave,
+  }),
+];
 
 let ancestors: Ancestors.t = [
   (mk_parens_ancestor(([], [])), ([mk_fun([[pat("bar")]])], [])),
@@ -56,7 +72,12 @@ let ancestors: Ancestors.t = [
   (mk_let_ancestor(([[pat("foo")]], [])), ([], [int("2")])),
 ];
 
-let backpack: Backpack.t = [{focus: Left, content: [exp("foo")]}];
+let backpack: Backpack.t = [
+  {
+    focus: Left,
+    content: [exp("foo")],
+  },
+];
 
 let zipper: Zipper.t = {
   selection: {

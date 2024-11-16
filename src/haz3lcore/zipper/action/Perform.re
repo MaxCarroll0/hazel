@@ -99,7 +99,10 @@ let go_z =
     |> Option.map(z => remold_regrout(Left, z, id_gen))
     |> Result.of_option(~error=Action.Failure.Cant_put_down);
   | RotateBackpack =>
-    let z = {...z, backpack: Util.ListUtil.rotate(z.backpack)};
+    let z = {
+      ...z,
+      backpack: Util.ListUtil.rotate(z.backpack),
+    };
     Ok((z, id_gen));
   | MoveToBackpackTarget(d) =>
     Move.to_backpack_target(d, z)

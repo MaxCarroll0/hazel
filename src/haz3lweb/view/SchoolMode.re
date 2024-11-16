@@ -60,13 +60,13 @@ let view =
   } = self;
   let SchoolExercise.{pos, eds} = exercise;
   let SchoolExercise.{
-        test_validation,
-        user_impl,
-        user_tests,
-        instructor,
-        hidden_bugs,
-        hidden_tests: _,
-      } = stitched_dynamics;
+    test_validation,
+    user_impl,
+    user_tests,
+    instructor,
+    hidden_bugs,
+    hidden_tests: _,
+  } = stitched_dynamics;
   let (focal_zipper, focal_info_map) =
     SchoolExercise.focus(exercise, stitched_dynamics);
 
@@ -104,7 +104,7 @@ let view =
 
   let prompt_view =
     Cell.narrative_cell(
-      div(~attr=Attr.class_("cell-prompt"), [eds.prompt]),
+      div(~attrs=[Attr.class_("cell-prompt")], [eds.prompt]),
     );
 
   let prelude_view =
@@ -342,7 +342,7 @@ let view =
       : [];
 
   div(
-    ~attr=Attr.classes(["editor", "column"]),
+    ~attrs=[Attr.classes(["editor", "column"])],
     [title_view, prompt_view]
     @ render_cells(
         settings,
@@ -362,7 +362,7 @@ let view =
         ],
       )
     // TODO lang doc visibility tied to ci visibility (is this desired?)
-    @ [div(~attr=Attr.class_("bottom-bar"), ci_view)]
+    @ [div(~attrs=[Attr.class_("bottom-bar")], ci_view)]
     @ (
       langDocMessages.show && settings.statics
         ? [

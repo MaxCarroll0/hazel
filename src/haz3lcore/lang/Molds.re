@@ -1,5 +1,6 @@
 open Sexplib.Std;
 open Util;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type completions = list((Token.t, (list(Token.t), Direction.t)));

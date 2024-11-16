@@ -1,6 +1,7 @@
 open Util;
 open Sexplib.Std;
 open Zipper;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type move =

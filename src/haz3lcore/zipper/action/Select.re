@@ -35,7 +35,10 @@ module Make = (M: Editor.Meta.S) => {
     switch (d) {
     | Goal(goal) =>
       let anchor =
-        {...z, selection: Selection.toggle_focus(z.selection)}
+        {
+          ...z,
+          selection: Selection.toggle_focus(z.selection),
+        }
         |> Zipper.caret_point(M.measured);
       Move.do_towards(~anchor, primary, goal, z);
     | Extreme(d) => Move.do_extreme(primary, d, z)

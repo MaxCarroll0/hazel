@@ -1,3 +1,5 @@
+open Ppx_yojson_conv_lib.Yojson_conv;
+
 module Update = UpdateAction;
 
 let debug_update = ref(false);
@@ -87,7 +89,11 @@ type key_entry = {
 };
 
 let mk_key_entry = (key, updates): key_entry => {
-  {key, updates, timestamp: JsUtil.timestamp()};
+  {
+    key,
+    updates,
+    timestamp: JsUtil.timestamp(),
+  };
 };
 
 let key_entry_to_string = ({key, updates, timestamp}: key_entry) => {

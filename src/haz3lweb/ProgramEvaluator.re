@@ -2,6 +2,7 @@ open Sexplib.Std;
 open Lwt.Syntax;
 open Lwtutil;
 open Haz3lcore;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type key = string;
@@ -146,11 +147,20 @@ module Memoized = (M: M) : (M with type response = M.response) => {
     tbl: Hashtbl.t(request, response),
   };
 
-  let init = () => {inner: M.init(), tbl: Hashtbl.create(5000)};
+  let init = () => {
+    inner: M.init(),
+    tbl: Hashtbl.create(5000),
+  };
 
   let get_response = ({inner, tbl}, program) => {
     switch (Hashtbl.find_opt(tbl, program)) {
-    | Some(res) => (Lwt.return(res), {inner, tbl})
+    | Some(res) => (
+        Lwt.return(res),
+        {
+          inner,
+          tbl,
+        },
+      )
     | None =>
       let (res, inner) = M.get_response(inner, program);
       let res =
@@ -160,7 +170,13 @@ module Memoized = (M: M) : (M with type response = M.response) => {
              res;
            });
 
-      (res, {inner, tbl});
+      (
+        res,
+        {
+          inner,
+          tbl,
+        },
+      );
     };
   };
 };
@@ -240,7 +256,15 @@ module Stream =
       );
     };
 
-    ({inner, observable, max}, next, complete);
+    (
+      {
+        inner,
+        observable,
+        max,
+      },
+      next,
+      complete,
+    );
   };
 
   let subscribe = ({inner: _, observable, max: _}, next) =>

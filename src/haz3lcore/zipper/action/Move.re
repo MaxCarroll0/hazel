@@ -2,6 +2,7 @@ open Zipper;
 open Util;
 open OptUtil.Syntax;
 open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type movability =
@@ -151,10 +152,22 @@ module Make = (M: Editor.Meta.S) => {
     let cur_p = caret_point(z);
     let goal: Measured.Point.t =
       switch (d) {
-      | Right(_) => {col: Int.max_int, row: cur_p.row}
-      | Left(_) => {col: 0, row: cur_p.row}
-      | Up => {col: 0, row: 0}
-      | Down => {col: Int.max_int, row: Int.max_int}
+      | Right(_) => {
+          col: Int.max_int,
+          row: cur_p.row,
+        }
+      | Left(_) => {
+          col: 0,
+          row: cur_p.row,
+        }
+      | Up => {
+          col: 0,
+          row: 0,
+        }
+      | Down => {
+          col: Int.max_int,
+          row: Int.max_int,
+        }
       };
     do_towards(f, goal, z);
   };

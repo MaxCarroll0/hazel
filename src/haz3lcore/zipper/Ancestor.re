@@ -1,5 +1,6 @@
 open Sexplib.Std;
 open Util;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 exception Empty_shard_affix;
 
@@ -54,7 +55,13 @@ let sorted_children = (a: t) => {
 // };
 
 let remold = (a: t): list(t) =>
-  Molds.get(a.label) |> List.map(mold => {...a, mold});
+  Molds.get(a.label)
+  |> List.map(mold =>
+       {
+         ...a,
+         mold,
+       }
+     );
 
 // let sort = (frame: t): Sort.t => {
 //   assert(step(frame) >= 0 && step(frame) < List.length(frame.mold.in_));

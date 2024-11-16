@@ -3,16 +3,17 @@ SERVER="http://0.0.0.0:8000/"
 
 all: dev
 
+
 deps:
-	opam switch import opam.export
+	opam update
+	opam install ./hazel.opam.locked --deps-only --with-test --with-doc
 
 change-deps:
-	opam switch export opam.export
-
-update-ocaml:
 	opam update
-	opam switch create 4.14 ocaml-base-compiler.4.14.0
-	opam switch import opam.export --update-invariant
+	dune build hazel.opam
+	opam install ./hazel.opam --deps-only --with-test --with-doc
+	opam lock .
+	sed -i'.old' '/host-/d' hazel.opam.locked  # remove host- lines which are arch-specific. Not using -i '' because of portability issues https://stackoverflow.com/questions/4247068/sed-command-with-i-option-failing-on-mac-but-works-on-linux
 
 setup-instructor:
 	cp src/haz3lweb/SchoolSettings_instructor.re src/haz3lweb/SchoolSettings.re

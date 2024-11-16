@@ -1,6 +1,6 @@
 open Sexplib.Std;
-
 open EvaluatorMonad.Syntax;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 /* Evaluator alias. */
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -52,7 +52,11 @@ let mk_elab = (name: Var.t, typ: Typ.t): DHExp.t => {
 
 let mk = (name: Var.t, typ: Typ.t, eval: builtin_evaluate): t => {
   let elab = mk_elab(name, typ);
-  {typ, eval, elab};
+  {
+    typ,
+    eval,
+    elab,
+  };
 };
 
 let mk_zero = (name: Var.t, typ: Typ.t, v: DHExp.t): t => {

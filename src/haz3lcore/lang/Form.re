@@ -1,5 +1,7 @@
 open Sexplib.Std;
 open Mold;
+open Ppx_yojson_conv_lib.Yojson_conv;
+
 module P = Precedence;
 
 /* FORM
@@ -44,7 +46,11 @@ type t = {
   mold: Mold.t,
 };
 
-let mk = (expansion, label, mold) => {label, mold, expansion};
+let mk = (expansion, label, mold) => {
+  label,
+  mold,
+  expansion,
+};
 
 /* Abbreviations for expansion behaviors */
 let ss: expansion = (Static, Static);
@@ -192,8 +198,14 @@ let forms: list((string, t)) = [
         out: Rul,
         in_: [Pat],
         nibs: (
-          {sort: Exp, shape: Concave(P.rule_sep)},
-          {sort: Exp, shape: Concave(P.rule_sep)},
+          {
+            sort: Exp,
+            shape: Concave(P.rule_sep),
+          },
+          {
+            sort: Exp,
+            shape: Concave(P.rule_sep),
+          },
         ),
       },
     ),

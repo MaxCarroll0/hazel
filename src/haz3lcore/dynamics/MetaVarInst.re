@@ -1,4 +1,5 @@
 open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 /**
  * Hole instance index in DHPat and DHExp

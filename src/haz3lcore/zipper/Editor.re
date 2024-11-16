@@ -1,5 +1,6 @@
 open Sexplib.Std;
 open Util;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 module Meta = {
   type t = {
@@ -53,7 +54,12 @@ module Meta = {
       | Select(Resize(Local(Up | Down))) => col_target
       | _ => Zipper.caret_point(measured, z).col
       };
-    {touched, measured, term_ranges, col_target};
+    {
+      touched,
+      measured,
+      term_ranges,
+      col_target,
+    };
   };
 };
 
@@ -65,7 +71,10 @@ module State = {
     meta: Meta.t,
   };
 
-  let init = zipper => {zipper, meta: Meta.init(zipper)};
+  let init = zipper => {
+    zipper,
+    meta: Meta.init(zipper),
+  };
 
   let next = (~effects: list(Effect.t)=[], a: Action.t, z: Zipper.t, state) => {
     zipper: z,
@@ -122,7 +131,11 @@ let new_state =
     (~effects: list(Effect.t)=[], a: Action.t, z: Zipper.t, ed: t): t => {
   let state = State.next(~effects, a, z, ed.state);
   let history = History.add(a, ed.state, ed.history);
-  {state, history, read_only: ed.read_only};
+  {
+    state,
+    history,
+    read_only: ed.read_only,
+  };
 };
 
 let caret_point = (ed: t): Measured.Point.t => {
@@ -154,7 +167,10 @@ let redo = (ed: t) =>
 let can_undo = ed => Option.is_some(undo(ed));
 let can_redo = ed => Option.is_some(redo(ed));
 
-let set_read_only = (ed, read_only) => {...ed, read_only};
+let set_read_only = (ed, read_only) => {
+  ...ed,
+  read_only,
+};
 
 let trailing_hole_ctx = (ed: t, info_map: Statics.map) => {
   let segment = Zipper.unselect_and_zip(ed.state.zipper);

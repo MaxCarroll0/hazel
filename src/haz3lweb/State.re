@@ -42,7 +42,11 @@ module StateEvaluator = {
    */
   let create = () => {
     let (inner, next, complete) = Inner.create(W.init());
-    {inner, next, complete};
+    {
+      inner,
+      next,
+      complete,
+    };
   };
 
   /**

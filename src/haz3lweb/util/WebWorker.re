@@ -71,7 +71,10 @@ module Make = (M: M) => {
       last: option(Lwt.t(Response.t)),
     };
 
-    let init = () => {worker: Worker.create(M.Worker.file()), last: None};
+    let init = () => {
+      worker: Worker.create(M.Worker.file()),
+      last: None,
+    };
 
     let get_worker = ({worker, _}: t) => worker;
     let get_last = ({last, _}: t) => last;
@@ -98,7 +101,13 @@ module Make = (M: M) => {
       /* Post request to worker. */
       worker##postMessage(req |> Request.serialize);
 
-      (lwt, {worker, last: Some(lwt)});
+      (
+        lwt,
+        {
+          worker,
+          last: Some(lwt),
+        },
+      );
     };
 
     let terminate = ({worker, _}: t) => worker##terminate;

@@ -4,17 +4,16 @@ open Util.Web;
 
 let context_entry_view = (~inject, entry: Haz3lcore.Ctx.entry): Node.t =>
   div(
-    ~attr=
-      Attr.many([
-        clss(["context-entry"]),
-        Attr.on_click(_ =>
-          inject(
-            UpdateAction.PerformAction(
-              Jump(TileId(Haz3lcore.Ctx.get_id(entry))),
-            ),
-          )
-        ),
-      ]),
+    ~attrs=[
+      clss(["context-entry"]),
+      Attr.on_click(_ =>
+        inject(
+          UpdateAction.PerformAction(
+            Jump(TileId(Haz3lcore.Ctx.get_id(entry))),
+          ),
+        )
+      ),
+    ],
     switch (entry) {
     | VarEntry({name, typ, _}) => [text(name), text(":"), Type.view(typ)]
     | TVarEntry({name, kind, _}) => [
@@ -31,7 +30,7 @@ let ctxc = "context-entries";
 let exp_ctx_view = (~inject, ctx: Haz3lcore.Ctx.t): Node.t => {
   let ctx = ctx |> Haz3lcore.Ctx.filter_duplicates;
   div(
-    ~attr=clss([ctxc, "exp"]),
+    ~attrs=[clss([ctxc, "exp"])],
     List.map(context_entry_view(~inject), List.rev(ctx)),
   );
 };
@@ -39,18 +38,18 @@ let exp_ctx_view = (~inject, ctx: Haz3lcore.Ctx.t): Node.t => {
 let pat_ctx_view = (~inject, ctx: Haz3lcore.Ctx.t): Node.t => {
   let ctx = ctx |> Haz3lcore.Ctx.filter_duplicates;
   div(
-    ~attr=clss([ctxc, "pat"]),
+    ~attrs=[clss([ctxc, "pat"])],
     List.map(context_entry_view(~inject), List.rev(ctx)),
   );
 };
 
 let ctx_sorts_view = (~inject, ci: Haz3lcore.Statics.t): Node.t => {
   switch (ci) {
-  | Invalid(_) => div(~attr=clss([ctxc, "invalid"]), [text("")])
+  | Invalid(_) => div(~attrs=[clss([ctxc, "invalid"])], [text("")])
   | InfoExp({ctx, _}) => exp_ctx_view(~inject, ctx)
   | InfoPat({ctx, _}) => pat_ctx_view(~inject, ctx)
-  | InfoTyp(_) => div(~attr=clss([ctxc, "typ"]), [])
-  | InfoRul(_) => div(~attr=clss([ctxc, "rul"]), [])
+  | InfoTyp(_) => div(~attrs=[clss([ctxc, "typ"])], [])
+  | InfoRul(_) => div(~attrs=[clss([ctxc, "rul"])], [])
   };
 };
 
@@ -61,7 +60,7 @@ let inspector_view =
     clss(
       ["context-inspector"] @ (settings.context_inspector ? ["visible"] : []),
     );
-  div(~attr=clss, [ctx_sorts_view(~inject, ci)]);
+  div(~attrs=[clss], [ctx_sorts_view(~inject, ci)]);
 };
 
 let view =
@@ -78,7 +77,7 @@ let view =
     };
   switch (ci) {
   | None =>
-    div(~attr=clss(["context-inspector"]), [text("No Static Data")])
+    div(~attrs=[clss(["context-inspector"])], [text("No Static Data")])
   | Some(ci) => inspector_view(~inject, ~settings, index, ci)
   };
 };

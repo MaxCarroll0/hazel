@@ -1,4 +1,5 @@
 open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 /* TYPE_PROVENANCE: From whence does an unknown type originate?
    Is it generated from an unannotated pattern variable (SynSwitch),

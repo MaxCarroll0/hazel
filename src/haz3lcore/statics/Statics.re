@@ -1,5 +1,6 @@
 open Sexplib.Std;
 open Util;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 /* STATICS
 
@@ -312,7 +313,18 @@ and uexp_to_info_map =
   let add = (~self, ~free, m) => (
     typ_after_fix(mode, self),
     free,
-    add_info(ids, InfoExp({cls, self, mode, ctx, free, term: uexp}), m),
+    add_info(
+      ids,
+      InfoExp({
+        cls,
+        self,
+        mode,
+        ctx,
+        free,
+        term: uexp,
+      }),
+      m,
+    ),
   );
   let atomic = self => add(~self, ~free=[], Id.Map.empty);
   switch (term) {
@@ -341,7 +353,15 @@ and uexp_to_info_map =
       | None =>
         Joined(
           ty => List(ty),
-          List.map2((id, ty) => Typ.{id, ty}, e_ids, tys),
+          List.map2(
+            (id, ty) =>
+              Typ.{
+                id,
+                ty,
+              },
+            e_ids,
+            tys,
+          ),
         )
       | Some(ty) => Just(List(ty))
       };
@@ -363,7 +383,17 @@ and uexp_to_info_map =
     | Some(var) =>
       add(
         ~self=Just(var.typ),
-        ~free=[(name, [{id: Term.UExp.rep_id(uexp), mode}])],
+        ~free=[
+          (
+            name,
+            [
+              {
+                id: Term.UExp.rep_id(uexp),
+                mode,
+              },
+            ],
+          ),
+        ],
         Id.Map.empty,
       )
     }
@@ -407,8 +437,14 @@ and uexp_to_info_map =
         Joined(
           Fun.id,
           [
-            {id: Term.UExp.rep_id(e1), ty: ty_e1},
-            {id: Term.UExp.rep_id(e2), ty: ty_e2},
+            {
+              id: Term.UExp.rep_id(e1),
+              ty: ty_e1,
+            },
+            {
+              id: Term.UExp.rep_id(e2),
+              ty: ty_e2,
+            },
           ],
         ),
       ~free=Ctx.union([free_e0, free_e1, free_e2]),
@@ -480,7 +516,11 @@ and uexp_to_info_map =
       );
     let branch_sources =
       List.map2(
-        (e: Term.UExp.t, (ty, _, _)) => Typ.{id: Term.UExp.rep_id(e), ty},
+        (e: Term.UExp.t, (ty, _, _)) =>
+          Typ.{
+            id: Term.UExp.rep_id(e),
+            ty,
+          },
         branches,
         branch_infos,
       );
@@ -506,7 +546,17 @@ and upat_to_info_map =
   let add = (~self, ~ctx, m) => (
     typ_after_fix(mode, self),
     ctx,
-    add_info(ids, InfoPat({cls, self, mode, ctx, term: upat}), m),
+    add_info(
+      ids,
+      InfoPat({
+        cls,
+        self,
+        mode,
+        ctx,
+        term: upat,
+      }),
+      m,
+    ),
   );
   let atomic = self => add(~self, ~ctx, Id.Map.empty);
   switch (term) {
@@ -544,11 +594,26 @@ and upat_to_info_map =
       | None =>
         Joined(
           ty => List(ty),
-          List.map2((id, ty) => Typ.{id, ty}, p_ids, tys),
+          List.map2(
+            (id, ty) =>
+              Typ.{
+                id,
+                ty,
+              },
+            p_ids,
+            tys,
+          ),
         )
       | Some(ty) => Just(List(ty))
       };
-    let info: t = InfoPat({cls, self, mode, ctx, term: upat});
+    let info: t =
+      InfoPat({
+        cls,
+        self,
+        mode,
+        ctx,
+        term: upat,
+      });
     let m = union_m(List.map(((_, _, m)) => m, infos));
     /* Add an entry for the id of each comma tile */
     let m = List.fold_left((m, id) => Id.Map.add(id, info, m), m, ids);
@@ -566,7 +631,12 @@ and upat_to_info_map =
   | Wild => atomic(Just(unknown))
   | Var(name) =>
     let typ = typ_after_fix(mode, Just(Unknown(Internal)));
-    let entry = Ctx.VarEntry({name, id: Term.UPat.rep_id(upat), typ});
+    let entry =
+      Ctx.VarEntry({
+        name,
+        id: Term.UPat.rep_id(upat),
+        typ,
+      });
     add(~self=Just(unknown), ~ctx=Ctx.extend(entry, ctx), Id.Map.empty);
   | Tuple(ps) =>
     let modes = Typ.matched_prod_mode(mode, List.length(ps));
@@ -602,7 +672,15 @@ and upat_to_info_map =
 and utyp_to_info_map = ({ids, term} as utyp: Term.UTyp.t): (Typ.t, map) => {
   let cls = Term.UTyp.cls_of_term(term);
   let ty = Term.utyp_to_ty(utyp);
-  let add = self => add_info(ids, InfoTyp({cls, self, term: utyp}));
+  let add = self =>
+    add_info(
+      ids,
+      InfoTyp({
+        cls,
+        self,
+        term: utyp,
+      }),
+    );
   let just = m => (ty, add(Just(ty), m));
   switch (term) {
   | Invalid(msg) => (

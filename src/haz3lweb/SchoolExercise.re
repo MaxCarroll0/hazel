@@ -1,6 +1,7 @@
 open Virtual_dom.Vdom;
 open Sexplib.Std;
 open Haz3lcore;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type wrong_impl('code) = {
@@ -185,7 +186,10 @@ let put_editor_and_id =
         hidden_bugs:
           Util.ListUtil.put_nth(
             n,
-            {...List.nth(eds.hidden_bugs, n), impl: editor},
+            {
+              ...List.nth(eds.hidden_bugs, n),
+              impl: editor,
+            },
             eds.hidden_bugs,
           ),
       },
@@ -293,7 +297,11 @@ let transition: transitionary_spec => spec =
       let (id, tests) = zipper_of_code(id, your_tests.tests);
       (
         id,
-        {tests, required: your_tests.required, provided: your_tests.provided},
+        {
+          tests,
+          required: your_tests.required,
+          provided: your_tests.provided,
+        },
       );
     };
     let (id, your_impl) = zipper_of_code(id, your_impl);
@@ -301,7 +309,16 @@ let transition: transitionary_spec => spec =
       List.fold_left(
         ((id, acc), {impl, hint}) => {
           let (id, impl) = zipper_of_code(id, impl);
-          (id, acc @ [{impl, hint}]);
+          (
+            id,
+            acc
+            @ [
+              {
+                impl,
+                hint,
+              },
+            ],
+          );
         },
         (id, []),
         hidden_bugs,
@@ -309,7 +326,13 @@ let transition: transitionary_spec => spec =
     let (id, hidden_tests) = {
       let {tests, hints} = hidden_tests;
       let (id, tests) = zipper_of_code(id, tests);
-      (id, {tests, hints});
+      (
+        id,
+        {
+          tests,
+          hints,
+        },
+      );
     };
     let next_id = id;
     {
@@ -350,19 +373,29 @@ let eds_of_spec: spec => eds =
     let correct_impl = editor_of_serialization(correct_impl);
     let your_tests = {
       let tests = editor_of_serialization(your_tests.tests);
-      {tests, required: your_tests.required, provided: your_tests.provided};
+      {
+        tests,
+        required: your_tests.required,
+        provided: your_tests.provided,
+      };
     };
     let your_impl = editor_of_serialization(your_impl);
     let hidden_bugs =
       hidden_bugs
       |> List.map(({impl, hint}) => {
            let impl = editor_of_serialization(impl);
-           {impl, hint};
+           {
+             impl,
+             hint,
+           };
          });
     let hidden_tests = {
       let {tests, hints} = hidden_tests;
       let tests = editor_of_serialization(tests);
-      {tests, hints};
+      {
+        tests,
+        hints,
+      };
     };
     {
       next_id,
@@ -471,7 +504,13 @@ let visible_in = (pos, ~instructor_mode) => {
 
 let state_of_spec = (spec, ~instructor_mode: bool): state => {
   let eds = eds_of_spec(spec);
-  set_instructor_mode({pos: YourImpl, eds}, instructor_mode);
+  set_instructor_mode(
+    {
+      pos: YourImpl,
+      eds,
+    },
+    instructor_mode,
+  );
 };
 
 let persistent_state_of_state =
@@ -510,7 +549,17 @@ let unpersist_state =
     List.fold_left(
       ((i, id, hidden_bugs: list(wrong_impl(Editor.t))), {impl, hint}) => {
         let (id, impl) = lookup(id, HiddenBugs(i), impl);
-        (i + 1, id, hidden_bugs @ [{impl, hint}]);
+        (
+          i + 1,
+          id,
+          hidden_bugs
+          @ [
+            {
+              impl,
+              hint,
+            },
+          ],
+        );
       },
       (0, id, []),
       spec.hidden_bugs,
@@ -572,17 +621,27 @@ let stitch_static = ({eds, _}: state): stitched_statics => {
     EditorUtil.stitch([eds.prelude, eds.correct_impl, eds.your_tests.tests]);
   let test_validation_map = Statics.mk_map(test_validation_term);
   let test_validation =
-    StaticsItem.{term: test_validation_term, info_map: test_validation_map};
+    StaticsItem.{
+      term: test_validation_term,
+      info_map: test_validation_map,
+    };
 
   let (user_impl_term, _) = EditorUtil.stitch([eds.prelude, eds.your_impl]);
   let user_impl_map = Statics.mk_map(user_impl_term);
-  let user_impl = StaticsItem.{term: user_impl_term, info_map: user_impl_map};
+  let user_impl =
+    StaticsItem.{
+      term: user_impl_term,
+      info_map: user_impl_map,
+    };
 
   let (user_tests_term, _) =
     EditorUtil.stitch([eds.prelude, eds.your_impl, eds.your_tests.tests]);
   let user_tests_map = Statics.mk_map(user_tests_term);
   let user_tests =
-    StaticsItem.{term: user_tests_term, info_map: user_tests_map};
+    StaticsItem.{
+      term: user_tests_term,
+      info_map: user_tests_map,
+    };
 
   let (instructor_term, _) =
     EditorUtil.stitch([
@@ -592,7 +651,10 @@ let stitch_static = ({eds, _}: state): stitched_statics => {
     ]);
   let instructor_info_map = Statics.mk_map(instructor_term);
   let instructor =
-    StaticsItem.{term: instructor_term, info_map: instructor_info_map};
+    StaticsItem.{
+      term: instructor_term,
+      info_map: instructor_info_map,
+    };
 
   let hidden_bugs =
     List.map(
@@ -600,7 +662,10 @@ let stitch_static = ({eds, _}: state): stitched_statics => {
         let (term, _) =
           EditorUtil.stitch([eds.prelude, impl, eds.your_tests.tests]);
         let info_map = Statics.mk_map(term);
-        StaticsItem.{term, info_map};
+        StaticsItem.{
+          term,
+          info_map,
+        };
       },
       eds.hidden_bugs,
     );
@@ -609,7 +674,10 @@ let stitch_static = ({eds, _}: state): stitched_statics => {
     EditorUtil.stitch([eds.prelude, eds.your_impl, eds.hidden_tests.tests]);
   let hidden_tests_map = Statics.mk_map(hidden_tests_term);
   let hidden_tests =
-    StaticsItem.{term: hidden_tests_term, info_map: hidden_tests_map};
+    StaticsItem.{
+      term: hidden_tests_term,
+      info_map: hidden_tests_map,
+    };
 
   {
     test_validation,
@@ -839,7 +907,13 @@ let blank_spec =
       id,
       (i, id) => {
         let (id, zipper) = Zipper.next_blank(id);
-        (id, {impl: zipper, hint: "TODO: hint " ++ string_of_int(i)});
+        (
+          id,
+          {
+            impl: zipper,
+            hint: "TODO: hint " ++ string_of_int(i),
+          },
+        );
       },
     );
   let (id, hidden_tests_tests) = Zipper.next_blank(id);

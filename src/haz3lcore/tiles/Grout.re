@@ -28,7 +28,10 @@ let mk_fits_shape = (s: Nib.Shape.t): IdGen.t(t) => {
     | Convex => Concave
     | Concave(_) => Convex
     };
-  {id, shape};
+  {
+    id,
+    shape,
+  };
 };
 //let mk_fits = ((l, r): Nibs.shapes): option(IdGen.t(t)) =>
 //  Nib.Shape.fits(l, r) ? None : Some(mk_fits_shape(l));

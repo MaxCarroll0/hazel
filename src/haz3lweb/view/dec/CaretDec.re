@@ -29,11 +29,23 @@ let caret_path = (shape: option(Direction.t)) => {
   Path.[
     m(~x=0, ~y=0),
     H({x: caret_width_param}),
-    L_({dx: -. caret_bend_param, dy: 0.5}),
-    L_({dx: +. caret_bend_param, dy: 0.5}),
+    L_({
+      dx: -. caret_bend_param,
+      dy: 0.5,
+    }),
+    L_({
+      dx: +. caret_bend_param,
+      dy: 0.5,
+    }),
     H({x: -. caret_width_param}),
-    L_({dx: -. caret_bend_param, dy: (-0.5)}),
-    L_({dx: +. caret_bend_param, dy: (-0.5)}),
+    L_({
+      dx: -. caret_bend_param,
+      dy: (-0.5),
+    }),
+    L_({
+      dx: +. caret_bend_param,
+      dy: (-0.5),
+    }),
   ];
 };
 

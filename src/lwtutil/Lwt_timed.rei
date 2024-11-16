@@ -19,4 +19,4 @@ module type S = {
   let wrap: (int, t('a)) => t(option('a));
 };
 
-module Make: (T: TIMER) => S;
+module Make: (TIMER) => S;

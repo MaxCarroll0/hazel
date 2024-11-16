@@ -12,11 +12,12 @@ let score_of_percent = (percent, max_points) => {
 
 let score_view = ((earned: points, max: points)) => {
   div(
-    ~attr=
+    ~attrs=[
       Attr.classes([
         "test-percent",
         Float.equal(earned, max) ? "all-pass" : "some-fail",
       ]),
+    ],
     [text(Printf.sprintf("%.1f / %.1f pts", earned, max))],
   );
 };
@@ -100,10 +101,10 @@ module TestValidationReport = {
   let view = (~inject, report: t, max_points: int) => {
     Cell.report_footer_view([
       div(
-        ~attr=Attr.classes(["test-summary"]),
+        ~attrs=[Attr.classes(["test-summary"])],
         [
           div(
-            ~attr=Attr.class_("test-text"),
+            ~attrs=[Attr.class_("test-text")],
             [score_view(score_of_percent(percentage(report), max_points))]
             @ textual_summary(report),
           ),
@@ -212,17 +213,19 @@ module MutationTestingReport = {
 
   let summary_message = (~score, ~total, ~found): Node.t =>
     div(
-      ~attr=Attr.classes(["test-text"]),
+      ~attrs=[Attr.classes(["test-text"])],
       [score_view(score), text(summary_str(~total, ~found))],
     );
 
   let bar = (~inject as _, instances) =>
     div(
-      ~attr=Attr.classes(["test-bar"]),
+      ~attrs=[Attr.classes(["test-bar"])],
       List.map(
         ((status, _)) =>
           div(
-            ~attr=Attr.classes(["segment", TestStatus.to_string(status)]),
+            ~attrs=[
+              Attr.classes(["segment", TestStatus.to_string(status)]),
+            ],
             [],
           ),
         instances,
@@ -237,13 +240,14 @@ module MutationTestingReport = {
       );
     let status_class = total == found ? "Pass" : "Fail";
     div(
-      ~attr=
+      ~attrs=[
         Attr.classes([
           "cell-item",
           "test-summary",
           "cell-report",
           status_class,
         ]),
+      ],
       [
         summary_message(
           ~score=score_of_percent(percentage(report), max_points),
@@ -257,18 +261,18 @@ module MutationTestingReport = {
 
   let individual_report = (i, ~inject, ~hint: string, ~status) =>
     div(
-      ~attr=
-        Attr.many([
-          Attr.classes(["test-report"]),
-          Attr.on_click(TestView.jump_to_test(~inject)),
-        ]),
+      ~attrs=[
+        Attr.classes(["test-report"]),
+        Attr.on_click(TestView.jump_to_test(~inject)),
+      ],
       [
         div(
-          ~attr=
+          ~attrs=[
             Attr.classes([
               "test-id",
               "Test" ++ TestStatus.to_string(status),
             ]),
+          ],
           /* NOTE: prints lexical index, not unique id */
           [text(string_of_int(i + 1))],
         ),
@@ -276,12 +280,13 @@ module MutationTestingReport = {
       ]
       @ [
         div(
-          ~attr=
+          ~attrs=[
             Attr.classes([
               "test-hint",
               "test-instance",
               TestStatus.to_string(status),
             ]),
+          ],
           [text(hint)],
         ),
       ],
@@ -401,7 +406,11 @@ module ImplGradingReport = {
           "Exercise configuration error: Hint without a test.",
         )
       };
-    {hints, test_results, hinted_results};
+    {
+      hints,
+      test_results,
+      hinted_results,
+    };
   };
 
   let total = (report: t) => List.length(report.hinted_results);
@@ -466,18 +475,18 @@ module ImplGradingReport = {
 
   let individual_report = (i, ~inject, ~hint: string, ~status) =>
     div(
-      ~attr=
-        Attr.many([
-          Attr.classes(["test-report"]),
-          Attr.on_click(TestView.jump_to_test(~inject)),
-        ]),
+      ~attrs=[
+        Attr.classes(["test-report"]),
+        Attr.on_click(TestView.jump_to_test(~inject)),
+      ],
       [
         div(
-          ~attr=
+          ~attrs=[
             Attr.classes([
               "test-id",
               "Test" ++ TestStatus.to_string(status),
             ]),
+          ],
           /* NOTE: prints lexical index, not unique id */
           [text(string_of_int(i + 1))],
         ),
@@ -485,12 +494,13 @@ module ImplGradingReport = {
       ]
       @ [
         div(
-          ~attr=
+          ~attrs=[
             Attr.classes([
               "test-hint",
               "test-instance",
               TestStatus.to_string(status),
             ]),
+          ],
           [text(hint)],
         ),
       ],
@@ -518,10 +528,10 @@ module ImplGradingReport = {
         Some(
           Cell.report_footer_view([
             div(
-              ~attr=Attr.classes(["test-summary"]),
+              ~attrs=[Attr.classes(["test-summary"])],
               [
                 div(
-                  ~attr=Attr.class_("test-text"),
+                  ~attrs=[Attr.class_("test-text")],
                   [
                     score_view(
                       score_of_percent(percentage(report), max_points),

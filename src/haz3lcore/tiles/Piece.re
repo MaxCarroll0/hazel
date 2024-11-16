@@ -29,7 +29,18 @@ let nibs =
     _ => None,
     g => {
       let (l, r) = Grout.shapes(g);
-      Some(Nib.({shape: l, sort: Any}, {shape: r, sort: Any}));
+      Some(
+        Nib.(
+          {
+            shape: l,
+            sort: Any,
+          },
+          {
+            shape: r,
+            sort: Any,
+          },
+        ),
+      );
     },
     t => Some(Tile.nibs(t)),
   );

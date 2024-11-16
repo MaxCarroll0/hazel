@@ -40,63 +40,57 @@ let container =
     switch (container_type) {
     | Div =>
       Node.div(
-        ~attr=
-          Attr.many([
-            Attr.classes([
-              "decoration-container",
-              Printf.sprintf("%s-container", cls),
-            ]),
-            Attr.create(
-              "style",
-              Printf.sprintf(
-                "width: %fpx; height: %fpx;",
-                buffered_width_px,
-                buffered_height_px,
-              ),
-            ),
+        ~attrs=[
+          Attr.classes([
+            "decoration-container",
+            Printf.sprintf("%s-container", cls),
           ]),
+          Attr.create(
+            "style",
+            Printf.sprintf(
+              "width: %fpx; height: %fpx;",
+              buffered_width_px,
+              buffered_height_px,
+            ),
+          ),
+        ],
         contents,
       )
     | Svg =>
       Node.create_svg(
         "svg",
-        ~attr=
-          Attr.many([
-            Attr.classes([cls]),
-            Attr.create(
-              "viewBox",
-              Printf.sprintf(
-                "-0.5 -0.5 %d %d",
-                buffered_width,
-                buffered_height,
-              ),
+        ~attrs=[
+          Attr.classes([cls]),
+          Attr.create(
+            "viewBox",
+            Printf.sprintf(
+              "-0.5 -0.5 %d %d",
+              buffered_width,
+              buffered_height,
             ),
-            Attr.create("width", Printf.sprintf("%fpx", buffered_width_px)),
-            Attr.create(
-              "height",
-              Printf.sprintf("%fpx", buffered_height_px),
-            ),
-            Attr.create("preserveAspectRatio", "none"),
-          ]),
+          ),
+          Attr.create("width", Printf.sprintf("%fpx", buffered_width_px)),
+          Attr.create("height", Printf.sprintf("%fpx", buffered_height_px)),
+          Attr.create("preserveAspectRatio", "none"),
+        ],
         contents,
       )
     };
   Node.div(
-    ~attr=
-      Attr.many([
-        Attr.classes([
-          "decoration-container",
-          Printf.sprintf("%s-container", cls),
-        ]),
-        Attr.create(
-          "style",
-          Printf.sprintf(
-            "top: calc(%fpx - 1px); left: %fpx;",
-            container_origin_x,
-            container_origin_y,
-          ),
-        ),
+    ~attrs=[
+      Attr.classes([
+        "decoration-container",
+        Printf.sprintf("%s-container", cls),
       ]),
+      Attr.create(
+        "style",
+        Printf.sprintf(
+          "top: calc(%fpx - 1px); left: %fpx;",
+          container_origin_x,
+          container_origin_y,
+        ),
+      ),
+    ],
     [inner],
   );
 };
@@ -138,7 +132,10 @@ let rects =
   |> List.fold_left_map(
        (start: MeasuredPosition.t, (i, box: MeasuredLayout.box)) =>
          (
-           {row: start.row + box.height, col: indent},
+           {
+             row: start.row + box.height,
+             col: indent,
+           },
            mk_rect(~is_first=i == 0, ~is_last=i == n - 1, start, box),
          ),
        start,
@@ -155,7 +152,13 @@ module ErrHole = {
       )
       : Node.t =>
     subject
-    |> rects(~vtrim, {row: 0, col: offset})
+    |> rects(
+         ~vtrim,
+         {
+           row: 0,
+           col: offset,
+         },
+       )
     |> SvgUtil.OrthogonalPolygon.mk(~corner_radii)
     |> SvgUtil.Path.view(
          ~attrs=
@@ -175,7 +178,13 @@ module VarErrHole = {
       )
       : Node.t =>
     subject
-    |> rects(~vtrim, {row: 0, col: offset})
+    |> rects(
+         ~vtrim,
+         {
+           row: 0,
+           col: offset,
+         },
+       )
     |> SvgUtil.OrthogonalPolygon.mk(~corner_radii)
     |> SvgUtil.Path.view(
          ~attrs=

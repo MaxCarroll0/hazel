@@ -4,7 +4,7 @@ open Util;
 open Pretty;
 open Haz3lcore;
 
-let with_cls = cls => Node.span(~attr=Attr.classes([cls]));
+let with_cls = cls => Node.span(~attrs=[Attr.classes([cls])]);
 
 let view_of_layout =
     (~inject as _, ~font_metrics: FontMetrics.t, l: DHLayout.t): Node.t => {
@@ -16,7 +16,7 @@ let view_of_layout =
          ~text=(_, s) => ([Node.text(s)], []),
          ~align=
            (_, (txt, ds)) =>
-             ([Node.div(~attr=Attr.classes(["Align"]), txt)], ds),
+             ([Node.div(~attrs=[Attr.classes(["Align"])], txt)], ds),
          ~cat=(_, (txt1, ds1), (txt2, ds2)) => (txt1 @ txt2, ds1 @ ds2),
          ~annot=
            (~go, ~indent, ~start, annot: DHAnnot.t, m) => {
@@ -30,20 +30,19 @@ let view_of_layout =
              | EmptyHole(selected, _inst) => (
                  [
                    Node.span(
-                     ~attr=
-                       Attr.many([
-                         Attr.classes([
-                           "EmptyHole",
-                           ...selected ? ["selected"] : [],
-                         ]),
-                         Attr.on_click(_ =>
-                           Vdom.Effect.Many([
-                             Vdom.Effect.Stop_propagation,
-                             // TODO fix
-                             //  inject(ModelAction.SelectHoleInstance(inst)),
-                           ])
-                         ),
+                     ~attrs=[
+                       Attr.classes([
+                         "EmptyHole",
+                         ...selected ? ["selected"] : [],
                        ]),
+                       Attr.on_click(_ =>
+                         Vdom.Effect.Many([
+                           Vdom.Effect.Stop_propagation,
+                           // TODO fix
+                           //  inject(ModelAction.SelectHoleInstance(inst)),
+                         ])
+                       ),
+                     ],
                      txt,
                    ),
                  ],
@@ -80,7 +79,11 @@ let view_of_layout =
                    ~font_metrics,
                    ~height=MeasuredLayout.height(m),
                    ~width=MeasuredLayout.width(~offset, m),
-                   ~origin=MeasuredPosition.{row: start.row, col: indent},
+                   ~origin=
+                     MeasuredPosition.{
+                       row: start.row,
+                       col: indent,
+                     },
                    ~cls="err-hole",
                    [DHDecoration.ErrHole.view(~corner_radii, (offset, m))],
                  );
@@ -89,7 +92,7 @@ let view_of_layout =
            },
        );
   Node.div(
-    ~attr=Attr.classes(["DHCode"]),
+    ~attrs=[Attr.classes(["DHCode"])],
     [with_cls("code", text), ...decorations],
   );
 };
@@ -147,7 +150,7 @@ let view_of_layout_tylr =
          ~text=(_, s) => ([Node.text(s)], []),
          ~align=
            (_, (txt, ds)) =>
-             ([Node.div(~attr=Attr.classes(["Align"]), txt)], ds),
+             ([Node.div(~attrs=[Attr.classes(["Align"])], txt)], ds),
          ~cat=(_, (txt1, ds1), (txt2, ds2)) => (txt1 @ txt2, ds1 @ ds2),
          ~annot=
            (~go, ~indent, ~start, annot: DHAnnot.t, m) => {
@@ -161,19 +164,18 @@ let view_of_layout_tylr =
              | EmptyHole(selected, _inst) => (
                  [
                    Node.span(
-                     ~attr=
-                       Attr.many([
-                         Attr.classes([
-                           "EmptyHole",
-                           ...selected ? ["selected"] : [],
-                         ]),
-                         Attr.on_click(_ =>
-                           Vdom.Effect.Many([
-                             Vdom.Effect.Stop_propagation,
-                             //inject(ModelAction.SelectHoleInstance(inst)),
-                           ])
-                         ),
+                     ~attrs=[
+                       Attr.classes([
+                         "EmptyHole",
+                         ...selected ? ["selected"] : [],
                        ]),
+                       Attr.on_click(_ =>
+                         Vdom.Effect.Many([
+                           Vdom.Effect.Stop_propagation,
+                           //inject(ModelAction.SelectHoleInstance(inst)),
+                         ])
+                       ),
+                     ],
                      txt,
                    ),
                  ],
@@ -210,7 +212,11 @@ let view_of_layout_tylr =
                    ~font_metrics,
                    ~height=MeasuredLayout.height(m),
                    ~width=MeasuredLayout.width(~offset, m),
-                   ~origin=MeasuredPosition.{row: start.row, col: indent},
+                   ~origin=
+                     MeasuredPosition.{
+                       row: start.row,
+                       col: indent,
+                     },
                    ~cls="err-hole",
                    [DHDecoration.ErrHole.view(~corner_radii, (offset, m))],
                  );
@@ -219,7 +225,7 @@ let view_of_layout_tylr =
            },
        );
   Node.div(
-    ~attr=Attr.classes(["DHCode"]),
+    ~attrs=[Attr.classes(["DHCode"])],
     [with_cls("code", text), ...decorations],
   );
 };

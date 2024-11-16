@@ -1,4 +1,5 @@
 open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type all = {
@@ -30,7 +31,13 @@ let mk_all = (~instructor_mode) => {
   let school = LocalStorage.School.export(~specs, ~instructor_mode);
   print_endline("School OK");
   let log = Log.export();
-  {settings, langDocMessages, scratch, school, log};
+  {
+    settings,
+    langDocMessages,
+    scratch,
+    school,
+    log,
+  };
 };
 
 let export_all = (~instructor_mode) => {

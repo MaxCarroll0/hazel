@@ -75,14 +75,15 @@ let pos_fold:
     ~align: (MeasuredPosition.t, 'acc) => 'acc,
     ~cat: (MeasuredPosition.t, 'acc, 'acc) => 'acc,
     // let client control recursion based on annotation
-    ~annot: (
-              ~go: t('annot) => 'acc,
-              ~indent: int,
-              ~start: MeasuredPosition.t,
-              'annot,
-              t('annot)
-            ) =>
-            'acc,
+    ~annot:
+      (
+        ~go: t('annot) => 'acc,
+        ~indent: int,
+        ~start: MeasuredPosition.t,
+        'annot,
+        t('annot)
+      ) =>
+      'acc,
     ~indent: int=?,
     ~start: MeasuredPosition.t=?,
     t('annot)
@@ -97,4 +98,6 @@ let pos_fold:
 let next_position:
   (~indent: int, MeasuredPosition.t, t(_)) => MeasuredPosition.t;
 
-module Make: (MemoTbl.S) => {let mk: Layout.t('annot) => t('annot);};
+module Make: (MemoTbl.S) => {
+                              let mk: Layout.t('annot) => t('annot);
+                            };

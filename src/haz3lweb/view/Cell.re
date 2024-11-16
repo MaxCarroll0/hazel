@@ -16,17 +16,15 @@ let get_goal = (~font_metrics: FontMetrics.t, ~target_id, e) => {
 
 let mousedown_overlay = (~inject, ~font_metrics, ~target_id) =>
   Node.div(
-    ~attr=
-      Attr.many(
-        Attr.[
-          id("mousedown-overlay"),
-          on_mouseup(_ => inject(Update.Mouseup)),
-          on_mousemove(e => {
-            let goal = get_goal(~font_metrics, ~target_id, e);
-            inject(Update.PerformAction(Select(Resize(Goal(goal)))));
-          }),
-        ],
-      ),
+    ~attrs=
+      Attr.[
+        id("mousedown-overlay"),
+        on_mouseup(_ => inject(Update.Mouseup)),
+        on_mousemove(e => {
+          let goal = get_goal(~font_metrics, ~target_id, e);
+          inject(Update.PerformAction(Select(Resize(Goal(goal)))));
+        }),
+      ],
     [],
   );
 
@@ -47,15 +45,15 @@ let mousedown_handler =
 
 let narrative_cell = (content: Node.t) =>
   Node.div(
-    ~attr=Attr.class_("cell-container"),
-    [Node.div(~attr=Attr.class_("cell-chapter"), [content])],
+    ~attrs=[Attr.class_("cell-container")],
+    [Node.div(~attrs=[Attr.class_("cell-chapter")], [content])],
   );
 
 let simple_cell_item = (content: list(Node.t)) =>
-  Node.div(~attr=Attr.classes(["cell", "cell-item"]), content);
+  Node.div(~attrs=[Attr.classes(["cell", "cell-item"])], content);
 
 let cell_caption = (content: list(Node.t)) =>
-  Node.div(~attr=Attr.many([Attr.classes(["cell-caption"])]), content);
+  Node.div(~attrs=[Attr.many([Attr.classes(["cell-caption"])])], content);
 
 let simple_caption = (caption: string) =>
   cell_caption([Node.text(caption)]);
@@ -67,7 +65,7 @@ let bolded_caption = (~rest: option(string)=?, bolded: string) =>
   );
 
 let simple_cell_view = (items: list(Node.t)) =>
-  Node.div(~attr=Attr.class_("cell-container"), items);
+  Node.div(~attrs=[Attr.class_("cell-container")], items);
 
 let code_cell_view =
     (
@@ -94,27 +92,26 @@ let code_cell_view =
     | Some(node) => [node]
     };
   Node.div(
-    ~attr=Attr.class_("cell-container"),
+    ~attrs=[Attr.class_("cell-container")],
     [
       Node.div(
-        ~attr=
-          Attr.many([
-            Attr.classes(
-              ["cell-item", "cell", ...clss]
-              @ (selected ? ["selected"] : ["deselected"]),
-            ),
-            Attr.on_mousedown(evt =>
-              JsUtil.is_double_click(evt)
-                ? inject(Update.PerformAction(Select(Term(Current))))
-                : mousedown_handler(
-                    ~inject,
-                    ~font_metrics,
-                    ~target_id=code_id,
-                    ~additional_updates=mousedown_updates,
-                    evt,
-                  )
-            ),
-          ]),
+        ~attrs=[
+          Attr.classes(
+            ["cell-item", "cell", ...clss]
+            @ (selected ? ["selected"] : ["deselected"]),
+          ),
+          Attr.on_mousedown(evt =>
+            JsUtil.is_double_click(evt)
+              ? inject(Update.PerformAction(Select(Term(Current))))
+              : mousedown_handler(
+                  ~inject,
+                  ~font_metrics,
+                  ~target_id=code_id,
+                  ~additional_updates=mousedown_updates,
+                  evt,
+                )
+          ),
+        ],
         Option.to_list(caption) @ code,
       ),
     ]
@@ -129,10 +126,7 @@ let test_status_icon_view =
     let status = insts |> TestMap.joint_status |> TestStatus.to_string;
     let pos = DecUtil.abs_position(~font_metrics, last);
     Some(
-      Node.div(
-        ~attr=Attr.many([Attr.classes(["test-result", status]), pos]),
-        [],
-      ),
+      Node.div(~attrs=[Attr.classes(["test-result", status]), pos], []),
     );
   | _ => None
   };
@@ -240,10 +234,10 @@ let eval_result_footer_view =
     };
   Node.(
     div(
-      ~attr=Attr.classes(["cell-item", "cell-result"]),
+      ~attrs=[Attr.classes(["cell-item", "cell-result"])],
       [
-        div(~attr=Attr.class_("equiv"), [Node.text("≡")]),
-        div(~attr=Attr.classes(["result"]), d_view),
+        div(~attrs=[Attr.class_("equiv")], [Node.text("≡")]),
+        div(~attrs=[Attr.classes(["result"])], d_view),
       ],
     )
   );
@@ -289,7 +283,9 @@ let editor_view =
     );
   let code_view =
     Node.div(
-      ~attr=Attr.many([Attr.id(code_id), Attr.classes(["code-container"])]),
+      ~attrs=[
+        Attr.many([Attr.id(code_id), Attr.classes(["code-container"])]),
+      ],
       [code_base_view] @ deco_view,
     );
   code_cell_view(
@@ -371,7 +367,7 @@ let test_view =
     : Node.t =>
   Node.(
     div(
-      ~attr=Attr.classes(["cell-item", "panel", "test-panel"]),
+      ~attrs=[Attr.classes(["cell-item", "panel", "test-panel"])],
       [
         TestView.view_of_main_title_bar(title),
         TestView.test_reports_view(~inject, ~font_metrics, ~test_results),
@@ -381,7 +377,7 @@ let test_view =
   );
 
 let report_footer_view = content => {
-  Node.(div(~attr=Attr.classes(["cell-item", "cell-report"]), content));
+  Node.(div(~attrs=[Attr.classes(["cell-item", "cell-report"])], content));
 };
 
 let test_report_footer_view =
@@ -393,7 +389,7 @@ let panel = (~classes=[], content, ~footer: option(Node.t)) => {
   simple_cell_view(
     [
       Node.div(
-        ~attr=Attr.classes(["cell-item", "panel"] @ classes),
+        ~attrs=[Attr.classes(["cell-item", "panel"] @ classes)],
         content,
       ),
     ]
@@ -405,8 +401,8 @@ let title_cell = title => {
   simple_cell_view([
     Node.(
       div(
-        ~attr=Attr.class_("title-cell"),
-        [Node.(div(~attr=Attr.class_("title-text"), [text(title)]))],
+        ~attrs=[Attr.class_("title-cell")],
+        [Node.(div(~attrs=[Attr.class_("title-text")], [text(title)]))],
       )
     ),
   ]);

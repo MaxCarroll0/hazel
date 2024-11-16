@@ -19,8 +19,9 @@ let of_delim' =
         };
       [
         span(
-          ~attr=
+          ~attrs=[
             Attr.classes(["token", cls, "text-" ++ Sort.to_string(sort)]),
+          ],
           [Node.text(List.nth(label, i))],
         ),
       ];
@@ -121,7 +122,7 @@ let simple_view = (~unselected, ~map, ~settings: Model.settings): Node.t => {
       let settings = settings;
     });
   div(
-    ~attr=Attr.class_("code"),
+    ~attrs=[Attr.class_("code")],
     [span_c("code-text", Text.of_segment(unselected))],
   );
 };
@@ -149,7 +150,7 @@ let view =
       holes(~map=measured, ~font_metrics, segment)
     );
   div(
-    ~attr=Attr.class_("code"),
+    ~attrs=[Attr.class_("code")],
     [
       span_c("code-text", unselected),
       // TODO restore (already regressed so no loss in commenting atm)

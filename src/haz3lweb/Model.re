@@ -1,4 +1,5 @@
 open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), yojson)]
 type timestamp = float;
@@ -30,7 +31,10 @@ let settings_init = {
 
 let fix_instructor_mode = settings =>
   if (settings.instructor_mode && !SchoolSettings.show_instructor) {
-    {...settings, instructor_mode: false};
+    {
+      ...settings,
+      instructor_mode: false,
+    };
   } else {
     settings;
   };

@@ -1,5 +1,7 @@
 open Sexplib.Std;
 open Haz3lcore;
+open Ppx_yojson_conv_lib.Yojson_conv;
+
 // TODO Make unified way of using consistent metavariables for syntactic forms
 // TODO Use /tau instead of ty when can do that and still have highlighting work
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -134,7 +136,10 @@ let multi_hole_exp: form = {
 
 let triv_exp_group = "triv_exp_group";
 let triv_exp: form = {
-  let explanation = {message: "Trivial expression.", feedback: Unselected};
+  let explanation = {
+    message: "Trivial expression.",
+    feedback: Unselected,
+  };
   {
     id: "triv_exp",
     syntactic_form: [exp("Triv")],
@@ -146,7 +151,10 @@ let triv_exp: form = {
 
 let bool_exp_group = "bool_exp_group";
 let bool_exp: form = {
-  let explanation = {message: "Boolean literal.", feedback: Unselected};
+  let explanation = {
+    message: "Boolean literal.",
+    feedback: Unselected,
+  };
   {
     id: "bool_exp",
     syntactic_form: [exp("BoolLit")],
@@ -158,7 +166,10 @@ let bool_exp: form = {
 
 let int_exp_group = "int_exp_group";
 let int_exp: form = {
-  let explanation = {message: "Integer literal.", feedback: Unselected};
+  let explanation = {
+    message: "Integer literal.",
+    feedback: Unselected,
+  };
   {
     id: "int_exp",
     syntactic_form: [exp("IntLit")],
@@ -185,7 +196,10 @@ let float_exp: form = {
 
 let string_exp_group = "string_exp_group";
 let string_exp: form = {
-  let explanation = {message: "Stromg literal.", feedback: Unselected};
+  let explanation = {
+    message: "Stromg literal.",
+    feedback: Unselected,
+  };
   {
     id: "string_exp",
     syntactic_form: [exp("StringLit")],
@@ -840,7 +854,10 @@ let var_exp: form = {
 
 let tag_exp_group = "tag_exp_group";
 let tag_exp: form = {
-  let explanation = {message: "`%s` constructor.", feedback: Unselected};
+  let explanation = {
+    message: "`%s` constructor.",
+    feedback: Unselected,
+  };
   {
     id: "tag_exp",
     syntactic_form: [exp("C")],
@@ -3103,7 +3120,10 @@ let tuple3_typ: form = {
 
 let var_typ_group = "var_typ_group";
 let var_typ: form = {
-  let explanation = {message: "`%s` type.", feedback: Unselected};
+  let explanation = {
+    message: "`%s` type.",
+    feedback: Unselected,
+  };
   {
     id: "var_typ",
     syntactic_form: [typ("x")],
@@ -3173,7 +3193,13 @@ let rec update_group = (group_id, new_selection, groups) => {
   | [(id, options) as x, ...xs] =>
     if (id == group_id) {
       [
-        (id, {options: options.options, current_selection: new_selection}),
+        (
+          id,
+          {
+            options: options.options,
+            current_selection: new_selection,
+          },
+        ),
         ...xs,
       ];
     } else {
@@ -3713,17 +3739,26 @@ type update =
 
 let set_update = (docLangMessages: t, u: update): t => {
   switch (u) {
-  | ToggleShow => {...docLangMessages, show: !docLangMessages.show}
+  | ToggleShow => {
+      ...docLangMessages,
+      show: !docLangMessages.show,
+    }
   | ToggleHighlight => {
       ...docLangMessages,
       highlight: !docLangMessages.highlight,
     }
-  | SpecificityOpen(b) => {...docLangMessages, specificity_open: b}
+  | SpecificityOpen(b) => {
+      ...docLangMessages,
+      specificity_open: b,
+    }
   | ToggleExplanationFeedback(id, feedback_option) =>
     let form = get_form(id, docLangMessages.forms);
     let explanation =
       switch (form.explanation.feedback, feedback_option) {
-      | (Unselected, _) => {...form.explanation, feedback: feedback_option}
+      | (Unselected, _) => {
+          ...form.explanation,
+          feedback: feedback_option,
+        }
       | (ThumbsUp, ThumbsUp)
       | (ThumbsDown, ThumbsDown) => {
           ...form.explanation,
@@ -3731,29 +3766,51 @@ let set_update = (docLangMessages: t, u: update): t => {
         }
       | (ThumbsUp, ThumbsDown)
       | (ThumbsDown, ThumbsUp)
-      | (_, Unselected) => {...form.explanation, feedback: feedback_option}
+      | (_, Unselected) => {
+          ...form.explanation,
+          feedback: feedback_option,
+        }
       };
     {
       ...docLangMessages,
-      forms: update_form({...form, explanation}, docLangMessages.forms),
+      forms:
+        update_form(
+          {
+            ...form,
+            explanation,
+          },
+          docLangMessages.forms,
+        ),
     };
   | ToggleExampleFeedback(id, sub_id, feedback_option) =>
     let form = get_form(id, docLangMessages.forms);
     let example = get_example(sub_id, form.examples);
     let new_example =
       switch (example.feedback, feedback_option) {
-      | (Unselected, _) => {...example, feedback: feedback_option}
+      | (Unselected, _) => {
+          ...example,
+          feedback: feedback_option,
+        }
       | (ThumbsUp, ThumbsUp)
-      | (ThumbsDown, ThumbsDown) => {...example, feedback: Unselected}
+      | (ThumbsDown, ThumbsDown) => {
+          ...example,
+          feedback: Unselected,
+        }
       | (ThumbsUp, ThumbsDown)
       | (ThumbsDown, ThumbsUp)
-      | (_, Unselected) => {...example, feedback: feedback_option}
+      | (_, Unselected) => {
+          ...example,
+          feedback: feedback_option,
+        }
       };
     {
       ...docLangMessages,
       forms:
         update_form(
-          {...form, examples: update_example(new_example, form.examples)},
+          {
+            ...form,
+            examples: update_example(new_example, form.examples),
+          },
           docLangMessages.forms,
         ),
     };
@@ -3797,7 +3854,10 @@ let persist =
     ({show, highlight, specificity_open, forms, groups, _}: t)
     : persistent_state => {
   let persist_example = ({sub_id, feedback, _}: example): persistent_example => {
-    {sub_id, feedback};
+    {
+      sub_id,
+      feedback,
+    };
   };
   let persist_form = ({id, explanation, examples, _}: form): persistent_form => {
     let {feedback, _}: explanation = explanation;
@@ -3816,7 +3876,10 @@ let persist =
     groups:
       List.map(
         ((group_id, group: form_group)) =>
-          {id: group_id, current_selection: group.current_selection},
+          {
+            id: group_id,
+            current_selection: group.current_selection,
+          },
         groups,
       ),
   };
@@ -3860,7 +3923,13 @@ let unpersist =
     List.map(
       ({id, current_selection}: persistent_form_group) => {
         let init_group = get_group(id, init);
-        (id, {options: init_group.options, current_selection});
+        (
+          id,
+          {
+            options: init_group.options,
+            current_selection,
+          },
+        );
       },
       groups,
     );

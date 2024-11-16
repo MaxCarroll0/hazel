@@ -19,36 +19,36 @@ let infoc = "info";
 let error_view = (err: Haz3lcore.Statics.error) =>
   switch (err) {
   | Multi =>
-    div(~attr=clss([errorc, "err-multi"]), [text("⑂ Multi Hole")])
+    div(~attrs=[clss([errorc, "err-multi"])], [text("⑂ Multi Hole")])
   | Free(Variable) =>
     div(
-      ~attr=clss([errorc, "err-free-variable"]),
+      ~attrs=[clss([errorc, "err-free-variable"])],
       [text("Variable is not bound")],
     )
   | NoFun(typ) =>
     div(
-      ~attr=clss([errorc, "err-not-function"]),
+      ~attrs=[clss([errorc, "err-not-function"])],
       [text("Not a function: "), Type.view(typ)],
     )
   | Free(TypeVariable) =>
     div(
-      ~attr=clss([errorc, "err-free-variable"]),
+      ~attrs=[clss([errorc, "err-free-variable"])],
       [text("Type Variable is not bound")],
     )
   | Free(Tag) =>
     div(
-      ~attr=clss([errorc, "err-free-variable"]),
+      ~attrs=[clss([errorc, "err-free-variable"])],
       [text("Constructor is not defined")],
     )
   | SynInconsistentBranches(tys) =>
     div(
-      ~attr=clss([errorc, "err-inconsistent-branches"]),
+      ~attrs=[clss([errorc, "err-inconsistent-branches"])],
       [text("Expecting branches to have consistent types but got:")]
       @ ListUtil.join(text(","), List.map(Type.view, tys)),
     )
   | TypeInconsistent(ty_syn, ty_ana) =>
     div(
-      ~attr=clss([errorc, "err-type-inconsistent"]),
+      ~attrs=[clss([errorc, "err-type-inconsistent"])],
       [
         text("Expecting"),
         Type.view(ty_ana),
@@ -62,17 +62,17 @@ let happy_view = (suc: Haz3lcore.Statics.happy) => {
   switch (suc) {
   | SynConsistent(ty_syn) =>
     div(
-      ~attr=clss([happyc, "syn-consistent"]),
+      ~attrs=[clss([happyc, "syn-consistent"])],
       [text("has type"), Type.view(ty_syn)],
     )
   | AnaConsistent(ty_ana, ty_syn, _ty_join) when ty_ana == ty_syn =>
     div(
-      ~attr=clss([happyc, "ana-consistent-equal"]),
+      ~attrs=[clss([happyc, "ana-consistent-equal"])],
       [text("has expected type"), Type.view(ty_ana)],
     )
   | AnaConsistent(ty_ana, ty_syn, _ty_join) =>
     div(
-      ~attr=clss([happyc, "ana-consistent"]),
+      ~attrs=[clss([happyc, "ana-consistent"])],
       switch (ty_syn) {
       // A hack for EECS 490 A1
       | Haz3lcore.Typ.Unknown(_) => [
@@ -90,11 +90,11 @@ let happy_view = (suc: Haz3lcore.Statics.happy) => {
   | AnaInternalInconsistent(ty_ana, _)
   | AnaExternalInconsistent(ty_ana, _) =>
     div(
-      ~attr=clss([happyc, "ana-consistent-external"]),
+      ~attrs=[clss([happyc, "ana-consistent-external"])],
       [
         div(
-          ~attr=clss(["typ-view", "atom"]),
-          [text("⇐"), div(~attr=clss(["typ-mod"]), [text("☆")])],
+          ~attrs=[clss(["typ-view", "atom"])],
+          [text("⇐"), div(~attrs=[clss(["typ-mod"])], [text("☆")])],
         ),
         Type.view(ty_ana),
       ],
@@ -112,7 +112,7 @@ let status_view = (err: Haz3lcore.Statics.error_status) => {
 let term_tag = (~inject, ~show_lang_doc, is_err, sort) => {
   let lang_doc =
     div(
-      ~attr=clss(["lang-doc-button"]),
+      ~attrs=[clss(["lang-doc-button"])],
       [
         Widgets.toggle(
           ~tooltip="Toggle language documentation", "i", show_lang_doc, _ =>
@@ -125,11 +125,10 @@ let term_tag = (~inject, ~show_lang_doc, is_err, sort) => {
     );
 
   div(
-    ~attr=
-      Attr.many([
-        clss(["term-tag", "term-tag-" ++ sort] @ (is_err ? [errorc] : [])),
-      ]),
-    [div(~attr=clss(["gamma"]), [text("Γ")]), text(sort), lang_doc],
+    ~attrs=[
+      clss(["term-tag", "term-tag-" ++ sort] @ (is_err ? [errorc] : [])),
+    ],
+    [div(~attrs=[clss(["gamma"])], [text("Γ")]), text(sort), lang_doc],
   );
 };
 
@@ -139,13 +138,13 @@ let view_of_info =
   switch (ci) {
   | Invalid(msg) =>
     div(
-      ~attr=clss([infoc, "unknown"]),
+      ~attrs=[clss([infoc, "unknown"])],
       [text("🚫 " ++ Haz3lcore.TermBase.show_parse_flag(msg))],
     )
   | InfoExp({mode, self, _}) =>
     let error_status = Haz3lcore.Statics.error_status(mode, self);
     div(
-      ~attr=clss([infoc, "exp"]),
+      ~attrs=[clss([infoc, "exp"])],
       [
         term_tag(~inject, ~show_lang_doc, is_err, "exp"),
         status_view(error_status),
@@ -154,7 +153,7 @@ let view_of_info =
   | InfoPat({mode, self, _}) =>
     let error_status = Haz3lcore.Statics.error_status(mode, self);
     div(
-      ~attr=clss([infoc, "pat"]),
+      ~attrs=[clss([infoc, "pat"])],
       [
         term_tag(~inject, ~show_lang_doc, is_err, "pat"),
         status_view(error_status),
@@ -162,7 +161,7 @@ let view_of_info =
     );
   | InfoTyp({self: Free(free_error), _}) =>
     div(
-      ~attr=clss([infoc, "typ"]),
+      ~attrs=[clss([infoc, "typ"])],
       [
         term_tag(~inject, ~show_lang_doc, is_err, "typ"),
         error_view(Free(free_error)),
@@ -170,7 +169,7 @@ let view_of_info =
     )
   | InfoTyp({self: Just(ty), _}) =>
     div(
-      ~attr=clss([infoc, "typ"]),
+      ~attrs=[clss([infoc, "typ"])],
       [
         term_tag(~inject, ~show_lang_doc, is_err, "typ"),
         text("is"),
@@ -181,21 +180,21 @@ let view_of_info =
     failwith("CursorInspector: Impossible type error")
   | InfoRul(_) =>
     div(
-      ~attr=clss([infoc, "rul"]),
+      ~attrs=[clss([infoc, "rul"])],
       [term_tag(~inject, ~show_lang_doc, is_err, "rul"), text("Rule")],
     )
   };
 };
 
 let cls_view = (ci: Haz3lcore.Statics.t): Node.t =>
-  div(~attr=clss(["syntax-class"]), [text(cls_str(ci))]);
+  div(~attrs=[clss(["syntax-class"])], [text(cls_str(ci))]);
 
 let id_view = (id): Node.t =>
-  div(~attr=clss(["id"]), [text(string_of_int(id + 1))]);
+  div(~attrs=[clss(["id"])], [text(string_of_int(id + 1))]);
 
 let extra_view = (visible: bool, id: int, ci: Haz3lcore.Statics.t): Node.t =>
   div(
-    ~attr=Attr.many([clss(["extra"] @ (visible ? ["visible"] : []))]),
+    ~attrs=[clss(["extra"] @ (visible ? ["visible"] : []))],
     [id_view(id), cls_view(ci)],
   );
 
@@ -222,14 +221,13 @@ let inspector_view =
     )
     : Node.t =>
   div(
-    ~attr=
-      Attr.many([
-        clss(
-          ["cursor-inspector"]
-          @ [Haz3lcore.Statics.is_error(ci) ? errorc : happyc],
-        ),
-        Attr.on_click(toggle_context_and_print_ci(~inject, ci)),
-      ]),
+    ~attrs=[
+      clss(
+        ["cursor-inspector"]
+        @ [Haz3lcore.Statics.is_error(ci) ? errorc : happyc],
+      ),
+      Attr.on_click(toggle_context_and_print_ci(~inject, ci)),
+    ],
     [
       extra_view(settings.context_inspector, id, ci),
       view_of_info(~inject, ~show_lang_doc, ci),
@@ -258,15 +256,15 @@ let view =
         inspector_view(~inject, ~settings, ~show_lang_doc, index, ci)
       | None =>
         div(
-          ~attr=clss(["cursor-inspector"]),
-          [div(~attr=clss(["icon"]), [Icons.magnify]), text("")],
+          ~attrs=[clss(["cursor-inspector"])],
+          [div(~attrs=[clss(["icon"])], [Icons.magnify]), text("")],
         )
       }
     | None =>
       div(
-        ~attr=clss(["cursor-inspector"]),
+        ~attrs=[clss(["cursor-inspector"])],
         [
-          div(~attr=clss(["icon"]), [Icons.magnify]),
+          div(~attrs=[clss(["icon"])], [Icons.magnify]),
           text("No Indicated Index"),
         ],
       )

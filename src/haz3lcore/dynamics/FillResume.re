@@ -7,7 +7,10 @@ module FillResumeState = {
   };
 
   let mk = (metavar: MetaVar.t, d_inserted: DHExp.t): t => {
-    {metavar, d_inserted};
+    {
+      metavar,
+      d_inserted,
+    };
   };
 };
 

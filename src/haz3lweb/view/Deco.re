@@ -26,7 +26,16 @@ module Deco =
       | Some((_, side, _)) => side
       | _ => Right
       };
-    [CaretDec.view(~font_metrics, ~profile={side, origin, shape})];
+    [
+      CaretDec.view(
+        ~font_metrics,
+        ~profile={
+          side,
+          origin,
+          shape,
+        },
+      ),
+    ];
   };
 
   let selected_piece_profile =
@@ -34,7 +43,11 @@ module Deco =
     // TODO(d) fix sorts
     let mold =
       switch (p) {
-      | Whitespace(_) => Mold.of_whitespace({sort: Any, shape: nib_shape})
+      | Whitespace(_) =>
+        Mold.of_whitespace({
+          sort: Any,
+          shape: nib_shape,
+        })
       | Grout(g) => Mold.of_grout(g, Any)
       | Tile(t) => t.mold
       };
@@ -53,7 +66,11 @@ module Deco =
     let r = fst(ListUtil.last(shards));
     // TODO this is ignored in view, clean this up
     let caret = (id, (-1));
-    PieceDec.Profile.{tiles, caret, style: Selected((id, l), (id, r))};
+    PieceDec.Profile.{
+      tiles,
+      caret,
+      style: Selected((id, l), (id, r)),
+    };
   };
 
   let root_piece_profile =
@@ -177,13 +194,23 @@ module Deco =
                | (None, None) => failwith("impossible")
                | (_, Some(p)) =>
                  let m = Measured.find_p(p, M.map);
-                 Measured.{origin: m.origin, last: m.origin};
+                 Measured.{
+                   origin: m.origin,
+                   last: m.origin,
+                 };
                | (Some(p), _) =>
                  let m = Measured.find_p(p, M.map);
-                 Measured.{origin: m.last, last: m.last};
+                 Measured.{
+                   origin: m.last,
+                   last: m.last,
+                 };
                };
              let profile =
-               CaretPosDec.Profile.{style: `Sibling, measurement, sort: Exp};
+               CaretPosDec.Profile.{
+                 style: `Sibling,
+                 measurement,
+                 sort: Exp,
+               };
              [CaretPosDec.view(~font_metrics, profile)];
            };
          });
@@ -242,7 +269,10 @@ module Deco =
       [m(~x=l.col, ~y=l.row), ...r_edge]
       @ l_edge
       @ [Z]
-      |> translate({dx: Float.of_int(- l.col), dy: Float.of_int(- l.row)});
+      |> translate({
+           dx: Float.of_int(- l.col),
+           dy: Float.of_int(- l.row),
+         });
     (l, path) |> deco;
   };
 

@@ -1,6 +1,7 @@
 open Sexplib.Std;
 open Util;
 open OptUtil.Syntax;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 module Caret = {
   [@deriving (show({with_path: false}), sexp, yojson)]
@@ -38,7 +39,15 @@ let init: int => t =
     },
     backpack: [],
     relatives: {
-      siblings: ([], [Grout({id, shape: Convex})]),
+      siblings: (
+        [],
+        [
+          Grout({
+            id,
+            shape: Convex,
+          }),
+        ],
+      ),
       ancestors: [],
     },
     caret: Outer,
@@ -84,7 +93,13 @@ let update_relatives = (f: Relatives.t => Relatives.t, z: t): t => {
 };
 
 let update_siblings: (Siblings.t => Siblings.t, t) => t =
-  f => update_relatives(rs => {...rs, siblings: f(rs.siblings)});
+  f =>
+    update_relatives(rs =>
+      {
+        ...rs,
+        siblings: f(rs.siblings),
+      }
+    );
 
 let parent = (z: t): option(Piece.t) =>
   Relatives.parent(~sel=z.selection.content, z.relatives);
@@ -122,7 +137,10 @@ let remold_regrout = (d: Direction.t, z: t): IdGen.t(t) => {
   assert(Selection.is_empty(z.selection));
   open IdGen.Syntax;
   let+ relatives = Relatives.regrout(d, Relatives.remold(z.relatives));
-  {...z, relatives};
+  {
+    ...z,
+    relatives,
+  };
 };
 
 let unselect = (z: t): t => {
@@ -131,7 +149,11 @@ let unselect = (z: t): t => {
     |> Relatives.prepend(z.selection.focus, z.selection.content)
     |> Relatives.reassemble;
   let selection = Selection.clear(z.selection);
-  {...z, selection, relatives};
+  {
+    ...z,
+    selection,
+    relatives,
+  };
 };
 let unselect_and_zip = (z: t): Segment.t => z |> unselect |> zip;
 
@@ -140,7 +162,11 @@ let update_selection = (selection: Selection.t, z: t): (Selection.t, t) => {
   // used to be necessary to unselect when selection update
   // included remold/regrout, now no longer necessary if needs
   // to be changed but keeping for now to minimize change
-  let z = unselect({...z, selection});
+  let z =
+    unselect({
+      ...z,
+      selection,
+    });
   (old, z);
 };
 
@@ -150,7 +176,11 @@ let put_selection = (sel: Selection.t, z: t): t =>
 let grow_selection = (z: t): option(t) => {
   let+ (p, relatives) = Relatives.pop(z.selection.focus, z.relatives);
   let selection = Selection.push(p, z.selection);
-  {...z, selection, relatives};
+  {
+    ...z,
+    selection,
+    relatives,
+  };
 };
 
 // toggles focus and grows if selection is empty
@@ -158,19 +188,32 @@ let shrink_selection = (z: t): option(t) => {
   switch (Selection.pop(z.selection)) {
   | None =>
     let selection = Selection.toggle_focus(z.selection);
-    grow_selection({...z, selection});
+    grow_selection({
+      ...z,
+      selection,
+    });
   | Some((p, selection)) =>
     let relatives =
       z.relatives
       |> Relatives.push(selection.focus, p)
       |> Relatives.reassemble;
-    Some({...z, selection, relatives});
+    Some({
+      ...z,
+      selection,
+      relatives,
+    });
   };
 };
 
 let directional_unselect = (d: Direction.t, z: t): t => {
-  let selection = {...z.selection, focus: Direction.toggle(d)};
-  unselect({...z, selection});
+  let selection = {
+    ...z.selection,
+    focus: Direction.toggle(d),
+  };
+  unselect({
+    ...z,
+    selection,
+  });
 };
 
 let move = (d: Direction.t, z: t): option(t) =>
@@ -181,7 +224,10 @@ let move = (d: Direction.t, z: t): option(t) =>
       relatives
       |> Relatives.push(Direction.toggle(d), p)
       |> Relatives.reassemble;
-    {...z, relatives};
+    {
+      ...z,
+      relatives,
+    };
   } else {
     Some(directional_unselect(d, z));
   };
@@ -200,7 +246,10 @@ let pick_up = (z: t): t => {
   |> List.map((t: Tile.t) => t.id)
   |> Effect.s_touch;
   let backpack = Backpack.push(selection, z.backpack);
-  {...z, backpack};
+  {
+    ...z,
+    backpack,
+  };
 };
 
 let destruct = (~destroy_kids=true, z: t): t => {
@@ -224,7 +273,10 @@ let destruct = (~destroy_kids=true, z: t): t => {
          |> List.map(Segment.of_tile)
          |> List.map(Selection.mk(z.selection.focus)),
        );
-  {...z, backpack};
+  {
+    ...z,
+    backpack,
+  };
 };
 
 let directional_destruct = (d: Direction.t, z: t): option(t) =>
@@ -236,7 +288,12 @@ let put_down = (z: t): option(t) => {
   Segment.tiles(popped.content)
   |> List.map((t: Tile.t) => t.id)
   |> Effect.s_touch;
-  {...z, backpack} |> put_selection(popped) |> unselect;
+  {
+    ...z,
+    backpack,
+  }
+  |> put_selection(popped)
+  |> unselect;
 };
 
 let rec construct = (from: Direction.t, label: Label.t, z: t): IdGen.t(t) => {
@@ -250,7 +307,18 @@ let rec construct = (from: Direction.t, label: Label.t, z: t): IdGen.t(t) => {
       let+ id = IdGen.fresh;
       Effect.s_touch([id]);
       z
-      |> update_siblings(((l, r)) => (l @ [Whitespace({id, content})], r));
+      |> update_siblings(((l, r)) =>
+           (
+             l
+             @ [
+               Whitespace({
+                 id,
+                 content,
+               }),
+             ],
+             r,
+           )
+         );
     | _ =>
       let z = destruct(z);
       let molds = Molds.get(label);
@@ -265,7 +333,12 @@ let rec construct = (from: Direction.t, label: Label.t, z: t): IdGen.t(t) => {
         |> List.map(Selection.mk(from))
         |> ListUtil.rev_if(from == Right);
       let backpack = Backpack.push_s(selections, z.backpack);
-      Option.get(put_down({...z, backpack}));
+      Option.get(
+        put_down({
+          ...z,
+          backpack,
+        }),
+      );
     }
   );
 };
@@ -311,12 +384,18 @@ let base_point = (measured: Measured.t, z: t): Measured.Point.t => {
       let m = Measured.find_p(p, measured);
       m.origin;
     };
-  | None => {row: 0, col: 0}
+  | None => {
+      row: 0,
+      col: 0,
+    }
   };
 };
 let caret_point = (measured, z: t): Measured.Point.t => {
   let Measured.Point.{row, col} = base_point(measured, z);
-  {row, col: col + Caret.offset(z.caret)};
+  {
+    row,
+    col: col + Caret.offset(z.caret),
+  };
 };
 
 let serialize = (z: t): string => {

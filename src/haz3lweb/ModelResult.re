@@ -1,4 +1,5 @@
 open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type past = list(ProgramResult.t);
@@ -16,11 +17,17 @@ type t = {
   current,
 };
 
-let init = previous => {past: [previous], current: ResultPending};
+let init = previous => {
+  past: [previous],
+  current: ResultPending,
+};
 
 let get_past = ({past, _}) => past;
 let get_previous = ({past, _}) => past |> List.hd;
-let put_previous = (previous, cr) => {...cr, past: [previous, ...cr.past]};
+let put_previous = (previous, cr) => {
+  ...cr,
+  past: [previous, ...cr.past],
+};
 let get_previous_dhexp = cr => cr |> get_previous |> ProgramResult.get_dhexp;
 
 let get_current = ({current, _}) => current;
@@ -44,12 +51,18 @@ let update_current = (current, res) => {
     | ResultPending => res
     };
 
-  let res = {...res, current};
+  let res = {
+    ...res,
+    current,
+  };
   res;
 };
 
 let clear_past = mr => {
-  {...mr, past: [mr |> get_previous]};
+  {
+    ...mr,
+    past: [mr |> get_previous],
+  };
 };
 
 type optional_simple_data = {
@@ -76,7 +89,10 @@ let get_simple = (res: option(t)): simple =>
          |> ProgramResult.get_state
          |> Haz3lcore.EvaluatorState.get_tests
          |> Interface.mk_results;
-       {eval_result, test_results};
+       {
+         eval_result,
+         test_results,
+       };
      });
 
 let unwrap_test_results = (simple: simple): option(Interface.test_results) => {
@@ -89,7 +105,10 @@ let unwrap_eval_result = (simple: simple): option(Haz3lcore.DHExp.t) => {
 
 let unwrap_simple = (simple: simple): optional_simple_data =>
   switch (simple) {
-  | None => {opt_eval_result: None, opt_test_results: None}
+  | None => {
+      opt_eval_result: None,
+      opt_test_results: None,
+    }
   | Some({eval_result, test_results}) => {
       opt_eval_result: Some(eval_result),
       opt_test_results: Some(test_results),

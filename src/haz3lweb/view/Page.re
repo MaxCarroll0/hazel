@@ -30,9 +30,9 @@ let slide_toggle_view = (~inject, ~model: Model.t, ~caption, ~control) => {
   let num_slides = Editors.num_slides(model.editors);
   let cur_slide_text = Printf.sprintf("%d / %d", cur_slide + 1, num_slides);
   div(
-    ~attr=id,
+    ~attrs=[id],
     [
-      div(~attr=Attr.many([toggle_mode, tooltip]), [text(caption)]),
+      div(~attrs=[Attr.many([toggle_mode, tooltip])], [text(caption)]),
       button(Icons.back, prev_slide(~inject, cur_slide, num_slides)),
       text(cur_slide_text),
       button(Icons.forward, next_slide(~inject, cur_slide, num_slides)),
@@ -66,20 +66,18 @@ let editor_mode_toggle_view = (~inject: Update.t => 'a, ~model: Model.t) => {
 
 let menu_icon =
   div(
-    ~attr=clss(["menu-icon"]),
+    ~attrs=[clss(["menu-icon"])],
     [
       div(
-        ~attr=clss(["icon", "menu-icon-inner"]),
+        ~attrs=[clss(["icon", "menu-icon-inner"])],
         [
           a(
-            ~attr=
-              Attr.many(
-                Attr.[
-                  href("https://hazel.org"),
-                  title("Hazel"),
-                  create("target", "_blank"),
-                ],
-              ),
+            ~attrs=
+              Attr.[
+                href("https://hazel.org"),
+                title("Hazel"),
+                create("target", "_blank"),
+              ],
             [Icons.hazelnut],
           ),
         ],
@@ -99,11 +97,11 @@ let top_bar_view =
   let can_redo = Editor.can_redo(ed);
   let top_left_bar =
     div(
-      ~attr=Attr.id("top-left-bar"),
+      ~attrs=[Attr.id("top-left-bar")],
       [
         menu_icon,
         div(
-          ~attr=clss(["menu"]),
+          ~attrs=[clss(["menu"])],
           [
             toggle("τ", ~tooltip="Toggle Statics", model.settings.statics, _ =>
               inject(Set(Statics))
@@ -169,10 +167,15 @@ let top_bar_view =
       @ toolbar_buttons,
     );
   let top_right_bar =
-    div(~attr=Attr.id("top-right-bar"), Option.to_list(top_right));
+    div(~attrs=[Attr.id("top-right-bar")], Option.to_list(top_right));
   div(
-    ~attr=Attr.id("top-bar"),
-    [div(~attr=Attr.id("top-bar-content"), [top_left_bar, top_right_bar])],
+    ~attrs=[Attr.id("top-bar")],
+    [
+      div(
+        ~attrs=[Attr.id("top-bar-content")],
+        [top_left_bar, top_right_bar],
+      ),
+    ],
   );
 };
 
@@ -251,38 +254,36 @@ let get_selection = (model: Model.t): string =>
 let view = (~inject, ~handlers, model: Model.t) => {
   let main_ui = main_ui_view(~inject, model);
   div(
-    ~attr=
-      Attr.many(
-        Attr.[
-          id(page_id),
-          // safety handler in case mousedown overlay doesn't catch it
-          on_mouseup(_ => inject(Update.Mouseup)),
-          on_blur(_ => {
-            JsUtil.focus_clipboard_shim();
-            Virtual_dom.Vdom.Effect.Ignore;
-          }),
-          on_focus(_ => {
-            JsUtil.focus_clipboard_shim();
-            Virtual_dom.Vdom.Effect.Ignore;
-          }),
-          on_copy(_ => {
-            JsUtil.copy(get_selection(model));
-            Virtual_dom.Vdom.Effect.Ignore;
-          }),
-          on_cut(_ => {
-            JsUtil.copy(get_selection(model));
-            inject(UpdateAction.PerformAction(Destruct(Left)));
-          }),
-          on_paste(evt => {
-            let pasted_text =
-              Js.to_string(evt##.clipboardData##getData(Js.string("text")))
-              |> Str.global_replace(Str.regexp("\n[ ]*"), "\n");
-            Dom.preventDefault(evt);
-            inject(UpdateAction.Paste(pasted_text));
-          }),
-          ...handlers(~inject, ~model),
-        ],
-      ),
+    ~attrs=
+      Attr.[
+        id(page_id),
+        // safety handler in case mousedown overlay doesn't catch it
+        on_mouseup(_ => inject(Update.Mouseup)),
+        on_blur(_ => {
+          JsUtil.focus_clipboard_shim();
+          Virtual_dom.Vdom.Effect.Ignore;
+        }),
+        on_focus(_ => {
+          JsUtil.focus_clipboard_shim();
+          Virtual_dom.Vdom.Effect.Ignore;
+        }),
+        on_copy(_ => {
+          JsUtil.copy(get_selection(model));
+          Virtual_dom.Vdom.Effect.Ignore;
+        }),
+        on_cut(_ => {
+          JsUtil.copy(get_selection(model));
+          inject(UpdateAction.PerformAction(Destruct(Left)));
+        }),
+        on_paste(evt => {
+          let pasted_text =
+            Js.to_string(evt##.clipboardData##getData(Js.string("text")))
+            |> Str.global_replace(Str.regexp("\n[ ]*"), "\n");
+          Dom.preventDefault(evt);
+          inject(UpdateAction.Paste(pasted_text));
+        }),
+        ...handlers(~inject, ~model),
+      ],
     [
       FontSpecimen.view("font-specimen"),
       DecUtil.filters,

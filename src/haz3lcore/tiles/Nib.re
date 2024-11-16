@@ -53,9 +53,15 @@ let shape = n => n.shape;
 let fits = (l: t, r: t): bool =>
   l.sort == r.sort && Shape.fits(l.shape, r.shape);
 
-let fitting = (nib: t): t => {...nib, shape: Shape.fitting(nib.shape)};
+let fitting = (nib: t): t => {
+  ...nib,
+  shape: Shape.fitting(nib.shape),
+};
 
-let flip = (nib: t) => {...nib, shape: Shape.flip(nib.shape)};
+let flip = (nib: t) => {
+  ...nib,
+  shape: Shape.flip(nib.shape),
+};
 
 // let toggle = (nib: t) => {
 //   ...nib,
