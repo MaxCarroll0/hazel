@@ -26,6 +26,10 @@ open OptUtil.Syntax;
    status; otherwise, an ERROR status, but in both cases, a fixed type
    is determined.
 
+   Type slices, which require both information from the context and mode
+   in Mode.re and information from the term type in Self.re, are also
+   placed here.
+
    */
 
 /* The ids of a term's ancestors in the AST */
@@ -200,7 +204,8 @@ type exp = {
   co_ctx: CoCtx.t, /* Locally free variables */
   cls: Cls.t, /* DERIVED: Syntax class (i.e. form name) */
   status: status_exp, /* DERIVED: Ok/Error statuses for display */
-  ty: Typ.t /* DERIVED: Type after nonempty hole fixing */
+  ty: Typ.t, /* DERIVED: Type after nonempty hole fixing */
+  slice: Slice.t /* Type slice: Expression slice used to derive type */
 };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -314,6 +319,7 @@ let error_of: t => option(error) =
   | Secondary(_) => None;
 
 let exp_co_ctx: exp => CoCtx.t = ({co_ctx, _}) => co_ctx;
+let exp_slice: exp => Slice.t = ({slice, _}) => slice;
 let exp_ty: exp => Typ.t = ({ty, _}) => ty;
 let pat_ctx: pat => Ctx.t = ({ctx, _}) => ctx;
 let pat_ty: pat => Typ.t = ({ty, _}) => ty;
@@ -610,11 +616,11 @@ let fixed_typ_exp = (ctx, mode: Mode.t, self: Self.exp): Typ.t =>
 
 /* Add derivable attributes for expression terms */
 let derived_exp =
-    (~uexp: UExp.t, ~ctx, ~mode, ~ancestors, ~self, ~co_ctx): exp => {
+    (~uexp: UExp.t, ~ctx, ~mode, ~ancestors, ~self, ~co_ctx, ~slice): exp => {
   let cls = Cls.Exp(UExp.cls_of_term(uexp.term));
   let status = status_exp(ctx, mode, self);
   let ty = fixed_typ_exp(ctx, mode, self);
-  {cls, self, ty, mode, status, ctx, co_ctx, ancestors, term: uexp};
+  {cls, self, ty, mode, status, ctx, co_ctx, ancestors, term: uexp, slice};
 };
 
 /* Add derivable attributes for pattern terms */

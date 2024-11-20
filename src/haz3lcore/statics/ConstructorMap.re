@@ -182,11 +182,20 @@ let equal = (eq: ('a, 'a) => bool, m1: t('a), m2: t('a)) => {
   };
 };
 
-let map = (f: option('a) => option('b), m: t('a)): t('b) => {
+let map = (f: option('a) => option('a), m: t('a)): t('a) => {
   List.map(
     fun
     | Variant(ctr, args, value) => Variant(ctr, args, f(value))
     | BadEntry(value) => BadEntry(value),
+    m,
+  );
+};
+
+let map_vals = (f: 'a => 'b, m: t('a)): t('b) => {
+  List.map(
+    fun
+    | Variant(ctr, args, value) => Variant(ctr, args, Option.map(f, value))
+    | BadEntry(value) => BadEntry(f(value)),
     m,
   );
 };
