@@ -49,7 +49,9 @@ let join = (l: list(t), slice): t => (Join(l), slice);
 let rec full_slice = (ctx: Ctx.t, (ty, s): t): slice => {
   let calc' = full_slice(ctx);
   switch (ty) {
-  | TEMP => failwith("Help")
+  | TEMP =>
+    print_endline("Temp full slice");
+    empty;
   | Unknown
   | Int
   | Float
@@ -84,7 +86,9 @@ let of_ctx = (ctx: Ctx.t): slice => (ctx, []);
 let extract_join_list = (t: t): (list(t), slice) =>
   switch (t) {
   | (List((Join(ss), ([], []))), s) => (ss, s)
-  | _ => failwith("List slice has join with non-empty slice")
+  | _ =>
+    print_endline("List slice has join with non-empty slice");
+    ([], empty); // TODO: Check + what to do here
   };
 
 let typ = ((typ, _): t): typ => typ;
@@ -94,7 +98,9 @@ let slice = ((_, slice): t): slice => slice;
 let rec ty_of_typ = (ctx: Ctx.t, typ: typ) =>
   TermBase.(
     switch (typ) {
-    | TEMP => failwith("Help")
+    | TEMP =>
+      print_endline("ty of temp slice");
+      Unknown(Internal);
     | Unknown => Unknown(Internal)
     | Int => Int
     | Float => Float

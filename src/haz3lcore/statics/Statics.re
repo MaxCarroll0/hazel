@@ -435,7 +435,9 @@ and uexp_to_info_map =
         Slice.(
           switch (fn.slice) {
           | (Arrow(_, (ta, sa)), s) => (ta, union([s, sa])) // Ignore slice for input type. But include function slice
-          | _ => failwith("Failed app slice decomposition")
+          | _ =>
+            print_endline("Failed app slice decomposition");
+            (Unknown, empty); // TODO: What to do here
           }
         ),
       m,
