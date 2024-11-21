@@ -472,6 +472,35 @@ module Deco =
       Node.div([])
     };
 
+  // Highlight slice of cursor index
+  let slice_deco = ((_, s): Slice.slice) => {
+    let seg = List.map(id => Piece.Tile(tile(id)), s); // TODO: Deal with context slice
+    let nodes = Highlight.go(seg, None, ["selects"]);
+    div_c("selects", nodes);
+  }; //TODO Different styling to selects
+
+  let indicated_index = (z: Zipper.t): Node.t => {
+    let index = Indicated.index(z);
+    switch (index) {
+    | Some(index) =>
+      Option.value(
+        ~default=Node.div([]),
+        OptUtil.Syntax.(
+          let* info = Id.Map.find_opt(index, M.meta.statics.info_map);
+          let* info_exp =
+            switch (info) {
+            | Info.InfoExp(info_exp) => Some(info_exp)
+            | _ => None
+            };
+          let slice =
+            Info.exp_slice(info_exp) |> Slice.full_slice(info_exp.ctx);
+          slice_deco(slice) |> return
+        ),
+      )
+    | None => Node.div([])
+    };
+  };
+
   let errors = () =>
     div_c("errors", List.map(error_view, M.meta.statics.error_ids));
 
@@ -489,6 +518,7 @@ module Deco =
     backpack(z),
     backpack_targets(z.backpack, M.meta.syntax.segment),
     errors(),
+    indicated_index(z),
     color_highlights(),
   ];
 };

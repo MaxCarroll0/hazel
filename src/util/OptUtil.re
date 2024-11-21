@@ -32,8 +32,11 @@ let sequence = (l: list(option('a))): option(list('a)) =>
 
 let and_then = (f, o) => Option.bind(o, f);
 
+let return = x => Some(x);
+
 module Syntax = {
   let ( let* ) = Option.bind;
   let (let+) = (o, f) => Option.map(f, o);
   let (and+) = zip;
+  let return = return;
 };
