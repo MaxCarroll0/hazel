@@ -473,10 +473,25 @@ module Deco =
     };
 
   // Highlight slice of cursor index
-  let slice_deco = ((_, s): Slice.slice) => {
-    let seg = List.map(id => Piece.Tile(tile(id)), s); // TODO: Deal with context slice
-    let nodes = Highlight.go(seg, None, ["selects"]);
-    div_c("selects", nodes);
+  let slice_deco = (id: Id.t) => {
+    let p = Piece.Tile(tile(id));
+    let tiles = all_tiles(p);
+    let shard_decos =
+      tiles
+      |> List.map(((_, mold, shards)) =>
+           PieceDec.simple_shards_slice(~font_metrics, mold, shards)
+         )
+      |> List.flatten;
+    switch (term_range(p)) {
+    | Some(range) =>
+      let rows = M.meta.syntax.measured.rows;
+      let decos =
+        shard_decos
+        @ PieceDec.uni_lines(~font_metrics, ~rows, range, tiles)
+        @ PieceDec.bi_lines(~font_metrics, ~rows, tiles);
+      div_c("slice-piece", decos);
+    | None => div_c("slice-piece", shard_decos)
+    };
   }; //TODO Different styling to selects
 
   let indicated_index = (z: Zipper.t): Node.t => {
@@ -492,9 +507,9 @@ module Deco =
             | Info.InfoExp(info_exp) => Some(info_exp)
             | _ => None
             };
-          let slice =
-            Info.exp_slice(info_exp) |> Slice.full_slice(info_exp.ctx);
-          slice_deco(slice) |> return
+          let (_, s) = Info.exp_slice(info_exp) |> Slice.full_slice; // TODO: Deal with context slice
+          let nodes = List.map(slice_deco, s);
+          div_c("slice", nodes) |> return
         ),
       )
     | None => Node.div([])
@@ -518,7 +533,7 @@ module Deco =
     backpack(z),
     backpack_targets(z.backpack, M.meta.syntax.segment),
     errors(),
-    indicated_index(z),
     color_highlights(),
+    indicated_index(z),
   ];
 };

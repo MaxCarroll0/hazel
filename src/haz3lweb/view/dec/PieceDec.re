@@ -97,6 +97,19 @@ let simple_shards_errors = (~font_metrics: FontMetrics.t, mold, shards) =>
     shards,
   );
 
+let simple_shard_slice = simple_shard(_, ["slicesingle"]);
+
+let simple_shards_slice = (~font_metrics: FontMetrics.t, mold, shards) =>
+  List.map(
+    ((index, measurement)) =>
+      simple_shard_slice({
+        font_metrics,
+        measurement,
+        tips: tips_of_shapes(Mold.nib_shapes(~index, mold)),
+      }),
+    shards,
+  );
+
 let shadowfudge = Path.cmdfudge(~y=DecUtil.shadow_adj);
 
 let shards_of_tiles = tiles =>
