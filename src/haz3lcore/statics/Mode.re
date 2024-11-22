@@ -11,6 +11,13 @@ open OptUtil.Syntax;
       to determine that term's STATUS (Info.re), which dictates whether or not
       it is placed in a hole, and hence its FIXED TYPE (Info.re).
 
+      The provenance of an analytic mode are the ids of the term which put the
+      type-checker into analysis mode. i.e. any rule that has conclusion synthesising
+      and a premise analysing.
+      TODO: It might be required to have analysis analyse against a SLICE, which
+            can then be decomposed. Note: Check that every analysis is derived from
+            a synthesised type (which has a slice)
+
       (It is conjectured [citation needed] that the Syn mode is functionally
       indistinguishable from Ana(Unknown(SynSwitch)), and that this type is
       thus vestigial.)
@@ -22,14 +29,14 @@ type t =
   | SynFun /* Used only in function position of applications */
   | SynTypFun
   | Syn
-  | Ana(Typ.t);
+  | Ana(Slice.t);
 
-let ana: Typ.t => t = ty => Ana(ty);
+let ana = s => Ana(s);
 
 /* The expected type imposed by a mode */
 let ty_of: t => Typ.t =
   fun
-  | Ana(ty) => ty
+  | Ana(s) => Slice.ty_of(s)
   | Syn => Unknown(SynSwitch) |> Typ.temp
   | SynFun =>
     Arrow(Unknown(SynSwitch) |> Typ.temp, Unknown(SynSwitch) |> Typ.temp)
@@ -43,7 +50,7 @@ let of_arrow = (ctx: Ctx.t, mode: t): (t, t) =>
   | Syn
   | SynFun
   | SynTypFun => (Syn, Syn)
-  | Ana(ty) => ty |> Typ.matched_arrow(ctx) |> TupleUtil.map2(ana)
+  | Ana(s) => s |> Slice.matched_arrow(ctx) |> TupleUtil.map2(ana)
   };
 
 let of_forall = (ctx: Ctx.t, name_opt: option(string), mode: t): t =>
@@ -51,12 +58,16 @@ let of_forall = (ctx: Ctx.t, name_opt: option(string), mode: t): t =>
   | Syn
   | SynFun
   | SynTypFun => Syn
-  | Ana(ty) =>
+  | Ana((ty, _, _)) =>
     let (name_expected_opt, item) = Typ.matched_forall(ctx, ty);
     switch (name_opt, name_expected_opt) {
     | (Some(name), Some(name_expected)) =>
-      Ana(Typ.subst(Var(name) |> Typ.temp, name_expected, item))
-    | _ => Ana(item)
+      Ana((
+        Typ.subst(Var(name) |> Typ.temp, name_expected, item),
+        TEMP,
+        Slice.empty,
+      )) // TODO
+    | _ => Ana((item, TEMP, Slice.empty))
     };
   };
 
@@ -65,7 +76,7 @@ let of_prod = (ctx: Ctx.t, mode: t, length): list(t) =>
   | Syn
   | SynFun
   | SynTypFun => List.init(length, _ => Syn)
-  | Ana(ty) => ty |> Typ.matched_prod(ctx, length) |> List.map(ana)
+  | Ana(s) => s |> Slice.matched_prod(ctx, length) |> List.map(ana)
   };
 
 let of_cons_hd = (ctx: Ctx.t, mode: t): t =>
@@ -73,15 +84,19 @@ let of_cons_hd = (ctx: Ctx.t, mode: t): t =>
   | Syn
   | SynFun
   | SynTypFun => Syn
-  | Ana(ty) => Ana(Typ.matched_list(ctx, ty))
+  | Ana(s) => Ana(Slice.matched_list(ctx, s))
   };
 
-let of_cons_tl = (ctx: Ctx.t, mode: t, hd_ty: Typ.t): t =>
+let of_cons_tl = (ctx: Ctx.t, mode: t, hd_s: Slice.t): t =>
+  // TODO: Double check these make sense as slices (hd_s)
   switch (mode) {
   | Syn
   | SynFun
-  | SynTypFun => Ana(List(hd_ty) |> Typ.temp)
-  | Ana(ty) => Ana(List(Typ.matched_list(ctx, ty)) |> Typ.temp)
+  | SynTypFun =>
+    Ana((List(Slice.ty_of(hd_s)) |> Typ.temp, List(hd_s), Slice.empty))
+  | Ana(s) =>
+    let l_s = Slice.matched_list(ctx, s);
+    Ana((List(l_s |> Slice.ty_of) |> Typ.temp, List(l_s), Slice.empty));
   };
 
 let of_list = (ctx: Ctx.t, mode: t): t =>
@@ -89,32 +104,40 @@ let of_list = (ctx: Ctx.t, mode: t): t =>
   | Syn
   | SynFun
   | SynTypFun => Syn
-  | Ana(ty) => Ana(Typ.matched_list(ctx, ty))
+  | Ana(s) => Ana(Slice.matched_list(ctx, s))
   };
 
 let of_list_concat = (ctx: Ctx.t, mode: t): t =>
   switch (mode) {
   | Syn
   | SynFun
-  | SynTypFun => Ana(List(Unknown(SynSwitch) |> Typ.temp) |> Typ.temp)
-  | Ana(ty) => Ana(List(Typ.matched_list(ctx, ty)) |> Typ.temp)
+  | SynTypFun =>
+    Ana(
+      List(Unknown(SynSwitch) |> Typ.temp)
+      |> Typ.temp
+      |> Slice.of_ty(Slice.empty),
+    )
+  | Ana(ty) =>
+    let l_s = Slice.matched_list(ctx, ty);
+    Ana((List(l_s |> Slice.ty_of) |> Typ.temp, List(l_s), Slice.empty));
   };
 
 let of_list_lit = (ctx: Ctx.t, length, mode: t): list(t) =>
   List.init(length, _ => of_list(ctx, mode));
 
-let ctr_ana_typ = (ctx: Ctx.t, mode: t, ctr: Constructor.t): option(Typ.t) => {
+let ctr_ana_typ = (ctx: Ctx.t, mode: t, ctr: Constructor.t): option(Slice.t) => {
   /* If a ctr is being analyzed against (an arrow type returning)
      a sum type having that ctr as a variant, we consider the
      ctr's type to be determined by the sum type */
   switch (mode) {
-  | Ana({term: Arrow(_, ty_ana), _})
-  | Ana(ty_ana) =>
+  | Ana(({term: Arrow(_, ty_ana), _}, _, _))
+  | Ana((ty_ana, _, _)) =>
     let+ ctrs = Typ.get_sum_constructors(ctx, ty_ana);
     let ty_entry = ConstructorMap.get_entry(ctr, ctrs);
     switch (ty_entry) {
-    | None => ty_ana
-    | Some(ty_in) => Arrow(ty_in, ty_ana) |> Typ.temp
+    | None => ty_ana |> Slice.(of_ty(empty)) //TODO
+    | Some(ty_in) =>
+      Arrow(ty_in, ty_ana) |> Typ.temp |> Slice.(of_ty(empty))
     };
   | _ => None
   };
@@ -122,14 +145,21 @@ let ctr_ana_typ = (ctx: Ctx.t, mode: t, ctr: Constructor.t): option(Typ.t) => {
 
 let of_ctr_in_ap = (ctx: Ctx.t, mode: t, ctr: Constructor.t): option(t) =>
   switch (ctr_ana_typ(ctx, mode, ctr)) {
-  | Some({term: Arrow(_), _} as ty_ana) => Some(Ana(ty_ana))
-  | Some(ty_ana) =>
+  | Some(({term: Arrow(_), _} as ty_ana, _, _)) =>
+    Some(Ana(ty_ana |> Slice.(of_ty(empty))))
+  | Some((ty_ana, _, _)) =>
     /* Consider for example "let _ : +Yo = Yo("lol") in..."
        Here, the 'Yo' constructor should be in a hole, as it
        is nullary but used as unary; we reflect this by analyzing
        against an arrow type. Since we can't guess at what the
        parameter type might have be, we use Unknown. */
-    Some(Ana(Arrow(Unknown(Internal) |> Typ.temp, ty_ana) |> Typ.temp))
+    Some(
+      Ana(
+        Arrow(Unknown(Internal) |> Typ.temp, ty_ana)
+        |> Typ.temp
+        |> Slice.(of_ty(empty)),
+      ),
+    )
   | None => None
   };
 
@@ -155,4 +185,4 @@ let of_deferred_ap_args = (length: int, ty_ins: list(Typ.t)): list(t) =>
       ? ty_ins
       : List.init(length, _ => (Unknown(Internal): Typ.term) |> Typ.temp)
   )
-  |> List.map(ty => Ana(ty));
+  |> List.map(ty => Ana(ty |> Slice.(of_ty(empty))));

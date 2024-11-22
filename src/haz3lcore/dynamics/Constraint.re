@@ -129,7 +129,7 @@ let of_ap = (ctx, mode, ctr: option(Constructor.t), arg: t, syn_ty): t =>
       };
     switch (ty) {
     | Some(ty) =>
-      switch (Typ.weak_head_normalize(ctx, ty) |> Typ.term_of) {
+      switch (Typ.weak_head_normalize(ctx, ty |> Slice.ty_of) |> Typ.term_of) {
       | Rec(_, {term: Sum(map), _})
       | Sum(map) =>
         let num_variants =
@@ -148,7 +148,8 @@ let of_ap = (ctx, mode, ctr: option(Constructor.t), arg: t, syn_ty): t =>
 let of_ctr = (ctx, mode, name, self) => {
   let syn_ty =
     switch (self) {
-    | Self.IsConstructor({syn_ty, _}) => syn_ty
+    | Self.IsConstructor({syn_ty, _}) =>
+      Option.map(Slice.(of_ty(empty)), syn_ty) //TODO
     | _ => assert(false) // impossible
     };
   of_ap(ctx, mode, Some(name), Truth, syn_ty);

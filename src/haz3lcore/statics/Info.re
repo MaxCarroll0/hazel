@@ -220,6 +220,7 @@ type pat = {
   cls: Cls.t,
   status: status_pat,
   ty: Typ.t,
+  // TODO: Add type slices here
   constraint_: Constraint.t,
 };
 
@@ -353,7 +354,7 @@ let rec status_common =
     | Some(_) => NotInHole(Syn(ty))
     | None => InHole(Inconsistent(WithArrow(ty)))
     }
-  | (Just(syn), Ana(ana)) =>
+  | (Just(syn), Ana((ana, _, _))) =>
     switch (
       Typ.join_fix(
         ctx,
@@ -370,14 +371,14 @@ let rec status_common =
        considered to be determined by the sum type; otherwise,
        check the context for the ctr's type */
     switch (Mode.ctr_ana_typ(ctx, mode, name), syn_ty) {
-    | (Some(ana_ty), _) => status_common(ctx, mode, Just(ana_ty))
+    | (Some((ana_ty, _, _)), _) => status_common(ctx, mode, Just(ana_ty))
     | (_, Some(syn_ty)) => status_common(ctx, mode, Just(syn_ty))
     | _ => InHole(NoType(FreeConstructor(name)))
     }
   | (BadToken(name), _) => InHole(NoType(BadToken(name)))
   | (BadTrivAp(ty), _) => InHole(NoType(BadTrivAp(ty)))
   | (IsMulti, _) => NotInHole(Syn(Unknown(Internal) |> Typ.temp))
-  | (NoJoin(wrap, tys), Ana(ana)) =>
+  | (NoJoin(wrap, tys), Ana((ana, _, _))) =>
     let syn: Typ.t = Self.join_of(wrap, Unknown(Internal) |> Typ.temp);
     switch (Typ.join_fix(ctx, ana, syn)) {
     | None => InHole(Inconsistent(Expectation({ana, syn})))
@@ -441,7 +442,8 @@ let rec status_exp = (ctx: Ctx.t, mode: Mode.t, self: Self.exp): status_exp =>
         failwith("InHole(InexhaustiveMatch(impossible_err))")
       };
     InHole(InexhaustiveMatch(additional_err));
-  | (IsDeferral(InAp), Ana(ana)) => NotInHole(AnaDeferralConsistent(ana))
+  | (IsDeferral(InAp), Ana((ana, _, _))) =>
+    NotInHole(AnaDeferralConsistent(ana))
   | (IsDeferral(_), _) => InHole(UnusedDeferral)
   | (IsBadPartialAp(_ as info), _) => InHole(BadPartialAp(info))
   | (Common(self_pat), _) =>

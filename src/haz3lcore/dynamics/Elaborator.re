@@ -69,7 +69,7 @@ let elaborated_type = (m: Statics.Map.t, uexp: UExp.t): (Typ.t, Ctx.t, 'a) => {
       let tpat = Option.value(tpat, ~default=TPat.fresh(EmptyHole));
       Forall(tpat, ty) |> Typ.temp;
     // We need to remove the synswitches from this type.
-    | Ana(ana_ty) => Typ.match_synswitch(ana_ty, self_ty)
+    | Ana((ana_ty, _, _)) => Typ.match_synswitch(ana_ty, self_ty)
     };
   (elab_ty |> Typ.normalize(ctx), ctx, co_ctx);
 };
@@ -95,7 +95,7 @@ let elaborated_pat_type = (m: Statics.Map.t, upat: UPat.t): (Typ.t, Ctx.t) => {
       let (tpat, ty) = Typ.matched_forall(ctx, self_ty);
       let tpat = Option.value(tpat, ~default=TPat.fresh(EmptyHole));
       Forall(tpat, ty) |> Typ.temp;
-    | Ana(ana_ty) =>
+    | Ana((ana_ty, _, _)) =>
       switch (prev_synswitch) {
       | None => ana_ty
       | Some(syn_ty) => Typ.match_synswitch(syn_ty, ana_ty)
@@ -171,7 +171,7 @@ let rec elaborate_pattern =
         };
       let t =
         switch (Mode.ctr_ana_typ(ctx, mode, c), Ctx.lookup_ctr(ctx, c)) {
-        | (Some(ana_ty), _) => ana_ty
+        | (Some((ana_ty, _, _)), _) => ana_ty
         | (_, Some({typ: syn_ty, _})) => syn_ty
         | _ => Unknown(Internal) |> Typ.temp
         };
@@ -253,7 +253,7 @@ let rec elaborate = (m: Statics.Map.t, uexp: UExp.t): (DHExp.t, Typ.t) => {
         };
       let t =
         switch (Mode.ctr_ana_typ(ctx, mode, c), Ctx.lookup_ctr(ctx, c)) {
-        | (Some(ana_ty), _) => ana_ty
+        | (Some((ana_ty, _, _)), _) => ana_ty
         | (_, Some({typ: syn_ty, _})) => syn_ty
         | _ => Unknown(Internal) |> Typ.temp
         };
