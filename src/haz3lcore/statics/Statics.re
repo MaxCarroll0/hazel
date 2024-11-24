@@ -268,22 +268,32 @@ and uexp_to_info_map =
       Option.value(
         ~default=Unknown(Internal) |> Typ.temp,
         Self.typ_of(ctx, self),
-      ); //TODO -- unnatural...
+      ); //TODO -- unnatural...(
+    let slice =
+      Slice.(
+        ty,
+        switch (es) {
+        | [] => Unknown
+        | [e] => List(e.slice)
+        | es => List((ty, Join(ctx, List.map(Info.exp_slice, es)), empty))
+        },
+        of_ids(ids),
+      );
     add(
       ~self,
       ~co_ctx=CoCtx.union(List.map(Info.exp_co_ctx, es)),
-      ~slice=
-        Slice.(
-          ty,
-          List((ty, Join(ctx, List.map(Info.exp_slice, es)), Slice.empty)),
-          of_ids(ids),
-        ), // Should lists always be just list of a join and empty slice? TODO: Encode this in type
+      ~slice,
       m,
     );
   | Cons(hd, tl) =>
-    let (hd, m) = go(~mode=Mode.of_cons_hd(ctx, mode), hd, m);
-    let (tl, m) = go(~mode=Mode.of_cons_tl(ctx, mode, hd.slice), tl, m);
-    let (ss, s) = Slice.extract_join_list(Info.exp_slice(tl));
+    let (hd, m) = go(~mode=Mode.of_cons_hd(ctx, mode, ids), hd, m);
+    let (tl, m) =
+      go(
+        ~mode=Mode.of_cons_tl(ctx, mode, hd.slice, ids), // Append
+        tl,
+        m,
+      );
+    let s_tl = Slice.matched_list(ctx, Info.exp_slice(tl));
     let ty = List(hd.ty) |> Typ.temp;
     add(
       ~self=Just(ty),
@@ -291,9 +301,9 @@ and uexp_to_info_map =
       ~slice=
         Slice.(
           ty,
-          List((ty, Join(ctx, [hd.slice, ...ss]), empty)),
-          union([of_ids(ids), s]),
-        ), // TODO: Consider other options here
+          List((ty, Join(ctx, [hd.slice, s_tl]), empty)),
+          of_ids(ids),
+        ),
       m,
     );
   | ListConcat(e1, e2) =>
@@ -929,12 +939,11 @@ and upat_to_info_map =
       m,
     );
   | Cons(hd, tl) =>
-    let (hd, m) = go(~ctx, ~mode=Mode.of_cons_hd(ctx, mode), hd, m);
+    let (hd, m) = go(~ctx, ~mode=Mode.of_cons_hd(ctx, mode, ids), hd, m);
     let (tl, m) =
       go(
         ~ctx=hd.ctx,
-        ~mode=
-          Mode.of_cons_tl(ctx, mode, hd.ty |> Slice.(of_ty(of_ids(ids)))),
+        ~mode=Mode.of_cons_tl(ctx, mode, hd.ty |> Slice.(of_ty(empty)), ids),
         tl,
         m,
       ); // TODO

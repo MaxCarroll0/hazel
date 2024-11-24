@@ -50,6 +50,9 @@ let union2: (slice, slice) => slice =
   ((c1, s1), (c2, s2)) => (c1 @ c2, s1 @ s2);
 let union: list(slice) => slice = List.fold_left(union2, empty);
 
+let append: (slice, t) => t =
+  (s', (ty, s_ty, s)) => (ty, s_ty, union2(s, s'));
+
 let join = (ctx, ty: Typ.t, l: list(t), slice): t => (
   ty,
   Join(ctx, l),

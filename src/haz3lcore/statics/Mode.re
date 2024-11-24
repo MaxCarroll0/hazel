@@ -79,24 +79,44 @@ let of_prod = (ctx: Ctx.t, mode: t, length): list(t) =>
   | Ana(s) => s |> Slice.matched_prod(ctx, length) |> List.map(ana)
   };
 
-let of_cons_hd = (ctx: Ctx.t, mode: t): t =>
+let of_cons_hd = (ctx: Ctx.t, mode: t, cons_ids: list(Id.t)): t =>
+  // cons_ids is the ids of the cons operator for which the hd will be checked by this MODE
+  // This cons operator much be included in the slice (TODO: theory for why this is)
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun => Syn
-  | Ana(s) => Ana(Slice.matched_list(ctx, s))
+  | Ana((_, _, c) as s) =>
+    Ana(
+      Slice.(
+        matched_list(ctx, s) |> append(of_ids(cons_ids)) |> append(c)
+      ),
+    )
+  // c is the code slice of why the type is a list. This must be maintained (TODO: theory)
+  // Maybe this can be inbuild into Slice.matched_list if this makes sense in general
   };
 
-let of_cons_tl = (ctx: Ctx.t, mode: t, hd_s: Slice.t): t =>
-  // TODO: Double check these make sense as slices (hd_s)
+let of_cons_tl =
+    (ctx: Ctx.t, mode: t, hd_s: Slice.t, cons_ids: list(Id.t)): t =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun =>
-    Ana((List(Slice.ty_of(hd_s)) |> Typ.temp, List(hd_s), Slice.empty))
-  | Ana(s) =>
+    Ana((
+      List(Slice.ty_of(hd_s)) |> Typ.temp,
+      List(hd_s),
+      Slice.of_ids(cons_ids),
+    ))
+  | Ana((_, _, c) as s) =>
     let l_s = Slice.matched_list(ctx, s);
-    Ana((List(l_s |> Slice.ty_of) |> Typ.temp, List(l_s), Slice.empty));
+    Ana(
+      (
+        List(l_s |> Slice.ty_of) |> Typ.temp,
+        List(l_s),
+        Slice.of_ids(cons_ids),
+      )
+      |> Slice.append(c),
+    );
   };
 
 let of_list = (ctx: Ctx.t, mode: t): t =>
@@ -104,7 +124,8 @@ let of_list = (ctx: Ctx.t, mode: t): t =>
   | Syn
   | SynFun
   | SynTypFun => Syn
-  | Ana(s) => Ana(Slice.matched_list(ctx, s))
+  | Ana((_, _, c) as s) =>
+    Ana(Slice.matched_list(ctx, s) |> Slice.append(c))
   };
 
 let of_list_concat = (ctx: Ctx.t, mode: t): t =>
