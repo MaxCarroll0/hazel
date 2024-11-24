@@ -205,7 +205,7 @@ type exp = {
   cls: Cls.t, /* DERIVED: Syntax class (i.e. form name) */
   status: status_exp, /* DERIVED: Ok/Error statuses for display */
   ty: Typ.t, /* DERIVED: Type after nonempty hole fixing */
-  slice: Slice.t /* Type slice: Expression slice used to derive type */
+  slice: Slice.t /* Type slice: Slice used to derive type */
 };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -320,7 +320,37 @@ let error_of: t => option(error) =
   | Secondary(_) => None;
 
 let exp_co_ctx: exp => CoCtx.t = ({co_ctx, _}) => co_ctx;
-let exp_slice: exp => Slice.t = ({slice, _}) => slice;
+
+// Use slice if synthesising OR a synswitch is at any position in an analysis
+let exp_slice: exp => Slice.t =
+  ({slice, mode, _}) => {
+    let rec syn = (s: Slice.t) =>
+      switch (s) {
+      | (_, SynSwitch, _) => true
+      | (_, List(s'), _) => syn(s')
+      | (_, Join(_, ss), _) =>
+        List.fold_left((acc, s') => acc || syn(s'), false, ss)
+      //TODO OTHER CASES -- Make sure this is actually correct
+      | _ => false
+      };
+    switch (mode) {
+    | Syn
+    | SynFun
+    | SynTypFun => slice
+    | Ana(s) when syn(s) => slice
+    | Ana(s) => s
+    };
+  };
+
+let exp_slice_syn: exp => Slice.t = ({slice, _}) => slice;
+let exp_slice_ana: exp => option(Slice.t) =
+  ({mode, _}) =>
+    switch (mode) {
+    | Syn
+    | SynFun
+    | SynTypFun => None
+    | Ana(s) => Some(s)
+    };
 let exp_ty: exp => Typ.t = ({ty, _}) => ty;
 let pat_ctx: pat => Ctx.t = ({ctx, _}) => ctx;
 let pat_ty: pat => Typ.t = ({ty, _}) => ty;

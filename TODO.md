@@ -13,6 +13,7 @@ Colour slices into three divisions:
 
 ## Implementation
 ### Core 
+- Correctly managing SynSwitch slices
 - Context slices. 
 - Type slicing for: functions, bindings, type aliases, sum types, fix/recursion.
 
@@ -25,9 +26,10 @@ Colour slices into three divisions:
 - Distinguish between Synthesised and Analytic type slices and allow both to be retrieved from Info.t clearly and cleanly.
 - Better integration between Typ.re and Slice.re. 
 - Distinguish better the idea of a decomposable slice indexed by a type (Slice.t) and a concrete code slice (Slice.slice). In particular, both are confusingly referred to in code as 's' or 'slice'. Maybe pack Slice.slice related code into a sub-module 'Code'.
+- Shift slice calculation to Mode.re
 
 ## Bugs
-- !HIGH PRIORITY! Pretty print exception on entering list literals
+
 
 # Cast Slicing
 ## Interaction

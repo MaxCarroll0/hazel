@@ -26,7 +26,8 @@ type slice = (Ctx.t, list(Id.t)); //TODO: Represent slices in a more efficient (
 [@deriving (show({with_path: false}), sexp, yojson)]
 type s_ty =
   | TEMP // For unknown stuff
-  | Unknown // Could add extra cases for unknown types of different provenances and error status etc.
+  | Unknown // These will have empty slices
+  | SynSwitch // These may have non-empty slices -- the synthesised slices of the corresponding term
   | Int
   | Float
   | Bool
@@ -64,6 +65,7 @@ let rec full_slice = ((_, s_ty, s): t): slice => {
   | TEMP =>
     print_endline("Temp full slice");
     empty;
+  | SynSwitch
   | Unknown
   | Int
   | Float
@@ -131,7 +133,7 @@ let rec of_ty = (s: slice, t: TermBase.typ_t): t => (
 );
 
 let hole = (Unknown(Internal) |> Typ.temp, Unknown, empty);
-let synswitch = (s): t => (Unknown(SynSwitch) |> Typ.temp, Unknown, s);
+let synswitch = (s): t => (Unknown(SynSwitch) |> Typ.temp, SynSwitch, s);
 
 let tag_ty = ((_, s_ty, s): t, ty): t => (ty, s_ty, s);
 
@@ -139,9 +141,7 @@ let matched_arrow_strict = (ctx: Ctx.t, (ty, s_ty, s)) =>
   Option.bind(
     switch (s_ty) {
     | Arrow(s_in, s_out) => Some((s_in, s_out))
-    | Unknown =>
-      // Only for synswitch?
-      Some((synswitch(s), synswitch(s))) // TODO: Explore SynSwitch
+    | SynSwitch => Some((synswitch(s), synswitch(s)))
     | _ => None
     },
     ((s1, s2)) =>
@@ -158,7 +158,7 @@ let matched_prod_strict = (ctx: Ctx.t, length, (ty, s_ty, s)) =>
   Option.bind(
     switch (s_ty) {
     | Prod(ss) when List.length(ss) == length => Some(ss)
-    | Unknown => Some(List.init(length, _ => synswitch(s)))
+    | SynSwitch => Some(List.init(length, _ => synswitch(s)))
     | _ => None
     },
     l_s =>
@@ -176,7 +176,7 @@ let matched_list_strict = (ctx: Ctx.t, (ty, s_ty, s)) =>
   Option.bind(
     switch (s_ty) {
     | List(s) => Some(s)
-    | Unknown => Some(synswitch(s))
+    | SynSwitch => Some(synswitch(s))
     | _ => None
     },
     s =>
@@ -191,7 +191,8 @@ let matched_args = (ctx, default_arity, (ty, s_ty, s)) => {
     tag_ty,
     switch (s_ty) {
     | Prod([_, ..._] as ss) => ss
-    | Unknown => List.init(default_arity, _ => (ty, s_ty, s))
+    | Unknown
+    | SynSwitch => List.init(default_arity, _ => (ty, s_ty, s))
     | _ => [(ty, s_ty, s)]
     },
     Typ.matched_args(ctx, default_arity, ty),

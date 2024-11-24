@@ -119,32 +119,41 @@ let of_cons_tl =
     );
   };
 
-let of_list = (ctx: Ctx.t, mode: t): t =>
+let of_list = (ctx: Ctx.t, mode: t, lit_ids: list(Id.t)): t =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun => Syn
   | Ana((_, _, c) as s) =>
-    Ana(Slice.matched_list(ctx, s) |> Slice.append(c))
+    Ana(
+      Slice.(matched_list(ctx, s) |> append(of_ids(lit_ids)) |> append(c)),
+    )
   };
 
-let of_list_concat = (ctx: Ctx.t, mode: t): t =>
+let of_list_concat = (ctx: Ctx.t, mode: t, concat_ids: list(Id.t)): t =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun =>
     Ana(
-      List(Unknown(SynSwitch) |> Typ.temp)
-      |> Typ.temp
-      |> Slice.of_ty(Slice.empty),
+      Slice.(
+        List(Unknown(SynSwitch) |> Typ.temp) |> Typ.temp,
+        List((Unknown(SynSwitch) |> Typ.temp, SynSwitch, Slice.empty)),
+        Slice.of_ids(concat_ids),
+      ),
     )
-  | Ana(ty) =>
-    let l_s = Slice.matched_list(ctx, ty);
-    Ana((List(l_s |> Slice.ty_of) |> Typ.temp, List(l_s), Slice.empty));
+  | Ana((_, _, _) as s) =>
+    let l_s = Slice.matched_list(ctx, s);
+    Ana((
+      List(l_s |> Slice.ty_of) |> Typ.temp,
+      List(l_s),
+      Slice.of_ids(concat_ids),
+    ));
   };
 
-let of_list_lit = (ctx: Ctx.t, length, mode: t): list(t) =>
-  List.init(length, _ => of_list(ctx, mode));
+let of_list_lit =
+    (ctx: Ctx.t, length, mode: t, lit_ids: list(Id.t)): list(t) =>
+  List.init(length, _ => of_list(ctx, mode, lit_ids));
 
 let ctr_ana_typ = (ctx: Ctx.t, mode: t, ctr: Constructor.t): option(Slice.t) => {
   /* If a ctr is being analyzed against (an arrow type returning)

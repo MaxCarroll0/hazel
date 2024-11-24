@@ -79,6 +79,16 @@ let is_recursive = (ctx, p, def, syn: Typ.t) => {
   };
 };
 
+let mode_fix: Mode.t => Mode.t =
+  mode =>
+    switch (mode) {
+    | Syn
+    | SynFun
+    | SynTypFun
+    | Ana(({term: Unknown(SynSwitch), _}, _, _)) => Syn
+    | _ => mode
+    };
+
 let typ_exp_binop_bin_int: Operators.op_bin_int => Typ.t =
   fun
   | (Plus | Minus | Times | Power | Divide) as _op => Int |> Typ.temp
@@ -182,15 +192,8 @@ and uexp_to_info_map =
     | Ana(({term: Unknown(SynSwitch), _}, _, _)) => Mode.Syn
     | _ => mode
     };
-  let add' = (~self, ~co_ctx, ~slice, m): (Info.exp, Map.t) => {
-    let slice =
-      switch (mode) {
-      | Syn
-      | SynFun
-      | SynTypFun => slice
-      | Ana(s) => s
-      }; // Ignore synthesised slice when analysing
 
+  let add' = (~self, ~co_ctx, ~slice, m): (Info.exp, Map.t) => {
     let info =
       Info.derived_exp(
         ~uexp,
@@ -258,12 +261,12 @@ and uexp_to_info_map =
   | String(_) =>
     atomic_just(String |> Typ.temp, (String, Slice.of_ids(ids)))
   | ListLit(es) =>
-    let ids = List.map(UExp.rep_id, es);
-    let modes = Mode.of_list_lit(ctx, List.length(es), mode);
+    let ids' = List.map(UExp.rep_id, es);
+    let modes = Mode.of_list_lit(ctx, List.length(es), mode, ids);
     let (es, m) = map_m_go(m, modes, es);
     let tys = List.map(Info.exp_ty, es);
     let self =
-      Self.listlit(~empty=Unknown(Internal) |> Typ.temp, ctx, tys, ids);
+      Self.listlit(~empty=Unknown(Internal) |> Typ.temp, ctx, tys, ids');
     let ty =
       Option.value(
         ~default=Unknown(Internal) |> Typ.temp,
@@ -274,7 +277,7 @@ and uexp_to_info_map =
         ty,
         switch (es) {
         | [] => Unknown
-        | [e] => List(e.slice)
+        | [e] => List(Info.exp_slice(e))
         | es => List((ty, Join(ctx, List.map(Info.exp_slice, es)), empty))
         },
         of_ids(ids),
@@ -288,12 +291,8 @@ and uexp_to_info_map =
   | Cons(hd, tl) =>
     let (hd, m) = go(~mode=Mode.of_cons_hd(ctx, mode, ids), hd, m);
     let (tl, m) =
-      go(
-        ~mode=Mode.of_cons_tl(ctx, mode, hd.slice, ids), // Append
-        tl,
-        m,
-      );
-    let s_tl = Slice.matched_list(ctx, Info.exp_slice(tl));
+      go(~mode=Mode.of_cons_tl(ctx, mode, Info.exp_slice(hd), ids), tl, m);
+    let s_tl = Slice.(matched_list(ctx, Info.exp_slice(tl)));
     let ty = List(hd.ty) |> Typ.temp;
     add(
       ~self=Just(ty),
@@ -301,35 +300,34 @@ and uexp_to_info_map =
       ~slice=
         Slice.(
           ty,
-          List((ty, Join(ctx, [hd.slice, s_tl]), empty)),
+          List((ty, Join(ctx, [Info.exp_slice(hd), s_tl]), empty)),
           of_ids(ids),
         ),
       m,
     );
   | ListConcat(e1, e2) =>
-    let mode = Mode.of_list_concat(ctx, mode);
-    let ids = List.map(UExp.rep_id, [e1, e2]);
+    let mode = Mode.of_list_concat(ctx, mode, ids);
+    let ids' = List.map(UExp.rep_id, [e1, e2]);
     let (e1, m) = go(~mode, e1, m);
     let (e2, m) = go(~mode, e2, m);
-    let (ss1, s1) = Slice.extract_join_list(e1.slice);
-    let (ss2, s2) = Slice.extract_join_list(e2.slice);
-    let self = Self.list_concat(ctx, [e1.ty, e2.ty], ids);
+    let self = Self.list_concat(ctx, [e1.ty, e2.ty], ids');
     let ty =
       Option.value(
         ~default=Unknown(Internal) |> Typ.temp,
         Self.typ_of(ctx, self),
       );
-    add(
-      ~self,
-      ~co_ctx=CoCtx.union([e1.co_ctx, e2.co_ctx]),
-      ~slice=
-        Slice.(
-          ty,
-          List((ty, Join(ctx, ss1 @ ss2), empty)),
-          union([of_ids(ids), s1, s2]),
-        ),
-      m,
-    );
+    let e_ty = Typ.matched_list(ctx, ty);
+    let slice =
+      Slice.(
+        ty,
+        List((
+          e_ty,
+          Join(ctx, [Info.exp_slice(e1), Info.exp_slice(e2)]),
+          empty,
+        )),
+        of_ids(ids),
+      );
+    add(~self, ~co_ctx=CoCtx.union([e1.co_ctx, e2.co_ctx]), ~slice, m);
   | Var(name) =>
     let self = Self.of_exp_var(ctx, name);
     let ty =
@@ -346,7 +344,7 @@ and uexp_to_info_map =
   | DynamicErrorHole(e, _)
   | Parens(e) =>
     let (e, m) = go(~mode, e, m);
-    add(~self=Just(e.ty), ~co_ctx=e.co_ctx, ~slice=e.slice, m);
+    add(~self=Just(e.ty), ~co_ctx=e.co_ctx, ~slice=Info.exp_slice(e), m);
   | UnOp(Meta(Unquote), e) when is_in_filter =>
     let e: UExp.t = {
       ids: e.ids,
@@ -374,7 +372,12 @@ and uexp_to_info_map =
       ~self=Just(ty_out),
       ~co_ctx=e.co_ctx,
       ~slice=
-        Slice.(of_ty(union([of_ids(ids), full_slice(e.slice)]), ty_out)), // TODO: Think about this -- e.slice is probably empty?
+        Slice.(
+          of_ty(
+            union([of_ids(ids), full_slice(Info.exp_slice(e))]),
+            ty_out,
+          )
+        ),
       m,
     );
   | BinOp(op, e1, e2) =>
@@ -389,8 +392,8 @@ and uexp_to_info_map =
           of_ty(
             union([
               of_ids(ids),
-              full_slice(e1.slice),
-              full_slice(e2.slice),
+              full_slice(Info.exp_slice(e1)),
+              full_slice(Info.exp_slice(e2)),
             ]),
             ty_out,
           )
@@ -453,14 +456,14 @@ and uexp_to_info_map =
     add(
       ~self=Just(e2.ty),
       ~co_ctx=CoCtx.union([e1.co_ctx, e2.co_ctx]),
-      ~slice=e2.slice,
+      ~slice=Info.exp_slice(e2),
       m,
     );
   | Constructor(ctr, _) => atomic(Self.of_ctr(ctx, ctr), Slice.temp)
   | Ap(_, fn, arg) =>
     let fn_mode = Mode.of_ap(ctx, mode, UExp.ctr_name(fn));
     let (fn, m) = go(~mode=fn_mode, fn, m);
-    let (s_in, s_out) = Slice.matched_arrow(ctx, fn.slice);
+    let (s_in, s_out) = Slice.matched_arrow(ctx, Info.exp_slice(fn));
     let (arg, m) = go(~mode=Ana(s_in), arg, m);
     let self: Self.t =
       Id.is_nullary_ap_flag(arg.term.ids)
@@ -504,7 +507,7 @@ and uexp_to_info_map =
       ~co_ctx=CoCtx.union([fn.co_ctx, arg_co_ctx]),
       ~slice=Slice.temp,
       m,
-    ); //TODO: similar to Ap
+    ); //TODO: similar to Ap?
   | Fun(p, e, _, _) =>
     let (mode_pat, mode_body) = Mode.of_arrow(ctx, mode);
     let (p', _) =
@@ -662,7 +665,12 @@ and uexp_to_info_map =
     add(
       ~self,
       ~co_ctx=CoCtx.union([cond.co_ctx, cons.co_ctx, alt.co_ctx]),
-      ~slice=Slice.(ty, Join(ctx, [cons.slice, alt.slice]), of_ids(ids)),
+      ~slice=
+        Slice.(
+          ty,
+          Join(ctx, [Info.exp_slice(cons), Info.exp_slice(alt)]),
+          of_ids(ids),
+        ),
       m,
     );
   | Match(scrut, rules) =>
@@ -674,7 +682,7 @@ and uexp_to_info_map =
         go_pat(
           ~is_synswitch=false,
           ~co_ctx=CoCtx.empty,
-          ~mode=Mode.Ana(scrut.slice),
+          ~mode=Mode.Ana(Info.exp_slice(scrut)),
         ),
         ps,
         m,
@@ -724,7 +732,7 @@ and uexp_to_info_map =
                 go_pat(
                   ~is_synswitch=false,
                   ~co_ctx,
-                  ~mode=Mode.Ana(scrut.slice),
+                  ~mode=Mode.Ana(Info.exp_slice(scrut)),
                   p,
                   m,
                 );
@@ -769,7 +777,7 @@ and uexp_to_info_map =
               go_pat(
                 ~is_synswitch=false,
                 ~co_ctx,
-                ~mode=Mode.Ana(scrut.slice),
+                ~mode=Mode.Ana(Info.exp_slice(scrut)),
                 p,
               ),
             List.combine(ps, e_co_ctxs),
@@ -924,7 +932,7 @@ and upat_to_info_map =
     atomic(Just(String |> Typ.temp), Constraint.String(string))
   | ListLit(ps) =>
     let ids = List.map(UPat.rep_id, ps);
-    let modes = Mode.of_list_lit(ctx, List.length(ps), mode);
+    let modes = Mode.of_list_lit(ctx, List.length(ps), mode, ids);
     let (ctx, tys, cons, m) = ctx_fold(ctx, m, ps, modes);
     let rec cons_fold_list = cs =>
       switch (cs) {
