@@ -103,10 +103,9 @@ let s_ty = ((_, s_ty, _): t): s_ty => s_ty;
 let slice = ((_, _, slice): t): slice => slice;
 
 // Tags type with slice. Recursively tags subcomponents of the type with same slices
-// Very inefficient!!
-let rec of_ty = (s: slice, t: TermBase.typ_t): t => (
-  t,
-  switch (Typ.term_of(t)) {
+let rec of_ty = (s: slice, ty: TermBase.typ_t): t => (
+  ty,
+  switch (Typ.term_of(ty)) {
   | Unknown(_) => Unknown
   | Int => Int
   | Float => Float
@@ -123,6 +122,29 @@ let rec of_ty = (s: slice, t: TermBase.typ_t): t => (
   | Forall(pat, ty) => Forall(pat, of_ty(s, ty))
   },
   s,
+);
+
+// Use the ids of the type as the slices directly.
+// Only useful for type originating from the program code. e.g. annotations
+let rec of_ty_with_ids = ({term, ids, _} as ty: TermBase.typ_t): t => (
+  ty,
+  switch (term) {
+  | Unknown(_) => Unknown
+  | Int => Int
+  | Float => Float
+  | Bool => Bool
+  | String => String
+  | Var(n) => Var(n)
+  | List(ty) => List(of_ty_with_ids(ty))
+  | Arrow(ty1, ty2) => Arrow(of_ty_with_ids(ty1), of_ty_with_ids(ty2))
+  | Sum(m) => Sum(ConstructorMap.map_vals(of_ty_with_ids, m))
+  | Prod(l) => Prod(List.map(of_ty_with_ids, l))
+  | Ap(ty1, ty2) => Ap(of_ty_with_ids(ty1), of_ty_with_ids(ty2))
+  | Parens(ty) => s_ty(of_ty_with_ids(ty))
+  | Rec(pat, ty) => Rec(pat, of_ty_with_ids(ty))
+  | Forall(pat, ty) => Forall(pat, of_ty_with_ids(ty))
+  },
+  of_ids(ids),
 );
 
 let hole = (Unknown(Internal) |> Typ.temp, Unknown, empty);

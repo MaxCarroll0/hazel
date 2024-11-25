@@ -248,7 +248,6 @@ and uexp_to_info_map =
   | FailedCast(e, t1, t2) =>
     let (e, m) = go(~mode=Ana(t1 |> Slice.(of_ty(of_ids(ids)))), e, m);
     add(~self=Just(t2), ~co_ctx=e.co_ctx, ~slice_syn=Slice.temp, m);
-  // Casts should not appear from surface level. Above requires cast slicing but should not be required here. Yet casts are still UExp?
   | Invalid(token) => atomic(BadToken(token), Slice.hole) // Bad Tokens treated as holes
   | EmptyHole => atomic(Just(Unknown(Internal) |> Typ.temp), Slice.hole) // Holes could highlight themselves for clarity?
   | Deferral(position) =>
@@ -493,7 +492,7 @@ and uexp_to_info_map =
     add(
       ~self,
       ~co_ctx=CoCtx.union([fn.co_ctx, arg.co_ctx]),
-      ~slice_syn=s_out,
+      ~slice_syn=s_out |> Slice.(append(of_ids(ids))), // TODO: Also retrieve highlight/id of 'fun'
       m,
     );
   | TypAp(fn, utyp) =>
@@ -652,11 +651,13 @@ and uexp_to_info_map =
     let self =
       is_exhaustive ? unwrapped_self : InexhaustiveMatch(unwrapped_self);
     let slice_syn = {
-      let s = Info.exp_slice(body);
-      let (ctx_slice, _) = Slice.full_slice(s); // Inefficient...
+      let s_body = Info.exp_slice(body);
+      let (ctx_slice, _) = Slice.full_slice(s_body); // Inefficient...
+      let (_, _, s_def) = Info.exp_slice(def);
       let added_bindings = Ctx.added_bindings(p_ana_ctx, ctx);
       Ctx.intersect(added_bindings, ctx_slice) == []
-        ? s : s |> Slice.(append(of_ids(ids)));
+        ? s_body : s_body |> Slice.(append(union([of_ids(ids), s_def])));
+      // Include slice of def as this is _at the moment_ not included in the context slice of the body.
     };
     add'(
       ~self,
@@ -1099,11 +1100,11 @@ and upat_to_info_map =
   | Cast(p, ann, _) =>
     let (ann, m) = utyp_to_info_map(~ctx, ~ancestors, ann, m);
     let (p, m) =
-      go(~ctx, ~mode=Ana(ann.term |> Slice.(of_ty(of_ids(ids)))), p, m);
+      go(~ctx, ~mode=Ana(ann.term |> Slice.of_ty_with_ids), p, m);
     add(
       ~self=Just(ann.term),
       ~ctx=p.ctx,
-      ~slice_syn=Slice.temp,
+      ~slice_syn=Info.pat_slice(p) |> Slice.(append(of_ids(ids))),
       ~constraint_=p.constraint_,
       m,
     );
