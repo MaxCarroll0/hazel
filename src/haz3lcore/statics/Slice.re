@@ -25,7 +25,7 @@ type slice = (Ctx.t, list(Id.t)); //TODO: Represent slices in a more efficient (
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type s_ty =
-  | TEMP // For unknown stuff
+  | TEMP // TO BE REMOVED: placeholder
   | Unknown // These will have empty slices
   | SynSwitch // These may have non-empty slices -- the synthesised slices of the corresponding term
   | Int
@@ -43,9 +43,11 @@ type s_ty =
   | Forall(TermBase.tpat_t, t)
 and t = (Typ.t, s_ty, slice); // For efficiency, keep Typ.t around (allowing fast ty_of without revaluating joins)
 
+let empty: slice = ([], []);
+let temp = (ty): t => (ty, TEMP, empty);
+
 let ty_of: t => Typ.t = ((ty, _, _)) => ty;
 
-let empty: slice = ([], []);
 // TODO: filter duplicates
 let union2: (slice, slice) => slice =
   ((c1, s1), (c2, s2)) => (c1 @ c2, s1 @ s2);
@@ -148,6 +150,11 @@ let rec of_ty_with_ids = ({term, ids, _} as ty: TermBase.typ_t): t => (
 );
 
 let hole = (Unknown(Internal) |> Typ.temp, Unknown, empty);
+let hole_with_ids = ids => (
+  Unknown(Internal) |> Typ.temp,
+  Unknown,
+  of_ids(ids),
+);
 let synswitch = (s): t => (Unknown(SynSwitch) |> Typ.temp, SynSwitch, s);
 
 let tag_ty = ((_, s_ty, s): t, ty): t => (ty, s_ty, s);
@@ -157,6 +164,11 @@ let matched_arrow_strict = (ctx: Ctx.t, (ty, s_ty, s)) =>
     switch (s_ty) {
     | Arrow(s_in, s_out) => Some((s_in, s_out))
     | SynSwitch => Some((synswitch(s), synswitch(s)))
+    | TEMP =>
+      Option.map(
+        TupleUtil.map2(tag_ty(temp(Unknown(Internal) |> Typ.temp))),
+        Typ.matched_arrow_strict(ctx, ty),
+      )
     | _ => None
     },
     ((s1, s2)) =>
@@ -174,6 +186,11 @@ let matched_prod_strict = (ctx: Ctx.t, length, (ty, s_ty, s)) =>
     switch (s_ty) {
     | Prod(ss) when List.length(ss) == length => Some(ss)
     | SynSwitch => Some(List.init(length, _ => synswitch(s)))
+    | TEMP =>
+      Option.map(
+        List.map(tag_ty(temp(Unknown(Internal) |> Typ.temp))),
+        Typ.matched_prod_strict(ctx, length, ty),
+      )
     | _ => None
     },
     l_s =>
@@ -192,6 +209,11 @@ let matched_list_strict = (ctx: Ctx.t, (ty, s_ty, s)) =>
     switch (s_ty) {
     | List(s) => Some(s)
     | SynSwitch => Some(synswitch(s))
+    | TEMP =>
+      Option.map(
+        tag_ty(temp(Unknown(Internal) |> Typ.temp)),
+        Typ.matched_list_strict(ctx, ty),
+      )
     | _ => None
     },
     s =>
@@ -208,10 +230,13 @@ let matched_args = (ctx, default_arity, (ty, s_ty, s)) => {
     | Prod([_, ..._] as ss) => ss
     | Unknown
     | SynSwitch => List.init(default_arity, _ => (ty, s_ty, s))
+    | TEMP =>
+      List.map(
+        tag_ty(temp(Unknown(Internal) |> Typ.temp)),
+        Typ.matched_args(ctx, default_arity, ty),
+      )
     | _ => [(ty, s_ty, s)]
     },
     Typ.matched_args(ctx, default_arity, ty),
   );
 };
-
-let temp = (Unknown(Internal) |> Typ.temp, TEMP, empty);
