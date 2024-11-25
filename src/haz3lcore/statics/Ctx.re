@@ -28,6 +28,22 @@ type entry =
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t = list(entry);
 
+let intersect = (c1, c2): t =>
+  List.filter(
+    v1 =>
+      List.exists(
+        v2 =>
+          switch (v1, v2) {
+          | (VarEntry(e1), VarEntry(e2))
+          | (ConstructorEntry(e1), ConstructorEntry(e2)) => e1.name == e2.name
+          | (TVarEntry(e1), TVarEntry(e2)) => e1.name == e2.name
+          | _ => false
+          },
+        c2,
+      ),
+    c1,
+  );
+
 let extend = (ctx, entry) => List.cons(entry, ctx);
 
 let extend_tvar = (ctx: t, tvar_entry: tvar_entry): t =>

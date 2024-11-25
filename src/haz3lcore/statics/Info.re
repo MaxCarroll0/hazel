@@ -205,7 +205,7 @@ type exp = {
   cls: Cls.t, /* DERIVED: Syntax class (i.e. form name) */
   status: status_exp, /* DERIVED: Ok/Error statuses for display */
   ty: Typ.t, /* DERIVED: Type after nonempty hole fixing */
-  slice: Slice.t /* Type slice: Slice used to derive type */
+  slice_syn: Slice.t /* Type slice: Slice used to derive type */
 };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -215,12 +215,13 @@ type pat = {
   ctx: Ctx.t,
   co_ctx: CoCtx.t,
   prev_synswitch: option(Typ.t), // If a pattern is first synthesized, then analysed, the initial syn is stored here.
+  /* prev_synswitch_slice: option(Slice.t), */
   mode: Mode.t,
   self: Self.pat,
   cls: Cls.t,
   status: status_pat,
   ty: Typ.t,
-  // TODO: Add type slices here
+  slice_syn: Slice.t,
   constraint_: Constraint.t,
 };
 
@@ -322,27 +323,39 @@ let error_of: t => option(error) =
 let exp_co_ctx: exp => CoCtx.t = ({co_ctx, _}) => co_ctx;
 
 // Use slice if synthesising OR a synswitch is at any position in an analysis
+// TODO: Note this is obviously NOT correct in general. Need to use the _correct_ slice for each synswitch.
 let exp_slice: exp => Slice.t =
-  ({slice, mode, _}) => {
-    let rec syn = (s: Slice.t) =>
-      switch (s) {
-      | (_, SynSwitch, _) => true
-      | (_, List(s'), _) => syn(s')
-      | (_, Join(_, ss), _) =>
-        List.fold_left((acc, s') => acc || syn(s'), false, ss)
-      //TODO OTHER CASES -- Make sure this is actually correct
-      | _ => false
+  ({slice_syn, mode, _}) => {
+    let rec syn = ((_, s_ty, _): Slice.t) =>
+      switch (s_ty) {
+      | SynSwitch => true
+      | List(s')
+      | Rec(_, s')
+      | Forall(_, s') => syn(s')
+      | Join(_, ss)
+      | Prod(ss) => List.fold_left((acc, s') => acc || syn(s'), false, ss)
+      | Sum(m) =>
+        ConstructorMap.fold_vals((acc, s') => acc || syn(s'), false, m)
+      | Arrow(s1, s2)
+      | Ap(s1, s2) => syn(s1) || syn(s2)
+      | Unknown
+      | Int
+      | Float
+      | Bool
+      | String
+      | Var(_)
+      | TEMP => false
       };
     switch (mode) {
     | Syn
     | SynFun
-    | SynTypFun => slice
-    | Ana(s) when syn(s) => slice
+    | SynTypFun => slice_syn
+    | Ana(s) when syn(s) => slice_syn
     | Ana(s) => s
     };
   };
 
-let exp_slice_syn: exp => Slice.t = ({slice, _}) => slice;
+let exp_slice_syn: exp => Slice.t = ({slice_syn, _}) => slice_syn;
 let exp_slice_ana: exp => option(Slice.t) =
   ({mode, _}) =>
     switch (mode) {
@@ -354,6 +367,46 @@ let exp_slice_ana: exp => option(Slice.t) =
 let exp_ty: exp => Typ.t = ({ty, _}) => ty;
 let pat_ctx: pat => Ctx.t = ({ctx, _}) => ctx;
 let pat_ty: pat => Typ.t = ({ty, _}) => ty;
+let pat_slice: pat => Slice.t =
+  ({slice_syn, mode, _}) => {
+    let rec syn = ((_, s_ty, _): Slice.t) =>
+      switch (s_ty) {
+      | SynSwitch => true
+      | List(s')
+      | Rec(_, s')
+      | Forall(_, s') => syn(s')
+      | Join(_, ss)
+      | Prod(ss) => List.fold_left((acc, s') => acc || syn(s'), false, ss)
+      | Sum(m) =>
+        ConstructorMap.fold_vals((acc, s') => acc || syn(s'), false, m)
+      | Arrow(s1, s2)
+      | Ap(s1, s2) => syn(s1) || syn(s2)
+      | Unknown
+      | Int
+      | Float
+      | Bool
+      | String
+      | Var(_)
+      | TEMP => false
+      };
+    switch (mode) {
+    | Syn
+    | SynFun
+    | SynTypFun => slice_syn
+    | Ana(s) when syn(s) => slice_syn
+    | Ana(s) => s
+    };
+  };
+let pat_slice_syn: pat => Slice.t = ({slice_syn, _}) => slice_syn;
+let pat_slice_ana: pat => option(Slice.t) =
+  ({mode, _}) =>
+    switch (mode) {
+    | Syn
+    | SynFun
+    | SynTypFun => None
+    | Ana(s) => Some(s)
+    };
+
 let pat_constraint: pat => Constraint.t = ({constraint_, _}) => constraint_;
 
 let rec status_common =
@@ -648,11 +701,22 @@ let fixed_typ_exp = (ctx, mode: Mode.t, self: Self.exp): Typ.t =>
 
 /* Add derivable attributes for expression terms */
 let derived_exp =
-    (~uexp: UExp.t, ~ctx, ~mode, ~ancestors, ~self, ~co_ctx, ~slice): exp => {
+    (~uexp: UExp.t, ~ctx, ~mode, ~ancestors, ~self, ~co_ctx, ~slice_syn): exp => {
   let cls = Cls.Exp(UExp.cls_of_term(uexp.term));
   let status = status_exp(ctx, mode, self);
   let ty = fixed_typ_exp(ctx, mode, self);
-  {cls, self, ty, mode, status, ctx, co_ctx, ancestors, term: uexp, slice};
+  {
+    cls,
+    self,
+    ty,
+    mode,
+    status,
+    ctx,
+    co_ctx,
+    ancestors,
+    term: uexp,
+    slice_syn,
+  };
 };
 
 /* Add derivable attributes for pattern terms */
@@ -665,6 +729,7 @@ let derived_pat =
       ~mode,
       ~ancestors,
       ~self,
+      ~slice_syn,
       ~constraint_,
     )
     : pat => {
@@ -683,6 +748,7 @@ let derived_pat =
     co_ctx,
     ancestors,
     term: upat,
+    slice_syn,
     constraint_,
   };
 };

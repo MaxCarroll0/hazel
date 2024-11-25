@@ -80,14 +80,18 @@ let is_recursive = (ctx, p, def, syn: Typ.t) => {
 };
 
 let mode_fix: Mode.t => Mode.t =
-  mode =>
-    switch (mode) {
-    | Syn
-    | SynFun
-    | SynTypFun
-    | Ana(({term: Unknown(SynSwitch), _}, _, _)) => Syn
-    | _ => mode
-    };
+  fun
+  | Syn
+  | SynFun
+  | SynTypFun
+  | Ana(({term: Unknown(SynSwitch), _}, _, _)) => Syn
+  | m => m;
+
+let mode_append: (Slice.slice, Mode.t) => Mode.t =
+  c =>
+    fun
+    | Ana(s) => Ana(Slice.append(c, s))
+    | m => m;
 
 let typ_exp_binop_bin_int: Operators.op_bin_int => Typ.t =
   fun
@@ -187,13 +191,9 @@ and uexp_to_info_map =
     )
     : (Info.exp, Map.t) => {
   /* Maybe switch mode to syn */
-  let mode =
-    switch (mode) {
-    | Ana(({term: Unknown(SynSwitch), _}, _, _)) => Mode.Syn
-    | _ => mode
-    };
+  let mode = mode_fix(mode);
 
-  let add' = (~self, ~co_ctx, ~slice, m): (Info.exp, Map.t) => {
+  let add' = (~self, ~co_ctx, ~slice_syn, m): (Info.exp, Map.t) => {
     let info =
       Info.derived_exp(
         ~uexp,
@@ -202,7 +202,7 @@ and uexp_to_info_map =
         ~ancestors,
         ~self,
         ~co_ctx,
-        ~slice,
+        ~slice_syn,
       );
     (info, add_info(ids, InfoExp(info), m));
   };
@@ -228,9 +228,9 @@ and uexp_to_info_map =
       ([], m),
     );
   let go_pat = upat_to_info_map(~ctx, ~ancestors);
-  let atomic = (self, slice) => add(~self, ~co_ctx=CoCtx.empty, ~slice, m);
-  let atomic_just = (ty, (s_ty, s)) =>
-    add(~self=Just(ty), ~co_ctx=CoCtx.empty, ~slice=(ty, s_ty, s), m);
+  let atomic = (self, slice_syn) =>
+    add(~self, ~co_ctx=CoCtx.empty, ~slice_syn, m);
+  let atomic_just = (ty, (s_ty, s)) => atomic(Just(ty), (ty, s_ty, s));
   switch (term) {
   | Closure(_) =>
     failwith(
@@ -238,11 +238,16 @@ and uexp_to_info_map =
     )
   | MultiHole(tms) =>
     let (co_ctxs, m) = multi(~ctx, ~ancestors, m, tms);
-    add(~self=IsMulti, ~co_ctx=CoCtx.union(co_ctxs), ~slice=Slice.temp, m);
+    add(
+      ~self=IsMulti,
+      ~co_ctx=CoCtx.union(co_ctxs),
+      ~slice_syn=Slice.temp,
+      m,
+    );
   | Cast(e, t1, t2)
   | FailedCast(e, t1, t2) =>
     let (e, m) = go(~mode=Ana(t1 |> Slice.(of_ty(of_ids(ids)))), e, m);
-    add(~self=Just(t2), ~co_ctx=e.co_ctx, ~slice=Slice.temp, m);
+    add(~self=Just(t2), ~co_ctx=e.co_ctx, ~slice_syn=Slice.temp, m);
   // Casts should not appear from surface level. Above requires cast slicing but should not be required here. Yet casts are still UExp?
   | Invalid(token) => atomic(BadToken(token), Slice.hole) // Bad Tokens treated as holes
   | EmptyHole => atomic(Just(Unknown(Internal) |> Typ.temp), Slice.hole) // Holes could highlight themselves for clarity?
@@ -250,7 +255,7 @@ and uexp_to_info_map =
     add'(
       ~self=IsDeferral(position),
       ~co_ctx=CoCtx.empty,
-      ~slice=Slice.temp,
+      ~slice_syn=Slice.temp,
       m,
     ) // TODO: What are deferrals, how do they affect slices?
   | Undefined =>
@@ -272,7 +277,7 @@ and uexp_to_info_map =
         ~default=Unknown(Internal) |> Typ.temp,
         Self.typ_of(ctx, self),
       ); //TODO -- unnatural...(
-    let slice =
+    let slice_syn =
       Slice.(
         ty,
         switch (es) {
@@ -285,7 +290,7 @@ and uexp_to_info_map =
     add(
       ~self,
       ~co_ctx=CoCtx.union(List.map(Info.exp_co_ctx, es)),
-      ~slice,
+      ~slice_syn,
       m,
     );
   | Cons(hd, tl) =>
@@ -297,7 +302,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(ty),
       ~co_ctx=CoCtx.union([hd.co_ctx, tl.co_ctx]),
-      ~slice=
+      ~slice_syn=
         Slice.(
           ty,
           List((ty, Join(ctx, [Info.exp_slice(hd), s_tl]), empty)),
@@ -317,7 +322,7 @@ and uexp_to_info_map =
         Self.typ_of(ctx, self),
       );
     let e_ty = Typ.matched_list(ctx, ty);
-    let slice =
+    let slice_syn =
       Slice.(
         ty,
         List((
@@ -327,7 +332,7 @@ and uexp_to_info_map =
         )),
         of_ids(ids),
       );
-    add(~self, ~co_ctx=CoCtx.union([e1.co_ctx, e2.co_ctx]), ~slice, m);
+    add(~self, ~co_ctx=CoCtx.union([e1.co_ctx, e2.co_ctx]), ~slice_syn, m);
   | Var(name) =>
     let self = Self.of_exp_var(ctx, name);
     let ty =
@@ -335,16 +340,30 @@ and uexp_to_info_map =
         ~default=Unknown(Internal) |> Typ.temp,
         Self.typ_of_exp(ctx, self),
       );
+    let slice_syn =
+      if (Typ.is_unknown(ty)) {
+        Slice.hole; // May replace Var ref with ?
+      } else {
+        switch (Ctx.lookup_var(ctx, name)) {
+        | None => Slice.hole
+        | Some(v) => Slice.(of_ty(of_ctx_ids([Ctx.VarEntry(v)], ids), ty))
+        };
+      };
     add'(
       ~self,
       ~co_ctx=CoCtx.singleton(name, UExp.rep_id(uexp), Mode.ty_of(mode)),
-      ~slice=Slice.(ty, Var(name), of_ids(ids)),
+      ~slice_syn,
       m,
     );
   | DynamicErrorHole(e, _)
   | Parens(e) =>
     let (e, m) = go(~mode, e, m);
-    add(~self=Just(e.ty), ~co_ctx=e.co_ctx, ~slice=Info.exp_slice(e), m);
+    add(
+      ~self=Just(e.ty),
+      ~co_ctx=e.co_ctx,
+      ~slice_syn=Slice.(Info.exp_slice(e) |> append(of_ids(ids))),
+      m,
+    );
   | UnOp(Meta(Unquote), e) when is_in_filter =>
     let e: UExp.t = {
       ids: e.ids,
@@ -362,7 +381,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(ty_out),
       ~co_ctx=e.co_ctx,
-      ~slice=Slice.(ty_out, Unknown, of_ids(ids)),
+      ~slice_syn=Slice.(ty_out, Unknown, of_ids(ids)),
       m,
     ); //TODO: Which ids to use here??
   | UnOp(op, e) =>
@@ -371,7 +390,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(ty_out),
       ~co_ctx=e.co_ctx,
-      ~slice=
+      ~slice_syn=
         Slice.(
           of_ty(
             union([of_ids(ids), full_slice(Info.exp_slice(e))]),
@@ -387,7 +406,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(ty_out),
       ~co_ctx=CoCtx.union([e1.co_ctx, e2.co_ctx]),
-      ~slice=
+      ~slice_syn=
         Slice.(
           of_ty(
             union([
@@ -401,7 +420,7 @@ and uexp_to_info_map =
       m,
     );
   | BuiltinFun(name) =>
-    let slice =
+    let slice_syn =
       switch (Ctx.lookup_var(Builtins.ctx_init, name)) {
       | Some(var) => Slice.(of_ty(of_ctx([VarEntry(var)]), var.typ))
       // These types could be compound, of_ty annotates each subcomponent with the use of the builtins context
@@ -410,7 +429,7 @@ and uexp_to_info_map =
     add'(
       ~self=Self.of_exp_var(Builtins.ctx_init, name),
       ~co_ctx=CoCtx.empty,
-      ~slice,
+      ~slice_syn,
       m,
     );
   | Tuple(es) =>
@@ -420,7 +439,8 @@ and uexp_to_info_map =
     add(
       ~self=Just(ty),
       ~co_ctx=CoCtx.union(List.map(Info.exp_co_ctx, es)),
-      ~slice=Slice.(ty, Prod(List.map(Info.exp_slice, es)), of_ids(ids)),
+      ~slice_syn=
+        Slice.(ty, Prod(List.map(Info.exp_slice, es)), of_ids(ids)),
       m,
     );
   | Test(e) =>
@@ -430,7 +450,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(ty),
       ~co_ctx=e.co_ctx,
-      ~slice=Slice.(ty, Prod([]), empty),
+      ~slice_syn=Slice.(ty, Prod([]), of_ids(ids)),
       m,
     );
   | Filter(Filter({pat: cond, _}), body) =>
@@ -439,7 +459,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(body.ty),
       ~co_ctx=CoCtx.union([cond.co_ctx, body.co_ctx]),
-      ~slice=Slice.temp,
+      ~slice_syn=Slice.temp,
       m,
     );
   | Filter(Residue(_), body) =>
@@ -447,7 +467,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(body.ty),
       ~co_ctx=CoCtx.union([body.co_ctx]),
-      ~slice=Slice.temp,
+      ~slice_syn=Slice.temp,
       m,
     );
   | Seq(e1, e2) =>
@@ -456,7 +476,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(e2.ty),
       ~co_ctx=CoCtx.union([e1.co_ctx, e2.co_ctx]),
-      ~slice=Info.exp_slice(e2),
+      ~slice_syn=Info.exp_slice(e2),
       m,
     );
   | Constructor(ctr, _) => atomic(Self.of_ctr(ctx, ctr), Slice.temp)
@@ -473,7 +493,7 @@ and uexp_to_info_map =
     add(
       ~self,
       ~co_ctx=CoCtx.union([fn.co_ctx, arg.co_ctx]),
-      ~slice=s_out,
+      ~slice_syn=s_out,
       m,
     );
   | TypAp(fn, utyp) =>
@@ -486,11 +506,11 @@ and uexp_to_info_map =
       add(
         ~self=Just(Typ.subst(utyp, name, ty_body)),
         ~co_ctx=fn.co_ctx,
-        ~slice=Slice.temp,
+        ~slice_syn=Slice.temp,
         m,
       )
     | None =>
-      add(~self=Just(ty_body), ~co_ctx=fn.co_ctx, ~slice=Slice.temp, m) /* invalid name matches with no free type variables. */
+      add(~self=Just(ty_body), ~co_ctx=fn.co_ctx, ~slice_syn=Slice.temp, m) /* invalid name matches with no free type variables. */
     };
   | DeferredAp(fn, args) =>
     let fn_mode = Mode.of_ap(ctx, mode, UExp.ctr_name(fn));
@@ -505,7 +525,7 @@ and uexp_to_info_map =
     add'(
       ~self,
       ~co_ctx=CoCtx.union([fn.co_ctx, arg_co_ctx]),
-      ~slice=Slice.temp,
+      ~slice_syn=Slice.temp,
       m,
     ); //TODO: similar to Ap?
   | Fun(p, e, _, _) =>
@@ -522,12 +542,18 @@ and uexp_to_info_map =
     let is_exhaustive = p |> Info.pat_constraint |> Incon.is_exhaustive;
     let self =
       is_exhaustive ? unwrapped_self : InexhaustiveMatch(unwrapped_self);
-    add'(
-      ~self,
-      ~co_ctx=CoCtx.mk(ctx, p.ctx, e.co_ctx),
-      ~slice=Slice.temp,
-      m,
-    ); //TODO HIGH PRIORITY
+    let ty =
+      Option.value(
+        Self.typ_of_exp(ctx, self),
+        ~default=Unknown(Internal) |> Typ.temp,
+      );
+    let slice_syn =
+      Slice.(
+        ty,
+        Arrow(Info.pat_slice(p), Info.exp_slice(e)),
+        of_ids(ids),
+      );
+    add'(~self, ~co_ctx=CoCtx.mk(ctx, p.ctx, e.co_ctx), ~slice_syn, m); //TODO HIGH PRIORITY
   | TypFun({term: Var(name), _} as utpat, body, _)
       when !Ctx.shadows_typ(ctx, name) =>
     let mode_body = Mode.of_forall(ctx, Some(name), mode);
@@ -538,7 +564,7 @@ and uexp_to_info_map =
     add(
       ~self=Just(Forall(utpat, body.ty) |> Typ.temp),
       ~co_ctx=body.co_ctx,
-      ~slice=Slice.temp,
+      ~slice_syn=Slice.temp,
       m,
     );
   | TypFun(utpat, body, _) =>
@@ -548,71 +574,67 @@ and uexp_to_info_map =
     add(
       ~self=Just(Forall(utpat, body.ty) |> Typ.temp),
       ~co_ctx=body.co_ctx,
-      ~slice=Slice.temp,
+      ~slice_syn=Slice.temp,
       m,
     );
   | Let(p, def, body) =>
     //TODO: Add type slices to pats
     let (p_syn, _) =
       go_pat(~is_synswitch=true, ~co_ctx=CoCtx.empty, ~mode=Syn, p, m);
-    let (def, p_ana_ctx, m, ty_p_ana) =
+    let (def, p_ana_ctx, m, s_p_ana) =
       if (!is_recursive(ctx, p, def, p_syn.ty)) {
-        let (def, m) =
-          go(~mode=Ana(p_syn.ty |> Slice.(of_ty(empty))), def, m);
-        let ty_p_ana = def.ty;
+        let (def, m) = go(~mode=Ana(Info.pat_slice(p_syn)), def, m);
+        let s_p_ana = Info.exp_slice(def);
         let (p_ana', _) =
           go_pat(
             ~is_synswitch=false,
             ~co_ctx=CoCtx.empty,
-            ~mode=Ana(ty_p_ana |> Slice.(of_ty(empty))),
+            ~mode=Ana(s_p_ana),
             p,
             m,
           );
-        (def, p_ana'.ctx, m, ty_p_ana);
+        (def, p_ana'.ctx, m, s_p_ana);
       } else {
         let (def_base, _) =
-          go'(
-            ~ctx=p_syn.ctx,
-            ~mode=Ana(p_syn.ty |> Slice.(of_ty(empty))),
-            def,
-            m,
-          );
-        let ty_p_ana = def_base.ty;
+          go'(~ctx=p_syn.ctx, ~mode=Ana(Info.pat_slice(p_syn)), def, m);
+        let s_p_ana = Info.exp_slice(def_base);
         /* Analyze pattern to incorporate def type into ctx */
         let (p_ana', _) =
           go_pat(
             ~is_synswitch=false,
             ~co_ctx=CoCtx.empty,
-            ~mode=Ana(ty_p_ana |> Slice.(of_ty(empty))),
+            ~mode=Ana(s_p_ana),
             p,
             m,
           );
         let def_ctx = p_ana'.ctx;
         let (def_base2, _) =
-          go'(
-            ~ctx=def_ctx,
-            ~mode=Ana(p_syn.ty |> Slice.(of_ty(empty))),
-            def,
-            m,
-          );
-        let ana_ty_fn = ((ty_fn1, ty_fn2), ty_p) => {
-          Typ.term_of(ty_p) == Unknown(SynSwitch) && !Typ.eq(ty_fn1, ty_fn2)
-            ? ty_fn1 : ty_p;
+          go'(~ctx=def_ctx, ~mode=Ana(Info.pat_slice(p_syn)), def, m);
+        let ana_ty_fn = ((s_fn1, s_fn2), s_p) => {
+          // TODO: make sure slices are handled correctly here!
+          Typ.term_of(Slice.ty_of(s_p)) == Unknown(SynSwitch)
+          && !Typ.eq(Slice.ty_of(s_fn1), Slice.ty_of(s_fn2))
+            ? s_fn1 : s_p;
         };
+        let s_def_base = def_base |> Info.exp_slice;
+        let s_def_base2 = def_base2 |> Info.exp_slice;
+        let s_p_syn = p_syn |> Info.pat_slice;
         let ana =
           switch (
-            (def_base.ty |> Typ.term_of, def_base2.ty |> Typ.term_of),
-            p_syn.ty |> Typ.term_of,
+            (def_base |> Info.exp_slice, def_base2 |> Info.exp_slice),
+            p_syn |> Info.pat_slice,
           ) {
-          | ((Prod(ty_fns1), Prod(ty_fns2)), Prod(ty_ps)) =>
-            let tys =
-              List.map2(ana_ty_fn, List.combine(ty_fns1, ty_fns2), ty_ps);
-            Prod(tys) |> Typ.temp;
-          | ((_, _), _) => ana_ty_fn((def_base.ty, def_base2.ty), p_syn.ty)
+          | (
+              ((_, Prod(s_fns1), _), (_, Prod(s_fns2), _)),
+              (_, Prod(s_ps), _),
+            ) =>
+            let ss =
+              List.map2(ana_ty_fn, List.combine(s_fns1, s_fns2), s_ps);
+            Slice.(Prod(List.map(ty_of, ss)) |> Typ.temp, Prod(ss), empty); // TODO: Check ty is correct here
+          | ((_, _), _) => ana_ty_fn((s_def_base, s_def_base2), s_p_syn)
           };
-        let (def, m) =
-          go'(~ctx=def_ctx, ~mode=Ana(ana |> Slice.(of_ty(empty))), def, m);
-        (def, def_ctx, m, ty_p_ana);
+        let (def, m) = go'(~ctx=def_ctx, ~mode=Ana(ana), def, m);
+        (def, def_ctx, m, s_p_ana);
       };
     let (body, m) = go'(~ctx=p_ana_ctx, ~mode, body, m);
     /* add co_ctx to pattern */
@@ -620,7 +642,7 @@ and uexp_to_info_map =
       go_pat(
         ~is_synswitch=false,
         ~co_ctx=body.co_ctx,
-        ~mode=Ana(ty_p_ana |> Slice.(of_ty(empty))),
+        ~mode=Ana(s_p_ana),
         p,
         m,
       );
@@ -629,12 +651,18 @@ and uexp_to_info_map =
     let is_exhaustive = p_ana |> Info.pat_constraint |> Incon.is_exhaustive;
     let self =
       is_exhaustive ? unwrapped_self : InexhaustiveMatch(unwrapped_self);
+    let slice_syn = {
+      let s = Info.exp_slice(body);
+      let (ctx_slice, _) = Slice.full_slice(s); // Inefficient...
+      let added_bindings = Ctx.added_bindings(p_ana_ctx, ctx);
+      Ctx.intersect(added_bindings, ctx_slice) == []
+        ? s : s |> Slice.(append(of_ids(ids)));
+    };
     add'(
-      //TODO HIGH PRIORITY
       ~self,
       ~co_ctx=
         CoCtx.union([def.co_ctx, CoCtx.mk(ctx, p_ana.ctx, body.co_ctx)]),
-      ~slice=Slice.temp,
+      ~slice_syn,
       m,
     );
   | FixF(p, e, _) =>
@@ -647,13 +675,14 @@ and uexp_to_info_map =
     add(
       ~self=Just(p'.ty),
       ~co_ctx=CoCtx.union([CoCtx.mk(ctx, p''.ctx, e'.co_ctx)]),
-      ~slice=Slice.temp,
+      ~slice_syn=Slice.temp,
       m,
     );
   | If(e0, e1, e2) =>
     let branch_ids = List.map(UExp.rep_id, [e1, e2]);
     let (cond, m) =
       go(~mode=Ana(Bool |> Typ.temp |> Slice.(of_ty(of_ids(ids)))), e0, m);
+    let mode = mode_append(Slice.of_ids(ids), mode);
     let (cons, m) = go(~mode, e1, m);
     let (alt, m) = go(~mode, e2, m);
     let self = Self.match(ctx, [cons.ty, alt.ty], branch_ids);
@@ -665,7 +694,7 @@ and uexp_to_info_map =
     add(
       ~self,
       ~co_ctx=CoCtx.union([cond.co_ctx, cons.co_ctx, alt.co_ctx]),
-      ~slice=
+      ~slice_syn=
         Slice.(
           ty,
           Join(ctx, [Info.exp_slice(cons), Info.exp_slice(alt)]),
@@ -748,6 +777,7 @@ and uexp_to_info_map =
                   ~ancestors=p.ancestors,
                   ~prev_synswitch=None,
                   ~self,
+                  ~slice_syn=Slice.temp,
                   // Mark patterns as redundant at the top level
                   // because redundancy doesn't make sense in a smaller context
                   ~constraint_=p_constraint,
@@ -788,7 +818,7 @@ and uexp_to_info_map =
     add'(
       ~self,
       ~co_ctx=CoCtx.union([scrut.co_ctx] @ e_co_ctxs),
-      ~slice=Slice.temp,
+      ~slice_syn=Slice.temp,
       m,
     );
   | TyAlias(typat, utyp, body) =>
@@ -843,7 +873,7 @@ and uexp_to_info_map =
       /* Make sure types don't escape their scope */
       let ty_escape = Typ.subst(ty_def, typat, ty_body);
       let m = utyp_to_info_map(~ctx=ctx_def, ~ancestors, utyp, m) |> snd;
-      add(~self=Just(ty_escape), ~co_ctx, ~slice=Slice.temp, m); //TODO HIGH PRIORITY
+      add(~self=Just(ty_escape), ~co_ctx, ~slice_syn=Slice.temp, m); //TODO HIGH PRIORITY
     | Var(_)
     | Invalid(_)
     | EmptyHole
@@ -854,7 +884,7 @@ and uexp_to_info_map =
       add(
         ~self=Just(ty_body),
         ~co_ctx,
-        ~slice=(ty_body, Unknown, Slice.of_ids(ids)),
+        ~slice_syn=(ty_body, Unknown, Slice.of_ids(ids)),
         m,
       ); // Slice holes for ease of use (not theoretically required)
     };
@@ -871,7 +901,7 @@ and upat_to_info_map =
       m: Map.t,
     )
     : (Info.pat, Map.t) => {
-  let add = (~self, ~ctx, ~constraint_, m) => {
+  let add = (~self, ~ctx, ~slice_syn, ~constraint_, m) => {
     let prev_synswitch =
       switch (Id.Map.find_opt(Pat.rep_id(upat), m)) {
       | Some(Info.InfoPat({mode: Syn | SynFun, ty, _})) => Some(ty)
@@ -888,11 +918,15 @@ and upat_to_info_map =
         ~mode,
         ~ancestors,
         ~self=Common(self),
+        ~slice_syn,
         ~constraint_,
       );
     (info, add_info(ids, InfoPat(info), m));
   };
-  let atomic = (self, constraint_) => add(~self, ~ctx, ~constraint_, m);
+  let atomic = (self, slice_syn, constraint_) =>
+    add(~self, ~ctx, ~slice_syn, ~constraint_, m);
+  let atomic_just = (ty, (s_ty, s), constraint_) =>
+    atomic(Just(ty), (ty, s_ty, s), constraint_);
   let ancestors = [UPat.rep_id(upat)] @ ancestors;
   let go = upat_to_info_map(~is_synswitch, ~ancestors, ~co_ctx);
   let unknown = Unknown(is_synswitch ? SynSwitch : Internal) |> Typ.temp;
@@ -910,26 +944,51 @@ and upat_to_info_map =
         ),
       (ctx, [], [], m),
     );
-  let hole = self => atomic(self, Constraint.Hole);
+  let hole = self => atomic(self, Slice.hole, Constraint.Hole);
   switch (term) {
   | MultiHole(tms) =>
     let (_, m) = multi(~ctx, ~ancestors, m, tms);
-    add(~self=IsMulti, ~ctx, ~constraint_=Constraint.Hole, m);
+    add(
+      ~self=IsMulti,
+      ~ctx,
+      ~slice_syn=Slice.hole,
+      ~constraint_=Constraint.Hole,
+      m,
+    );
   | Invalid(token) => hole(BadToken(token))
   | EmptyHole => hole(Just(unknown))
-  | Int(int) => atomic(Just(Int |> Typ.temp), Constraint.Int(int))
+  | Int(int) =>
+    atomic_just(
+      Int |> Typ.temp,
+      (Int, Slice.of_ids(ids)),
+      Constraint.Int(int),
+    )
   | Float(float) =>
-    atomic(Just(Float |> Typ.temp), Constraint.Float(float))
-  | Tuple([]) => atomic(Just(Prod([]) |> Typ.temp), Constraint.Truth)
+    atomic_just(
+      Float |> Typ.temp,
+      (Float, Slice.of_ids(ids)),
+      Constraint.Float(float),
+    )
+  | Tuple([]) =>
+    atomic_just(
+      Prod([]) |> Typ.temp,
+      (Prod([]), Slice.of_ids(ids)),
+      Constraint.Truth,
+    )
   | Bool(bool) =>
-    atomic(
-      Just(Bool |> Typ.temp),
+    atomic_just(
+      Bool |> Typ.temp,
+      (Bool, Slice.of_ids(ids)),
       bool
         ? Constraint.InjL(Constraint.Truth)
         : Constraint.InjR(Constraint.Truth),
     )
   | String(string) =>
-    atomic(Just(String |> Typ.temp), Constraint.String(string))
+    atomic_just(
+      String |> Typ.temp,
+      (String, Slice.of_ids(ids)),
+      Constraint.String(string),
+    )
   | ListLit(ps) =>
     let ids = List.map(UPat.rep_id, ps);
     let modes = Mode.of_list_lit(ctx, List.length(ps), mode, ids);
@@ -943,6 +1002,7 @@ and upat_to_info_map =
     add(
       ~self=Self.listlit(~empty=unknown, ctx, tys, ids),
       ~ctx,
+      ~slice_syn=Slice.temp,
       ~constraint_=cons_fold_list(cons),
       m,
     );
@@ -958,11 +1018,17 @@ and upat_to_info_map =
     add(
       ~self=Just(List(hd.ty) |> Typ.temp),
       ~ctx=tl.ctx,
+      ~slice_syn=Slice.temp,
       ~constraint_=
         Constraint.InjR(Constraint.Pair(hd.constraint_, tl.constraint_)),
       m,
     );
-  | Wild => atomic(Just(unknown), Constraint.Truth)
+  | Wild =>
+    atomic(
+      Just(unknown),
+      Slice.of_ty(Slice.of_ids(ids), unknown),
+      Constraint.Truth,
+    )
   | Var(name) =>
     /* NOTE: The self type assigned to pattern variables (Unknown)
        may be SynSwitch, but SynSwitch is never added to the context;
@@ -977,6 +1043,7 @@ and upat_to_info_map =
     add(
       ~self=Just(unknown),
       ~ctx=Ctx.extend(ctx, entry),
+      ~slice_syn=Slice.temp,
       ~constraint_=Constraint.Truth,
       m,
     );
@@ -992,15 +1059,22 @@ and upat_to_info_map =
     add(
       ~self=Just(Prod(tys) |> Typ.temp),
       ~ctx,
+      ~slice_syn=Slice.temp,
       ~constraint_=cons_fold_tuple(cons),
       m,
     );
   | Parens(p) =>
     let (p, m) = go(~ctx, ~mode, p, m);
-    add(~self=Just(p.ty), ~ctx=p.ctx, ~constraint_=p.constraint_, m);
+    add(
+      ~self=Just(p.ty),
+      ~ctx=p.ctx,
+      ~slice_syn=Slice.temp,
+      ~constraint_=p.constraint_,
+      m,
+    );
   | Constructor(ctr, _) =>
     let self = Self.of_ctr(ctx, ctr);
-    atomic(self, Constraint.of_ctr(ctx, mode, ctr, self));
+    atomic(self, Slice.temp, Constraint.of_ctr(ctx, mode, ctr, self));
   | Ap(fn, arg) =>
     let ctr = UPat.ctr_name(fn);
     let fn_mode = Mode.of_ap(ctx, mode, ctr);
@@ -1011,6 +1085,7 @@ and upat_to_info_map =
     add(
       ~self=Just(ty_out),
       ~ctx=arg.ctx,
+      ~slice_syn=Slice.temp,
       ~constraint_=
         Constraint.of_ap(
           ctx,
@@ -1025,7 +1100,13 @@ and upat_to_info_map =
     let (ann, m) = utyp_to_info_map(~ctx, ~ancestors, ann, m);
     let (p, m) =
       go(~ctx, ~mode=Ana(ann.term |> Slice.(of_ty(of_ids(ids)))), p, m);
-    add(~self=Just(ann.term), ~ctx=p.ctx, ~constraint_=p.constraint_, m);
+    add(
+      ~self=Just(ann.term),
+      ~ctx=p.ctx,
+      ~slice_syn=Slice.temp,
+      ~constraint_=p.constraint_,
+      m,
+    );
   };
 }
 and utyp_to_info_map =

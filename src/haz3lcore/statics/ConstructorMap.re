@@ -194,8 +194,21 @@ let map = (f: option('a) => option('a), m: t('a)): t('a) => {
 let map_vals = (f: 'a => 'b, m: t('a)): t('b) => {
   List.map(
     fun
-    | Variant(ctr, args, value) => Variant(ctr, args, Option.map(f, value))
+    | Variant(ctr, args, value_opt) =>
+      Variant(ctr, args, Option.map(f, value_opt))
     | BadEntry(value) => BadEntry(f(value)),
+    m,
+  );
+};
+
+let fold_vals = (f: ('acc, 'a) => 'b, z: 'acc, m: t('a)): 'acc => {
+  List.fold_left(
+    (acc, v) =>
+      switch (v) {
+      | Variant(_, _, v_opt) => Option.fold(~none=acc, ~some=f(acc), v_opt)
+      | BadEntry(v) => f(acc, v)
+      },
+    z,
     m,
   );
 };

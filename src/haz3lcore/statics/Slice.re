@@ -96,14 +96,7 @@ let of_ids = (ids: list(Id.t)): slice => ([], ids);
 
 let of_ctx = (ctx: Ctx.t): slice => (ctx, []);
 
-// All lists contain joins with an empty slice. Debatable if this is true/useful. Encode in types if so.
-let extract_join_list = (t: t): (list(t), slice) =>
-  switch (t) {
-  | (_, List((_, Join(_, ss), ([], []))), s) => (ss, s)
-  | _ =>
-    print_endline("List slice has join with non-empty slice");
-    ([], empty); // TODO: Check + what to do here
-  };
+let of_ctx_ids = (ctx, ids): slice => (ctx, ids);
 
 let s_ty = ((_, s_ty, _): t): s_ty => s_ty;
 

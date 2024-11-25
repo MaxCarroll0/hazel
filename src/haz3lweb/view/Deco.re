@@ -507,8 +507,10 @@ module Deco =
             | Info.InfoExp(info_exp) => Some(info_exp)
             | _ => None
             };
-          let (_, s) = Info.exp_slice(info_exp) |> Slice.full_slice; // TODO: Deal with context slice
-          let nodes = List.map(slice_deco, s);
+          let (ctx, c) = Info.exp_slice(info_exp) |> Slice.full_slice; // TODO: colour context slice
+          let nodes =
+            List.map(c => slice_deco(Ctx.get_id(c)), ctx)
+            @ List.map(slice_deco, c);
           div_c("slice", nodes) |> return
         ),
       )
