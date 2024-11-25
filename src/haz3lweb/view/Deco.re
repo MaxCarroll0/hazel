@@ -473,26 +473,31 @@ module Deco =
     };
 
   // Highlight slice of cursor index
-  let slice_deco = (id: Id.t) => {
-    let p = Piece.Tile(tile(id));
-    let tiles = all_tiles(p);
-    let shard_decos =
-      tiles
-      |> List.map(((_, mold, shards)) =>
-           PieceDec.simple_shards_slice(~font_metrics, mold, shards)
-         )
-      |> List.flatten;
-    switch (term_range(p)) {
-    | Some(range) =>
-      let rows = M.meta.syntax.measured.rows;
-      let decos =
-        shard_decos
-        @ PieceDec.uni_lines(~font_metrics, ~rows, range, tiles)
-        @ PieceDec.bi_lines(~font_metrics, ~rows, tiles);
-      div_c("slice-piece", decos);
-    | None => div_c("slice-piece", shard_decos)
+  let slice_deco = (id: Id.t) =>
+    try({
+      let p = Piece.Tile(tile(id));
+      let tiles = all_tiles(p);
+      let shard_decos =
+        tiles
+        |> List.map(((_, mold, shards)) =>
+             PieceDec.simple_shards_slice(~font_metrics, mold, shards)
+           )
+        |> List.flatten;
+      switch (term_range(p)) {
+      | Some(range) =>
+        let rows = M.meta.syntax.measured.rows;
+        let decos =
+          shard_decos
+          @ PieceDec.uni_lines(~font_metrics, ~rows, range, tiles)
+          @ PieceDec.bi_lines(~font_metrics, ~rows, tiles);
+        div_c("slice-piece", decos);
+      | None => div_c("slice-piece", shard_decos)
+      };
+    }) {
+    | Not_found =>
+      /* See error_view */
+      Node.div([]) //TODO Different styling
     };
-  }; //TODO Different styling to selects
 
   let indicated_index = (z: Zipper.t): Node.t => {
     let index = Indicated.index(z);
