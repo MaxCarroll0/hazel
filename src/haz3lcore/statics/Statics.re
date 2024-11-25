@@ -1140,7 +1140,7 @@ and upat_to_info_map =
     add(
       ~self=Just(ann.term),
       ~ctx=p.ctx,
-      ~slice_syn=Info.pat_slice(p) |> Slice.(append(of_ids(ids))),
+      ~slice_syn=Info.pat_slice(p) |> Slice.(append_all(of_ids(ids))),
       ~constraint_=p.constraint_,
       m,
     );

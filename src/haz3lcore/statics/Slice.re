@@ -56,6 +56,30 @@ let union: list(slice) => slice = List.fold_left(union2, empty);
 let append: (slice, t) => t =
   (s', (ty, s_ty, s)) => (ty, s_ty, union2(s, s'));
 
+let rec append_all: (slice, t) => t =
+  (s', (ty, s_ty, s)) => (
+    ty,
+    switch (s_ty) {
+    | TEMP
+    | Unknown
+    | SynSwitch
+    | Int
+    | Float
+    | Bool
+    | String
+    | Var(_) => s_ty
+    | List(ty) => List(append_all(s', ty))
+    | Arrow(ty1, ty2) => Arrow(append_all(s', ty1), append_all(s', ty2))
+    | Sum(m) => Sum(ConstructorMap.map_vals(append_all(s'), m))
+    | Prod(ts) => Prod(List.map(append_all(s'), ts))
+    | Join(ctx, ts) => Join(ctx, List.map(append_all(s'), ts))
+    | Ap(t1, t2) => Ap(append_all(s', t1), append_all(s', t2))
+    | Rec(pat, t) => Rec(pat, append_all(s', t))
+    | Forall(pat, t) => Forall(pat, append_all(s', t))
+    },
+    union2(s, s'),
+  );
+
 let join = (ctx, ty: Typ.t, l: list(t), slice): t => (
   ty,
   Join(ctx, l),
@@ -137,14 +161,31 @@ let rec of_ty_with_ids = ({term, ids, _} as ty: TermBase.typ_t): t => (
   | Bool => Bool
   | String => String
   | Var(n) => Var(n)
-  | List(ty) => List(of_ty_with_ids(ty))
-  | Arrow(ty1, ty2) => Arrow(of_ty_with_ids(ty1), of_ty_with_ids(ty2))
-  | Sum(m) => Sum(ConstructorMap.map_vals(of_ty_with_ids, m))
-  | Prod(l) => Prod(List.map(of_ty_with_ids, l))
-  | Ap(ty1, ty2) => Ap(of_ty_with_ids(ty1), of_ty_with_ids(ty2))
+  | List(ty) => List(of_ty_with_ids(ty) |> append(of_ids(ids)))
+  // Keep structural elements in subslices (e.g. ->). May be sensible to put this logic elsewhere
+  | Arrow(ty1, ty2) =>
+    Arrow(
+      of_ty_with_ids(ty1) |> append(of_ids(ids)),
+      of_ty_with_ids(ty2) |> append(of_ids(ids)),
+    )
+  | Sum(m) =>
+    Sum(
+      ConstructorMap.map_vals(
+        ty => of_ty_with_ids(ty) |> append(of_ids(ids)),
+        m,
+      ),
+    )
+  | Prod(l) =>
+    Prod(List.map(ty => of_ty_with_ids(ty) |> append(of_ids(ids)), l))
+  | Ap(ty1, ty2) =>
+    Ap(
+      of_ty_with_ids(ty1) |> append(of_ids(ids)),
+      of_ty_with_ids(ty2) |> append(of_ids(ids)),
+    )
   | Parens(ty) => s_ty(of_ty_with_ids(ty))
-  | Rec(pat, ty) => Rec(pat, of_ty_with_ids(ty))
-  | Forall(pat, ty) => Forall(pat, of_ty_with_ids(ty))
+  | Rec(pat, ty) => Rec(pat, of_ty_with_ids(ty) |> append(of_ids(ids)))
+  | Forall(pat, ty) =>
+    Forall(pat, of_ty_with_ids(ty) |> append(of_ids(ids)))
   },
   of_ids(ids),
 );
