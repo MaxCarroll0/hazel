@@ -273,14 +273,19 @@ and uexp_to_info_map =
       Option.value(
         ~default=Unknown(Internal) |> Typ.temp,
         Self.typ_of(ctx, self),
-      ); //TODO -- unnatural...(
+      );
     let slice_syn =
       Slice.(
         ty,
         switch (es) {
         | [] => Unknown
         | [e] => List(Info.exp_slice(e))
-        | es => List((ty, Join(ctx, List.map(Info.exp_slice, es)), empty))
+        | es =>
+          List((
+            Typ.matched_list(ctx, ty),
+            Join(ctx, List.map(Info.exp_slice, es)),
+            empty,
+          ))
         },
         of_ids(ids),
       );
@@ -661,10 +666,12 @@ and uexp_to_info_map =
     let slice_syn = {
       let s_body = Info.exp_slice(body);
       let (ctx_slice, _) = Slice.full_slice(s_body); // Inefficient...
-      let (_, _, s_def) = Info.exp_slice(def);
+      let s_def = Info.exp_slice(def) |> Slice.full_slice;
+      let s_ann = Info.pat_slice(p_ana) |> Slice.full_slice;
       let added_bindings = Ctx.added_bindings(p_ana_ctx, ctx);
       Ctx.intersect(added_bindings, ctx_slice) == []
-        ? s_body : s_body |> Slice.(append(union([of_ids(ids), s_def])));
+        ? s_body
+        : s_body |> Slice.(append(union([of_ids(ids), s_def, s_ann])));
       // Include slice of def as this is _at the moment_ not included in the context slice of the body.
     };
     add'(
@@ -951,17 +958,18 @@ and upat_to_info_map =
   let unknown = Unknown(is_synswitch ? SynSwitch : Internal) |> Typ.temp;
   let ctx_fold = (ctx: Ctx.t, m) =>
     List.fold_left2(
-      ((ctx, tys, cons, m), e, mode) =>
+      ((infos, ctx, tys, cons, m), e, mode) =>
         go(~ctx, ~mode, e, m)
         |> (
           ((info, m)) => (
+            infos @ [info],
             info.ctx,
             tys @ [info.ty],
             cons @ [info.constraint_],
             m,
           )
         ),
-      (ctx, [], [], m),
+      ([], ctx, [], [], m),
     );
   let hole = self => atomic(self, Slice.hole, Constraint.Hole);
   switch (term) {
@@ -1016,7 +1024,7 @@ and upat_to_info_map =
   | ListLit(ps) =>
     let ids = List.map(UPat.rep_id, ps);
     let modes = Mode.of_list_lit(ctx, List.length(ps), mode, ids);
-    let (ctx, tys, cons, m) = ctx_fold(ctx, m, ps, modes);
+    let (infos, ctx, tys, cons, m) = ctx_fold(ctx, m, ps, modes);
     let rec cons_fold_list = cs =>
       switch (cs) {
       | [] => Constraint.InjL(Constraint.Truth) // Left = nil, Right = cons
@@ -1029,13 +1037,22 @@ and upat_to_info_map =
         Self.typ_of(ctx, self),
         ~default=Unknown(Internal) |> Typ.temp,
       );
-    add(
-      ~self,
-      ~ctx,
-      ~slice_syn=Slice.temp(ty),
-      ~constraint_=cons_fold_list(cons),
-      m,
-    );
+    let slice_syn =
+      Slice.(
+        ty,
+        switch (infos) {
+        | [] => Unknown
+        | [p] => List(Info.pat_slice(p))
+        | ps =>
+          List((
+            Typ.matched_list(ctx, ty),
+            Join(ctx, List.map(Info.pat_slice, ps)),
+            empty,
+          ))
+        },
+        of_ids(ids),
+      );
+    add(~self, ~ctx, ~slice_syn, ~constraint_=cons_fold_list(cons), m);
   | Cons(hd, tl) =>
     let (hd, m) = go(~ctx, ~mode=Mode.of_cons_hd(ctx, mode, ids), hd, m);
     let (tl, m) =
@@ -1044,12 +1061,18 @@ and upat_to_info_map =
         ~mode=Mode.of_cons_tl(ctx, mode, hd.ty |> Slice.(of_ty(empty)), ids),
         tl,
         m,
-      ); // TODO
+      );
+    let s_tl = Slice.(matched_list(ctx, Info.pat_slice(tl)));
     let ty = List(hd.ty) |> Typ.temp;
     add(
       ~self=Just(ty),
       ~ctx=tl.ctx,
-      ~slice_syn=Slice.temp(ty),
+      ~slice_syn=
+        Slice.(
+          ty,
+          List((ty, Join(ctx, [Info.pat_slice(hd), s_tl]), empty)),
+          of_ids(ids),
+        ),
       ~constraint_=
         Constraint.InjR(Constraint.Pair(hd.constraint_, tl.constraint_)),
       m,
@@ -1074,13 +1097,13 @@ and upat_to_info_map =
     add(
       ~self=Just(unknown),
       ~ctx=Ctx.extend(ctx, entry),
-      ~slice_syn=Slice.temp(unknown),
+      ~slice_syn=Slice.(unknown, Var(name), of_ids(ids)),
       ~constraint_=Constraint.Truth,
       m,
     );
   | Tuple(ps) =>
     let modes = Mode.of_prod(ctx, mode, List.length(ps));
-    let (ctx, tys, cons, m) = ctx_fold(ctx, m, ps, modes);
+    let (infos, ctx, tys, cons, m) = ctx_fold(ctx, m, ps, modes);
     let rec cons_fold_tuple = cs =>
       switch (cs) {
       | [] => Constraint.Truth
@@ -1091,7 +1114,8 @@ and upat_to_info_map =
     add(
       ~self=Just(ty),
       ~ctx,
-      ~slice_syn=Slice.temp(ty),
+      ~slice_syn=
+        Slice.(ty, Prod(List.map(Info.pat_slice, infos)), of_ids(ids)),
       ~constraint_=cons_fold_tuple(cons),
       m,
     );
@@ -1100,7 +1124,7 @@ and upat_to_info_map =
     add(
       ~self=Just(p.ty),
       ~ctx=p.ctx,
-      ~slice_syn=Slice.temp(p.ty),
+      ~slice_syn=Info.pat_slice(p),
       ~constraint_=p.constraint_,
       m,
     );
@@ -1116,31 +1140,32 @@ and upat_to_info_map =
     let ctr = UPat.ctr_name(fn);
     let fn_mode = Mode.of_ap(ctx, mode, ctr);
     let (fn, m) = go(~ctx, ~mode=fn_mode, fn, m);
-    let (ty_in, ty_out) = Typ.matched_arrow(ctx, fn.ty);
-    let (arg, m) =
-      go(~ctx, ~mode=Ana(ty_in |> Slice.(of_ty(of_ids(ids)))), arg, m);
+    let (s_in, s_out) = Slice.matched_arrow(ctx, Info.pat_slice(fn));
+    let (arg, m) = go(~ctx, ~mode=Ana(s_in), arg, m);
     add(
-      ~self=Just(ty_out),
+      ~self=Just(s_out |> Slice.ty_of),
       ~ctx=arg.ctx,
-      ~slice_syn=Slice.temp(ty_out),
+      ~slice_syn=s_out |> Slice.(append(of_ids(ids))),
       ~constraint_=
-        Constraint.of_ap(
-          ctx,
-          mode,
-          ctr,
-          arg.constraint_,
-          Some(ty_out |> Slice.(of_ty(of_ids(ids)))),
-        ),
+        Constraint.of_ap(ctx, mode, ctr, arg.constraint_, Some(s_out)),
       m,
     );
   | Cast(p, ann, _) =>
     let (ann, m) = utyp_to_info_map(~ctx, ~ancestors, ann, m);
     let (p, m) =
-      go(~ctx, ~mode=Ana(ann.term |> Slice.of_ty_with_ids), p, m);
+      go(
+        ~ctx,
+        ~mode=
+          Ana(
+            Slice.(ann.term |> of_ty_with_ids |> append_all(of_ids(ids))),
+          ),
+        p,
+        m,
+      );
     add(
       ~self=Just(ann.term),
       ~ctx=p.ctx,
-      ~slice_syn=Info.pat_slice(p) |> Slice.(append_all(of_ids(ids))),
+      ~slice_syn=Info.pat_slice(p),
       ~constraint_=p.constraint_,
       m,
     );

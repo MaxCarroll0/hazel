@@ -56,6 +56,7 @@ let union: list(slice) => slice = List.fold_left(union2, empty);
 let append: (slice, t) => t =
   (s', (ty, s_ty, s)) => (ty, s_ty, union2(s, s'));
 
+// TODO: create a slice type which applies has a 'global part' using less space than the below.
 let rec append_all: (slice, t) => t =
   (s', (ty, s_ty, s)) => (
     ty,

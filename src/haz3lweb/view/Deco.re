@@ -499,6 +499,7 @@ module Deco =
       Node.div([]) //TODO Different styling
     };
 
+  // TODO Move to cursor inspector and display on click -- with choice between slice_ana and slice_syn
   let indicated_index = (z: Zipper.t): Node.t => {
     let index = Indicated.index(z);
     switch (index) {
@@ -507,12 +508,15 @@ module Deco =
         ~default=Node.div([]),
         OptUtil.Syntax.(
           let* info = Id.Map.find_opt(index, M.meta.statics.info_map);
-          let* info_exp =
+          let* (ctx, c) =
             switch (info) {
-            | Info.InfoExp(info_exp) => Some(info_exp)
+            | Info.InfoExp(info_exp) =>
+              Some(Info.exp_slice(info_exp) |> Slice.full_slice)
+            | Info.InfoPat(info_pat) =>
+              Some(Info.pat_slice(info_pat) |> Slice.full_slice)
             | _ => None
             };
-          let (ctx, c) = Info.exp_slice(info_exp) |> Slice.full_slice; // TODO: colour context slice
+          // TODO: Colour context slice
           let nodes =
             List.map(c => slice_deco(Ctx.get_id(c)), ctx)
             @ List.map(slice_deco, c);
