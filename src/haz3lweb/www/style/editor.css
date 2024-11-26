@@ -173,16 +173,19 @@ svg.shard.error > path {
   fill: var(--error-hole-fill);
 }
 
-svg.shard.slicesingle > path,
-.slice .slice-piece svg .child-line {
+svg.shard.slicesingle.context.syn > path,
+svg.shard.slicesingle.context.ana > path {
   stroke: var(--slice-stroke);
-  stroke-width: 0.75px;
+  stroke-width: 1.5px;
 /*  stroke-dasharray: 1, 1; */ 
   stroke-linecap: butt;
 }
 
-svg.shard.slicesingle > path {
-  fill: var(--slice-fill);
+svg.shard.slicesingle.syn > path {
+  fill: var(--slice-syn-fill);
+}
+svg.shard.slicesingle.ana > path {
+  fill: var(--slice-ana-fill);
 }
 
 /* SHARD DROP SHADOWS */

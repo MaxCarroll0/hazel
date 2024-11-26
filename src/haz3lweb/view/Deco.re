@@ -473,14 +473,14 @@ module Deco =
     };
 
   // Highlight slice of cursor index
-  let slice_deco = (id: Id.t) =>
+  let slice_deco = (id: Id.t, ~clss) =>
     try({
       let p = Piece.Tile(tile(id));
       let tiles = all_tiles(p);
       let shard_decos =
         tiles
         |> List.map(((_, mold, shards)) =>
-             PieceDec.simple_shards_slice(~font_metrics, mold, shards)
+             PieceDec.simple_shards_slice(~clss, ~font_metrics, mold, shards)
            )
         |> List.flatten;
       switch (term_range(p)) {
@@ -490,13 +490,17 @@ module Deco =
           shard_decos
           @ PieceDec.uni_lines(~font_metrics, ~rows, range, tiles)
           @ PieceDec.bi_lines(~font_metrics, ~rows, tiles);
-        div_c("slice-piece", decos);
-      | None => div_c("slice-piece", shard_decos)
+        Node.div(~attrs=[Attr.classes(["slice-piece", ...clss])], decos);
+      | None =>
+        Node.div(
+          ~attrs=[Attr.classes(["slice-piece", ...clss])],
+          shard_decos,
+        )
       };
     }) {
     | Not_found =>
       /* See error_view */
-      Node.div([]) //TODO Different styling
+      Node.div([])
     };
 
   // TODO Move to cursor inspector and display on click -- with choice between slice_ana and slice_syn
@@ -508,18 +512,42 @@ module Deco =
         ~default=Node.div([]),
         OptUtil.Syntax.(
           let* info = Id.Map.find_opt(index, M.meta.statics.info_map);
-          let* (ctx, c) =
+          let* ((ctx_syn, c_syn), (ctx_ana, c_ana)) =
             switch (info) {
             | Info.InfoExp(info_exp) =>
-              Some(Info.exp_slice(info_exp) |> Slice.full_slice)
+              let s_ana =
+                Option.value(
+                  Info.exp_slice_ana(info_exp),
+                  ~default=Slice.hole,
+                );
+              Some(
+                (Info.exp_slice_syn(info_exp), s_ana)
+                |> TupleUtil.map2(Slice.full_slice),
+              );
             | Info.InfoPat(info_pat) =>
-              Some(Info.pat_slice(info_pat) |> Slice.full_slice)
+              let s_ana =
+                Option.value(
+                  Info.pat_slice_ana(info_pat),
+                  ~default=Slice.hole,
+                );
+              Some(
+                (Info.pat_slice_syn(info_pat), s_ana)
+                |> TupleUtil.map2(Slice.full_slice),
+              );
             | _ => None
             };
           // TODO: Colour context slice
           let nodes =
-            List.map(c => slice_deco(Ctx.get_id(c)), ctx)
-            @ List.map(slice_deco, c);
+            List.map(
+              c => slice_deco(Ctx.get_id(c), ~clss=["context", "syn"]),
+              ctx_syn,
+            )
+            @ List.map(
+                c => slice_deco(Ctx.get_id(c), ~clss=["context", "ana"]),
+                ctx_ana,
+              )
+            @ List.map(slice_deco(~clss=["syn"]), c_syn)
+            @ List.map(slice_deco(~clss=["ana"]), c_ana);
           div_c("slice", nodes) |> return
         ),
       )

@@ -37,9 +37,9 @@ Some analysis types (lists, annotations) are closer to being 'correct'.
 - Better integration between Typ.re and Slice.re. 
 - Distinguish better the idea of a decomposable slice indexed by a type (Slice.t) and a concrete code slice (Slice.slice). In particular, both are confusingly referred to in code as 's' or 'slice'. Maybe pack Slice.slice related code into a sub-module 'Code'.
 
-## Efficiency
+## Efficient & Performance
 - Slices can hold lods of duplicate ids. Think of a better way to represent these while maintaining decomposability.
-
+- Appears to be too slow for live code completion. Add a filter to not compute slices, and only compute upon request (e.g. clicking on syn/ana type in the cursor inspector). For the moment turning off assist gives good performance.
 
 # Cast Slicing
 ## Interaction
@@ -53,6 +53,6 @@ Click on casts in the stepper to retrieve relevant type slices.
 
 
 # Bugs
-- Moving cursor quickly is very slow with slicing. Slices should not be recalculated (besides compiling a full slice) upon cursor movement, so why is performance degraded?
 - Elaboration inserts too many casts during let expressions (see test elaboration3).
 - Let bindings annotated with single `?` fail to pick up correct context slice: `let f : ? = ? in f`
+- Type checking (only the name checking & placing into error holes) for sum types/type aliases is broken by incorrect use of Slice.temp 

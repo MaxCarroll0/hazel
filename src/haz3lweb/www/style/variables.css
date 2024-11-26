@@ -53,7 +53,7 @@
   --GB0: oklch(70% 0.05 120); /* ! nut menu active */
   --GB1: oklch(45% 0.05 120); /* ! nut menu fill */
 
-  /* BLUE -- slices */
+  /* BLUE */
   --B0: oklch(96% 0.2 260);
   --B1: oklch(60% 0.2 260);
   --B2: oklch(40% 0.2 260);
@@ -130,8 +130,9 @@
   --error-hole-fill: var(--ERRHOLE);
 
   /* SLICE DECO */
-  --slice-stroke: var(--B2);
-  --slice-fill: var(--G1);
+  --slice-stroke: var(--GB1);
+  --slice-syn-fill: var(--G1);
+  --slice-ana-fill: var(--G2);
 
   /* BACKPACK DECO */
 
