@@ -1,32 +1,33 @@
 open Util;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
-type kind =
-  | Singleton(TermBase.typ_t)
-  | Abstract;
+type kind = TermBase.ctx_kind = | Singleton(TermBase.typ_t) | Abstract;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
-type var_entry = {
-  name: Var.t,
-  id: Id.t,
-  typ: TermBase.typ_t,
-};
+type var_entry =
+  TermBase.ctx_var_entry = {
+    name: Var.t,
+    id: Id.t,
+    typ: TermBase.typ_t,
+  };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
-type tvar_entry = {
-  name: string,
-  id: Id.t,
-  kind,
-};
+type tvar_entry =
+  TermBase.ctx_tvar_entry = {
+    name: string,
+    id: Id.t,
+    kind,
+  };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type entry =
-  | VarEntry(var_entry)
-  | ConstructorEntry(var_entry)
-  | TVarEntry(tvar_entry);
+  TermBase.ctx_entry =
+    | VarEntry(var_entry)
+    | ConstructorEntry(var_entry)
+    | TVarEntry(tvar_entry);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
-type t = list(entry);
+type t = TermBase.ctx_t;
 
 let intersect = (c1, c2): t =>
   List.filter(

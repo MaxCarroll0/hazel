@@ -300,16 +300,16 @@ module Transition = (EV: EV_MODE) => {
         })
       | Cast(
           d'',
-          {term: Forall(tp1, _), _} as t1,
-          {term: Forall(tp2, _), _} as t2,
+          ({term: Forall(tp1, _), _}, _, _) as s1,
+          ({term: Forall(tp2, _), _}, _, _) as s2,
         ) =>
         /* Rule ITTApCast */
         Step({
           expr:
             Cast(
               TypAp(d'', tau) |> Exp.fresh,
-              Typ.subst(tau, tp1, t1),
-              Typ.subst(tau, tp2, t2),
+              Slice.subst(tau |> Slice.temp, tp1, s1),
+              Slice.subst(tau |> Slice.temp, tp2, s2),
             )
             |> Exp.fresh,
           state_update,
@@ -353,17 +353,13 @@ module Transition = (EV: EV_MODE) => {
           kind: FunAp,
           is_value: false,
         });
-      | Cast(
-          d3',
-          {term: Arrow(ty1, ty2), _},
-          {term: Arrow(ty1', ty2'), _},
-        ) =>
+      | Cast(d3', (_, Arrow(s1, s2), _), (_, Arrow(s1', s2'), _)) =>
         Step({
           expr:
             Cast(
-              Ap(dir, d3', Cast(d2', ty1', ty1) |> fresh) |> fresh,
-              ty2,
-              ty2',
+              Ap(dir, d3', Cast(d2', s1', s1) |> fresh) |> fresh,
+              s2,
+              s2',
             )
             |> fresh,
           state_update,

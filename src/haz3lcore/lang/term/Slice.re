@@ -20,28 +20,7 @@ open Util;
 
  */
 
-[@deriving (show({with_path: false}), sexp, yojson)]
-type slice = (Ctx.t, list(Id.t)); //TODO: Represent slices in a more efficient (non-list) way
-
-[@deriving (show({with_path: false}), sexp, yojson)]
-type s_ty =
-  | TEMP // TO BE REMOVED: placeholder
-  | Unknown // These will have empty slices
-  | SynSwitch // These may have non-empty slices -- the synthesised slices of the corresponding term
-  | Int
-  | Float
-  | Bool
-  | String
-  | Var(string) // TODO: Type vars are complicated -- see Typ weak-head-normalisation. Will require passing ctx around
-  | List(t) // Note, t is a join here
-  | Arrow(t, t)
-  | Sum(ConstructorMap.t(t))
-  | Prod(list(t))
-  | Ap(t, t)
-  | Join(Ctx.t, list(t)) // Keep components of join types around
-  | Rec(TermBase.tpat_t, t)
-  | Forall(TermBase.tpat_t, t)
-and t = (Typ.t, s_ty, slice); // For efficiency, keep Typ.t around (allowing fast ty_of without revaluating joins)
+include TermBase.Slice;
 
 let empty: slice = ([], []);
 let temp = (ty): t => (ty, TEMP, empty);
@@ -191,17 +170,14 @@ let rec of_ty_with_ids = ({term, ids, _} as ty: TermBase.typ_t): t => (
   of_ids(ids),
 );
 
-let hole = (Unknown(Internal) |> Typ.temp, Unknown, empty);
-let hole_with_ids = ids => (
-  Unknown(Internal) |> Typ.temp,
-  Unknown,
-  of_ids(ids),
-);
+let hole: t = (Unknown(Internal) |> Typ.temp, Unknown, empty);
+let hole_with_ids: list(Id.t) => t =
+  ids => (Unknown(Internal) |> Typ.temp, Unknown, of_ids(ids));
 let synswitch = (s): t => (Unknown(SynSwitch) |> Typ.temp, SynSwitch, s);
 
 let tag_ty = ((_, s_ty, s): t, ty): t => (ty, s_ty, s);
 
-let matched_arrow_strict = (ctx: Ctx.t, (ty, s_ty, s)) =>
+let matched_arrow_strict = (ctx: Ctx.t, (ty, s_ty, s): t): option((t, t)) =>
   Option.bind(
     switch (s_ty) {
     | Arrow(s_in, s_out) => Some((s_in, s_out))
@@ -220,10 +196,11 @@ let matched_arrow_strict = (ctx: Ctx.t, (ty, s_ty, s)) =>
     )
   );
 
-let matched_arrow = (ctx: Ctx.t, s: t) =>
+let matched_arrow = (ctx: Ctx.t, s: t): (t, t) =>
   matched_arrow_strict(ctx, s) |> Option.value(~default=(hole, hole));
 
-let matched_prod_strict = (ctx: Ctx.t, length, (ty, s_ty, s)) =>
+let matched_prod_strict =
+    (ctx: Ctx.t, length, (ty, s_ty, s): t): option(list(t)) =>
   Option.bind(
     switch (s_ty) {
     | Prod(ss) when List.length(ss) == length => Some(ss)
@@ -242,11 +219,11 @@ let matched_prod_strict = (ctx: Ctx.t, length, (ty, s_ty, s)) =>
     )
   );
 
-let matched_prod = (ctx: Ctx.t, length, s: t) =>
+let matched_prod = (ctx: Ctx.t, length, s: t): list(t) =>
   matched_prod_strict(ctx, length, s)
   |> Option.value(~default=List.init(length, _ => hole));
 
-let matched_list_strict = (ctx: Ctx.t, (ty, s_ty, s)) =>
+let matched_list_strict = (ctx: Ctx.t, (ty, s_ty, s): t): option(t) =>
   Option.bind(
     switch (s_ty) {
     | List(s) => Some(s)
@@ -262,10 +239,10 @@ let matched_list_strict = (ctx: Ctx.t, (ty, s_ty, s)) =>
     Option.map(tag_ty(s), Typ.matched_list_strict(ctx, ty))
   );
 
-let matched_list = (ctx: Ctx.t, s: t) =>
+let matched_list = (ctx: Ctx.t, s: t): t =>
   matched_list_strict(ctx, s) |> Option.value(~default=hole);
 
-let matched_args = (ctx, default_arity, (ty, s_ty, s)) => {
+let matched_args = (ctx, default_arity, (ty, s_ty, s): t): list(t) => {
   List.map2(
     tag_ty,
     switch (s_ty) {
@@ -280,5 +257,57 @@ let matched_args = (ctx, default_arity, (ty, s_ty, s)) => {
     | _ => [(ty, s_ty, s)]
     },
     Typ.matched_args(ctx, default_arity, ty),
+  );
+};
+
+/* REQUIRES NORMALIZED TYPES
+   Remove synswitches from s1 by matching against s2 */
+let rec match_synswitch = ((t1, s_ty1, c1): t, (t2, s_ty2, c2): t) => {
+  (
+    Typ.match_synswitch(t1, t2),
+    switch (s_ty1, s_ty2) {
+    | (SynSwitch, _) => s_ty2
+    // These cases can't have a synswitch inside
+    | (Unknown, _)
+    | (Int, _)
+    | (Float, _)
+    | (Bool, _)
+    | (String, _)
+    | (Var(_), _)
+    | (Ap(_), _)
+    | (Rec(_), _)
+    | (Forall(_), _)
+    | (TEMP, _) => s_ty1
+    // These might
+    | (List(s1), List(s2)) => List(match_synswitch(s1, s2))
+    | (List(_), _) => s_ty1
+    | (Arrow(s1, s2), Arrow(s1', s2')) =>
+      Arrow(match_synswitch(s1, s1'), match_synswitch(s2, s2'))
+    | (Arrow(_), _) => s_ty1
+    | (Prod(ss1), Prod(ss2)) when List.length(ss1) == List.length(ss2) =>
+      let ss = List.map2(match_synswitch, ss1, ss2);
+      Prod(ss);
+    | (Prod(_), _) => s_ty1
+    | (Join(_, ss1), Join(ctx2, ss2))
+        when List.length(ss1) == List.length(ss2) =>
+      let ss = List.map2(match_synswitch, ss1, ss2);
+      Join(ctx2, ss); // No harm in extending the context
+    | (Join(_), _) => s_ty1
+    | (Sum(sm1), Sum(sm2)) =>
+      // (Require normalisation for fast_equal)
+      let sm' =
+        ConstructorMap.match_synswitch(
+          match_synswitch,
+          fast_equal_tys,
+          sm1,
+          sm2,
+        );
+      Sum(sm');
+    | (Sum(_), _) => s_ty1
+    },
+    switch (s_ty1) {
+    | SynSwitch => c2
+    | _ => c1
+    },
   );
 };

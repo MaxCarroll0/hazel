@@ -49,9 +49,10 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
   (request, expr) => {
     switch (request, DHExp.term_of(expr)) {
     /* Remove parentheses from casts */
-    | (_, Cast(d, {term: Parens(x), _}, y))
-    | (_, Cast(d, x, {term: Parens(y), _})) =>
-      unbox(request, Cast(d, x, y) |> DHExp.fresh)
+    | (_, Cast(d, ({term: Parens(t1), _}, s_ty, c), s2)) =>
+      unbox(request, Cast(d, (t1, s_ty, c), s2) |> DHExp.fresh)
+    | (_, Cast(d, s1, ({term: Parens(t2), _}, s_ty, c))) =>
+      unbox(request, Cast(d, s1, (t2, s_ty, c)) |> DHExp.fresh)
 
     /* Base types are always already unboxed because of the ITCastID rule*/
     | (Bool, Bool(b)) => Matches(b)
@@ -64,37 +65,34 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
     | (Cons, ListLit([x, ...xs])) =>
       Matches((x, ListLit(xs) |> DHExp.fresh))
     | (Cons, ListLit([])) => DoesNotMatch
-    | (List, Cast(l, {term: List(t1), _}, {term: List(t2), _})) =>
+    | (List, Cast(l, (_, List(s1), _), (_, List(s2), _))) =>
       let* l = unbox(List, l);
-      let l = List.map(d => Cast(d, t1, t2) |> DHExp.fresh, l);
+      let l = List.map(d => Cast(d, s1, s2) |> DHExp.fresh, l);
       let l = List.map(fixup_cast, l);
       Matches(l);
-    | (
-        Cons,
-        Cast(l, {term: List(t1), _} as ct1, {term: List(t2), _} as ct2),
-      ) =>
+    | (Cons, Cast(l, (_, List(s1), _) as cs1, (_, List(s2), _) as cs2)) =>
       let* l = unbox(List, l);
       switch (l) {
       | [] => DoesNotMatch
       | [x, ...xs] =>
         Matches((
-          Cast(x, t1, t2) |> DHExp.fresh |> fixup_cast,
-          Cast(ListLit(xs) |> DHExp.fresh, ct1, ct2) |> DHExp.fresh,
+          Cast(x, s1, s2) |> DHExp.fresh |> fixup_cast,
+          Cast(ListLit(xs) |> DHExp.fresh, cs1, cs2) |> DHExp.fresh,
         ))
       };
 
     /* Tuples can be either tuples or tuple casts */
     | (Tuple(n), Tuple(t)) when List.length(t) == n => Matches(t)
     | (Tuple(_), Tuple(_)) => DoesNotMatch
-    | (Tuple(n), Cast(t, {term: Prod(t1s), _}, {term: Prod(t2s), _}))
-        when n == List.length(t1s) && n == List.length(t2s) =>
+    | (Tuple(n), Cast(t, (_, Prod(s1s), _), (_, Prod(s2s), _)))
+        when n == List.length(s1s) && n == List.length(s2s) =>
       let* t = unbox(Tuple(n), t);
       let t =
         ListUtil.map3(
-          (d, t1, t2) => Cast(d, t1, t2) |> DHExp.fresh,
+          (d, s1, s2) => Cast(d, s1, s2) |> DHExp.fresh,
           t,
-          t1s,
-          t2s,
+          s1s,
+          s2s,
         );
       let t = List.map(fixup_cast, t);
       Matches(t);
@@ -105,13 +103,19 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
       Matches()
     | (SumNoArg(_), Constructor(_)) => DoesNotMatch
     | (SumNoArg(_), Ap(_, {term: Constructor(_), _}, _)) => DoesNotMatch
-    | (SumNoArg(name), Cast(d1, {term: Sum(_), _}, {term: Sum(s2), _}))
+    | (
+        SumNoArg(name),
+        Cast(d1, ({term: Sum(_), _}, _, _), ({term: Sum(s2), _}, _, _)),
+      )
         when
           ConstructorMap.has_constructor_no_args(name, s2)
           || ConstructorMap.has_bad_entry(s2) =>
       let* d1 = unbox(SumNoArg(name), d1);
       Matches(d1);
-    | (SumNoArg(_), Cast(_, {term: Sum(_), _}, {term: Sum(_), _})) =>
+    | (
+        SumNoArg(_),
+        Cast(_, ({term: Sum(_), _}, _, _), ({term: Sum(_), _}, _, _)),
+      ) =>
       IndetMatch
 
     | (SumWithArg(_), Constructor(_)) => DoesNotMatch
@@ -119,12 +123,11 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
         when name1 == name2 =>
       Matches(d3)
     | (SumWithArg(_), Ap(_, {term: Constructor(_), _}, _)) => DoesNotMatch
-    | (SumWithArg(name), Cast(d1, {term: Sum(s1), _}, {term: Sum(s2), _})) =>
-      let get_entry_or_bad = s =>
+    | (SumWithArg(name), Cast(d1, (_, Sum(s1), _), (_, Sum(s2), _))) =>
+      let get_entry_or_bad = (s): option(Slice.t) =>
         switch (ConstructorMap.get_entry(name, s)) {
         | Some(x) => Some(x)
-        | None when ConstructorMap.has_bad_entry(s) =>
-          Some(Typ.temp(Unknown(Internal)))
+        | None when ConstructorMap.has_bad_entry(s) => Some(Slice.hole)
         | None => None
         };
       switch (get_entry_or_bad(s1), get_entry_or_bad(s2)) {
@@ -136,7 +139,7 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
     // There should be some sort of failure here when the cast doesn't go through.
 
     /* Any cast from unknown is indet */
-    | (_, Cast(_, {term: Unknown(_), _}, _)) => IndetMatch
+    | (_, Cast(_, ({term: Unknown(_), _}, _, _), _)) => IndetMatch
 
     /* Any failed cast is indet */
     | (_, FailedCast(_)) => IndetMatch

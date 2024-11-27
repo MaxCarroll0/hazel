@@ -58,19 +58,21 @@ let tet_ap_of_hole_deferral = () =>
       Cast(
         Cast(
           EmptyHole |> Exp.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          Unknown(Internal) |> Typ.fresh |> Slice.of_ty_with_ids,
           Arrow(
             Unknown(Internal) |> Typ.fresh,
             Unknown(Internal) |> Typ.fresh,
           )
-          |> Typ.fresh,
+          |> Typ.fresh
+          |> Slice.of_ty_with_ids,
         )
         |> Exp.fresh,
         Arrow(
           Unknown(Internal) |> Typ.fresh,
           Unknown(Internal) |> Typ.fresh,
         )
-        |> Typ.fresh,
+        |> Typ.fresh
+        |> Slice.of_ty_with_ids,
         Arrow(
           Prod([
             Unknown(Internal) |> Typ.fresh,
@@ -80,26 +82,27 @@ let tet_ap_of_hole_deferral = () =>
           |> Typ.fresh,
           Unknown(Internal) |> Typ.fresh,
         )
-        |> Typ.fresh,
+        |> Typ.fresh
+        |> Slice.of_ty_with_ids,
       )
       |> Exp.fresh,
       Tuple([
         Cast(
           Float(1.) |> Exp.fresh,
-          Float |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          Float |> Typ.fresh |> Slice.of_ty_with_ids,
+          Unknown(Internal) |> Typ.fresh |> Slice.of_ty_with_ids,
         )
         |> Exp.fresh,
         Cast(
           Bool(true) |> Exp.fresh,
-          Bool |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          Bool |> Typ.fresh |> Slice.of_ty_with_ids,
+          Unknown(Internal) |> Typ.fresh |> Slice.of_ty_with_ids,
         )
         |> Exp.fresh,
         Cast(
           Int(3) |> Exp.fresh,
-          Int |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          Int |> Typ.fresh |> Slice.of_ty_with_ids,
+          Unknown(Internal) |> Typ.fresh |> Slice.of_ty_with_ids,
         )
         |> Exp.fresh,
       ])
@@ -112,19 +115,21 @@ let tet_ap_of_hole_deferral = () =>
         Cast(
           Cast(
             EmptyHole |> Exp.fresh,
-            Unknown(Internal) |> Typ.fresh,
+            Unknown(Internal) |> Typ.fresh |> Slice.of_ty_with_ids,
             Arrow(
               Unknown(Internal) |> Typ.fresh,
               Unknown(Internal) |> Typ.fresh,
             )
-            |> Typ.fresh,
+            |> Typ.fresh
+            |> Slice.of_ty_with_ids,
           )
           |> Exp.fresh,
           Arrow(
             Unknown(Internal) |> Typ.fresh,
             Unknown(Internal) |> Typ.fresh,
           )
-          |> Typ.fresh,
+          |> Typ.fresh
+          |> Slice.of_ty_with_ids,
           Arrow(
             Prod([
               Unknown(Internal) |> Typ.fresh,
@@ -134,7 +139,8 @@ let tet_ap_of_hole_deferral = () =>
             |> Typ.fresh,
             Unknown(Internal) |> Typ.fresh,
           )
-          |> Typ.fresh,
+          |> Typ.fresh
+          |> Slice.of_ty_with_ids,
         )
         |> Exp.fresh,
         [
@@ -142,8 +148,8 @@ let tet_ap_of_hole_deferral = () =>
           Deferral(InAp) |> Exp.fresh,
           Cast(
             Int(3) |> Exp.fresh,
-            Int |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
+            Int |> Typ.fresh |> Slice.of_ty_with_ids,
+            Unknown(Internal) |> Typ.fresh |> Slice.of_ty_with_ids,
           )
           |> Exp.fresh,
         ],
@@ -152,14 +158,14 @@ let tet_ap_of_hole_deferral = () =>
       Tuple([
         Cast(
           Float(1.) |> Exp.fresh,
-          Float |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          Float |> Typ.fresh |> Slice.of_ty_with_ids,
+          Unknown(Internal) |> Typ.fresh |> Slice.of_ty_with_ids,
         )
         |> Exp.fresh,
         Cast(
           Bool(true) |> Exp.fresh,
-          Bool |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          Bool |> Typ.fresh |> Slice.of_ty_with_ids,
+          Unknown(Internal) |> Typ.fresh |> Slice.of_ty_with_ids,
         )
         |> Exp.fresh,
       ])

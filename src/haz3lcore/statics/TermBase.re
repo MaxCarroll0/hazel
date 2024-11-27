@@ -60,7 +60,7 @@ and exp_term =
   | EmptyHole
   | MultiHole(list(any_t))
   | DynamicErrorHole(exp_t, InvalidOperationError.t)
-  | FailedCast(exp_t, typ_t, typ_t)
+  | FailedCast(exp_t, slice_t, slice_t)
   | Deferral(deferral_position_t)
   | Undefined
   | Bool(bool)
@@ -99,7 +99,7 @@ and exp_term =
   /* INVARIANT: in dynamic expressions, casts must be between
      two consistent types. Both types should be normalized in
      dynamics for the cast calculus to work right. */
-  | Cast(exp_t, typ_t, typ_t)
+  | Cast(exp_t, slice_t, slice_t)
 and exp_t = IdTagged.t(exp_term)
 and pat_term =
   | Invalid(string)
@@ -135,6 +135,26 @@ and typ_term =
   | Rec(tpat_t, typ_t)
   | Forall(tpat_t, typ_t)
 and typ_t = IdTagged.t(typ_term)
+and code_slice = (ctx_t, list(Id.t)) //TODO: Represent slices in a more efficient (non-list?) way
+and slice_typ_term =
+  // Could be merged with typ_t
+  | TEMP // TO BE REMOVED: placeholder
+  | Unknown // These will have empty slices
+  | SynSwitch // These may have non-empty slices -- the synthesised slices of the corresponding term
+  | Int
+  | Float
+  | Bool
+  | String
+  | Var(string) // TODO: Type vars are complicated -- see Typ weak-head-normalisation. Will require passing ctx around
+  | List(slice_t) // Note, t is a join here
+  | Arrow(slice_t, slice_t)
+  | Sum(ConstructorMap.t(slice_t))
+  | Prod(list(slice_t))
+  | Ap(slice_t, slice_t)
+  | Join(ctx_t, list(slice_t)) // Keep components of join types around
+  | Rec(tpat_t, slice_t)
+  | Forall(tpat_t, slice_t)
+and slice_t = (typ_t, slice_typ_term, code_slice) // For efficiency, keep Typ.t around (allowing fast ty_of without revaluating joins)
 and tpat_term =
   | Invalid(string)
   | EmptyHole
@@ -159,6 +179,24 @@ and type_provenance =
   | SynSwitch
   | Hole(type_hole)
   | Internal
+and ctx_kind =
+  | Singleton(typ_t)
+  | Abstract
+and ctx_var_entry = {
+  name: Var.t,
+  id: Id.t,
+  typ: typ_t,
+}
+and ctx_tvar_entry = {
+  name: string,
+  id: Id.t,
+  kind: ctx_kind,
+}
+and ctx_entry =
+  | VarEntry(ctx_var_entry)
+  | ConstructorEntry(ctx_var_entry)
+  | TVarEntry(ctx_tvar_entry)
+and ctx_t = list(ctx_entry)
 and filter = {
   pat: exp_t,
   act: FilterAction.t,
@@ -173,6 +211,7 @@ module rec Any: {
       ~f_exp: (Exp.t => Exp.t, Exp.t) => Exp.t=?,
       ~f_pat: (Pat.t => Pat.t, Pat.t) => Pat.t=?,
       ~f_typ: (Typ.t => Typ.t, Typ.t) => Typ.t=?,
+      ~f_slice: (Slice.t => Slice.t, Slice.t) => Slice.t=?,
       ~f_tpat: (TPat.t => TPat.t, TPat.t) => TPat.t=?,
       ~f_rul: (Rul.t => Rul.t, Rul.t) => Rul.t=?,
       ~f_any: (Any.t => Any.t, Any.t) => Any.t=?,
@@ -190,6 +229,7 @@ module rec Any: {
         ~f_exp=continue,
         ~f_pat=continue,
         ~f_typ=continue,
+        ~f_slice=continue,
         ~f_tpat=continue,
         ~f_rul=continue,
         ~f_any=continue,
@@ -198,17 +238,70 @@ module rec Any: {
     let rec_call = y =>
       switch (y) {
       | Exp(x) =>
-        Exp(Exp.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any, x))
+        Exp(
+          Exp.map_term(
+            ~f_exp,
+            ~f_pat,
+            ~f_typ,
+            ~f_slice,
+            ~f_tpat,
+            ~f_rul,
+            ~f_any,
+            x,
+          ),
+        )
       | Pat(x) =>
-        Pat(Pat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any, x))
+        Pat(
+          Pat.map_term(
+            ~f_exp,
+            ~f_pat,
+            ~f_typ,
+            ~f_slice,
+            ~f_tpat,
+            ~f_rul,
+            ~f_any,
+            x,
+          ),
+        )
       | Typ(x) =>
-        Typ(Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any, x))
+        Typ(
+          Typ.map_term(
+            ~f_exp,
+            ~f_pat,
+            ~f_typ,
+            ~f_slice,
+            ~f_tpat,
+            ~f_rul,
+            ~f_any,
+            x,
+          ),
+        )
       | TPat(x) =>
         TPat(
-          TPat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any, x),
+          TPat.map_term(
+            ~f_exp,
+            ~f_pat,
+            ~f_typ,
+            ~f_slice,
+            ~f_tpat,
+            ~f_rul,
+            ~f_any,
+            x,
+          ),
         )
       | Rul(x) =>
-        Rul(Rul.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any, x))
+        Rul(
+          Rul.map_term(
+            ~f_exp,
+            ~f_pat,
+            ~f_typ,
+            ~f_slice,
+            ~f_tpat,
+            ~f_rul,
+            ~f_any,
+            x,
+          ),
+        )
       | Nul () => Nul()
       | Any () => Any()
       };
@@ -245,6 +338,7 @@ and Exp: {
       ~f_exp: (Exp.t => Exp.t, Exp.t) => Exp.t=?,
       ~f_pat: (Pat.t => Pat.t, Pat.t) => Pat.t=?,
       ~f_typ: (Typ.t => Typ.t, Typ.t) => Typ.t=?,
+      ~f_slice: (Slice.t => Slice.t, Slice.t) => Slice.t=?,
       ~f_tpat: (TPat.t => TPat.t, TPat.t) => TPat.t=?,
       ~f_rul: (Rul.t => Rul.t, Rul.t) => Rul.t=?,
       ~f_any: (Any.t => Any.t, Any.t) => Any.t=?,
@@ -266,21 +360,30 @@ and Exp: {
         ~f_exp=continue,
         ~f_pat=continue,
         ~f_typ=continue,
+        ~f_slice=continue,
         ~f_tpat=continue,
         ~f_rul=continue,
         ~f_any=continue,
         x,
       ) => {
     let exp_map_term =
-      Exp.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Exp.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let pat_map_term =
-      Pat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Pat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let typ_map_term =
-      Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let tpat_map_term =
-      TPat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      TPat.map_term(
+        ~f_exp,
+        ~f_pat,
+        ~f_typ,
+        ~f_slice,
+        ~f_tpat,
+        ~f_rul,
+        ~f_any,
+      );
     let any_map_term =
-      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let flt_map_term =
       StepperFilterKind.map_term(
         ~f_exp,
@@ -360,10 +463,10 @@ and Exp: {
     | (Invalid(s1), Invalid(s2)) => s1 == s2
     | (MultiHole(xs), MultiHole(ys)) when List.length(xs) == List.length(ys) =>
       List.equal(Any.fast_equal, xs, ys)
-    | (FailedCast(e1, t1, t2), FailedCast(e2, t3, t4)) =>
+    | (FailedCast(e1, s1, s2), FailedCast(e2, s3, s4)) =>
       Exp.fast_equal(e1, e2)
-      && Typ.fast_equal(t1, t3)
-      && Typ.fast_equal(t2, t4)
+      && Slice.fast_equal_tys(s1, s3)
+      && Slice.fast_equal_tys(s2, s4)
     | (Deferral(d1), Deferral(d2)) => d1 == d2
     | (Bool(b1), Bool(b2)) => b1 == b2
     | (Int(i1), Int(i2)) => i1 == i2
@@ -426,8 +529,10 @@ and Exp: {
            rls1,
            rls2,
          )
-    | (Cast(e1, t1, t2), Cast(e2, t3, t4)) =>
-      fast_equal(e1, e2) && Typ.fast_equal(t1, t3) && Typ.fast_equal(t2, t4)
+    | (Cast(e1, s1, s2), Cast(e2, s3, s4)) =>
+      fast_equal(e1, e2)
+      && Slice.fast_equal_tys(s1, s3)
+      && Slice.fast_equal_tys(s2, s4)
     | (Invalid(_), _)
     | (FailedCast(_), _)
     | (Deferral(_), _)
@@ -475,6 +580,7 @@ and Pat: {
       ~f_exp: (Exp.t => Exp.t, Exp.t) => Exp.t=?,
       ~f_pat: (Pat.t => Pat.t, Pat.t) => Pat.t=?,
       ~f_typ: (Typ.t => Typ.t, Typ.t) => Typ.t=?,
+      ~f_slice: (Slice.t => Slice.t, Slice.t) => Slice.t=?,
       ~f_tpat: (TPat.t => TPat.t, TPat.t) => TPat.t=?,
       ~f_rul: (Rul.t => Rul.t, Rul.t) => Rul.t=?,
       ~f_any: (Any.t => Any.t, Any.t) => Any.t=?,
@@ -494,17 +600,18 @@ and Pat: {
         ~f_exp=continue,
         ~f_pat=continue,
         ~f_typ=continue,
+        ~f_slice=continue,
         ~f_tpat=continue,
         ~f_rul=continue,
         ~f_any=continue,
         x,
       ) => {
     let pat_map_term =
-      Pat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Pat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let typ_map_term =
-      Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let any_map_term =
-      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let rec_call = ({term, _} as exp: t) => {
       ...exp,
       term:
@@ -587,6 +694,7 @@ and Typ: {
       ~f_exp: (Exp.t => Exp.t, Exp.t) => Exp.t=?,
       ~f_pat: (Pat.t => Pat.t, Pat.t) => Pat.t=?,
       ~f_typ: (Typ.t => Typ.t, Typ.t) => Typ.t=?,
+      ~f_slice: (Slice.t => Slice.t, Slice.t) => Slice.t=?,
       ~f_tpat: (TPat.t => TPat.t, TPat.t) => TPat.t=?,
       ~f_rul: (Rul.t => Rul.t, Rul.t) => Rul.t=?,
       ~f_any: (Any.t => Any.t, Any.t) => Any.t=?,
@@ -610,17 +718,26 @@ and Typ: {
         ~f_exp=continue,
         ~f_pat=continue,
         ~f_typ=continue,
+        ~f_slice=continue,
         ~f_tpat=continue,
         ~f_rul=continue,
         ~f_any=continue,
         x,
       ) => {
     let typ_map_term =
-      Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let any_map_term =
-      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let tpat_map_term =
-      TPat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      TPat.map_term(
+        ~f_exp,
+        ~f_pat,
+        ~f_typ,
+        ~f_slice,
+        ~f_tpat,
+        ~f_rul,
+        ~f_any,
+      );
     let rec_call = ({term, _} as exp: t) => {
       ...exp,
       term:
@@ -739,6 +856,121 @@ and Typ: {
 
   let fast_equal = eq_internal(0);
 }
+and Slice: {
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type slice = code_slice;
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type s_ty = slice_typ_term;
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type t = slice_t;
+
+  type sum_map = ConstructorMap.t(t);
+
+  let map_term:
+    (
+      ~f_exp: (Exp.t => Exp.t, Exp.t) => Exp.t=?,
+      ~f_pat: (Pat.t => Pat.t, Pat.t) => Pat.t=?,
+      ~f_typ: (Typ.t => Typ.t, Typ.t) => Typ.t=?,
+      ~f_slice: (Slice.t => Slice.t, Slice.t) => Slice.t=?,
+      ~f_tpat: (TPat.t => TPat.t, TPat.t) => TPat.t=?,
+      ~f_rul: (Rul.t => Rul.t, Rul.t) => Rul.t=?,
+      ~f_any: (Any.t => Any.t, Any.t) => Any.t=?,
+      t
+    ) =>
+    t;
+
+  let subst: (t, TPat.t, t) => t;
+
+  let fast_equal_tys: (t, t) => bool;
+} = {
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type slice = code_slice;
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type s_ty = slice_typ_term;
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type t = slice_t;
+
+  type sum_map = ConstructorMap.t(t);
+
+  let map_term =
+      (
+        ~f_exp=continue,
+        ~f_pat=continue,
+        ~f_typ=continue,
+        ~f_slice=continue,
+        ~f_tpat=continue,
+        ~f_rul=continue,
+        ~f_any=continue,
+        x,
+      ) => {
+    let typ_map_term =
+      Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
+    let slice_map_term =
+      Slice.map_term(
+        ~f_exp,
+        ~f_pat,
+        ~f_typ,
+        ~f_slice,
+        ~f_tpat,
+        ~f_rul,
+        ~f_any,
+      );
+    let tpat_map_term =
+      TPat.map_term(
+        ~f_exp,
+        ~f_pat,
+        ~f_typ,
+        ~f_slice,
+        ~f_tpat,
+        ~f_rul,
+        ~f_any,
+      );
+    let rec_call = ((ty: Typ.t, s_ty, c): t): t => {
+      (
+        typ_map_term(ty),
+        switch (s_ty) {
+        | TEMP
+        | Unknown
+        | SynSwitch
+        | Bool
+        | Int
+        | Float
+        | String
+        | Var(_) => s_ty
+        | List(s) => List(slice_map_term(s))
+        | Ap(s1, s2) => Ap(slice_map_term(s1), slice_map_term(s2))
+        | Prod(ss) => Prod(List.map(slice_map_term, ss))
+        | Join(ctx, ss) => Join(ctx, List.map(slice_map_term, ss)) // TODO contexts might require mapping?
+        | Arrow(s1, s2) => Arrow(slice_map_term(s1), slice_map_term(s2))
+        | Sum(m) =>
+          Sum(
+            List.map(
+              fun
+              | ConstructorMap.Variant(c, ids, s) =>
+                ConstructorMap.Variant(c, ids, Option.map(slice_map_term, s))
+              | ConstructorMap.BadEntry(s) =>
+                ConstructorMap.BadEntry(slice_map_term(s)),
+              m,
+            ),
+          )
+        | Rec(tp, s) => Rec(tpat_map_term(tp), slice_map_term(s))
+        | Forall(tp, s) => Forall(tpat_map_term(tp), slice_map_term(s))
+        },
+        c,
+      );
+    };
+    x |> f_slice(rec_call);
+  };
+
+  let subst = ((t1, _, _) as s1, x, (t2, _, _) as s2) => (
+    Typ.subst(t1, x, t2),
+    TEMP,
+    ([], []),
+  ); //TODO
+
+  let fast_equal_tys = ((ty1, _, _), (ty2, _, _)) =>
+    Typ.fast_equal(ty1, ty2);
+}
 and TPat: {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type term = tpat_term;
@@ -750,6 +982,7 @@ and TPat: {
       ~f_exp: (Exp.t => Exp.t, Exp.t) => Exp.t=?,
       ~f_pat: (Pat.t => Pat.t, Pat.t) => Pat.t=?,
       ~f_typ: (Typ.t => Typ.t, Typ.t) => Typ.t=?,
+      ~f_slice: (Slice.t => Slice.t, Slice.t) => Slice.t=?,
       ~f_tpat: (TPat.t => TPat.t, TPat.t) => TPat.t=?,
       ~f_rul: (Rul.t => Rul.t, Rul.t) => Rul.t=?,
       ~f_any: (Any.t => Any.t, Any.t) => Any.t=?,
@@ -771,13 +1004,14 @@ and TPat: {
         ~f_exp=continue,
         ~f_pat=continue,
         ~f_typ=continue,
+        ~f_slice=continue,
         ~f_tpat=continue,
         ~f_rul=continue,
         ~f_any=continue,
         x,
       ) => {
     let any_map_term =
-      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let rec_call = ({term, _} as exp: t) => {
       ...exp,
       term:
@@ -822,6 +1056,7 @@ and Rul: {
       ~f_exp: (Exp.t => Exp.t, Exp.t) => Exp.t=?,
       ~f_pat: (Pat.t => Pat.t, Pat.t) => Pat.t=?,
       ~f_typ: (Typ.t => Typ.t, Typ.t) => Typ.t=?,
+      ~f_slice: (Slice.t => Slice.t, Slice.t) => Slice.t=?,
       ~f_tpat: (TPat.t => TPat.t, TPat.t) => TPat.t=?,
       ~f_rul: (Rul.t => Rul.t, Rul.t) => Rul.t=?,
       ~f_any: (Any.t => Any.t, Any.t) => Any.t=?,
@@ -841,17 +1076,18 @@ and Rul: {
         ~f_exp=continue,
         ~f_pat=continue,
         ~f_typ=continue,
+        ~f_slice=continue,
         ~f_tpat=continue,
         ~f_rul=continue,
         ~f_any=continue,
         x,
       ) => {
     let exp_map_term =
-      Exp.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Exp.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let pat_map_term =
-      Pat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Pat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let any_map_term =
-      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Any.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let rec_call = ({term, _} as exp: t) => {
       ...exp,
       term:
@@ -1025,6 +1261,7 @@ and StepperFilterKind: {
       ~f_exp: (Exp.t => Exp.t, Exp.t) => Exp.t=?,
       ~f_pat: (Pat.t => Pat.t, Pat.t) => Pat.t=?,
       ~f_typ: (Typ.t => Typ.t, Typ.t) => Typ.t=?,
+      ~f_slice: (Slice.t => Slice.t, Slice.t) => Slice.t=?,
       ~f_tpat: (TPat.t => TPat.t, TPat.t) => TPat.t=?,
       ~f_rul: (Rul.t => Rul.t, Rul.t) => Rul.t=?,
       ~f_any: (Any.t => Any.t, Any.t) => Any.t=?,
@@ -1051,12 +1288,13 @@ and StepperFilterKind: {
         ~f_exp=continue,
         ~f_pat=continue,
         ~f_typ=continue,
+        ~f_slice=continue,
         ~f_tpat=continue,
         ~f_rul=continue,
         ~f_any=continue,
       ) => {
     let exp_map_term =
-      Exp.map_term(~f_exp, ~f_pat, ~f_typ, ~f_tpat, ~f_rul, ~f_any);
+      Exp.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     (
       fun
       | Filter({pat: e, act}) => Filter({pat: exp_map_term(e), act})

@@ -19,6 +19,8 @@ Some analysis types (lists, annotations) are closer to being 'correct'.
 ## Implementation
 ### Core 
 - Correctly managing SynSwitch slices -- Decompose syn slice, replacing synswitches in ana slice with the corresponding syn slices.
+- Store slice in prevSynSwitch
+- More principled slice joins. i.e. some Slice.join and Slice.join_all to conform with original code.
 - Make the context slices involving annotations maintain the structure of the type (currently : Int -> Int). May actually be more readable as is.
 - Make context slice non-incremental and remove entries accordingly when bound (currently not done). Or alternatively keep incremental but have a second explicit 'bound' context (could be achieved with a Coctx.t).
 - full\_slice: Keep slices of only most specific join branches if consistent.
@@ -26,6 +28,7 @@ Some analysis types (lists, annotations) are closer to being 'correct'.
 - Type slicing for: type aliases, constructors, fix/recursion.
 
 ### Extension
+- Slice normalisation
 - Type slicing for patterns & match.
 - Type slicing for type variables and type functions.
 - (low priority) Type slicing for: unquote, tests, filters, deferred applications, 
@@ -34,19 +37,24 @@ Some analysis types (lists, annotations) are closer to being 'correct'.
 - Shift parts of slice calculation to Info.re, using Self and Mode. In particular, add to Info.derived\_exp and Info.derived\_pat.
 - Also shift relevant parts to Self.re and Mode.re
 - Distinguish between Synthesised and Analytic type slices and allow both to be retrieved from Info.t clearly and cleanly.
-- Better integration between Typ.re and Slice.re. 
+- Better integration between Typ.re and Slice.re. Might even be best to fully merge Typ and Slice
 - Distinguish better the idea of a decomposable slice indexed by a type (Slice.t) and a concrete code slice (Slice.slice). In particular, both are confusingly referred to in code as 's' or 'slice'. Maybe pack Slice.slice related code into a sub-module 'Code'.
 
 ## Efficient & Performance
 - Slices can hold lods of duplicate ids. Think of a better way to represent these while maintaining decomposability.
 - Appears to be too slow for live code completion. Add a filter to not compute slices, and only compute upon request (e.g. clicking on syn/ana type in the cursor inspector). For the moment turning off assist gives good performance.
 
+# Correctness
+- Check that: Slice.ty\_of is equal to s\_ty (up to equivalence of joins) after static type checking (i.e. in Info).
+
 # Cast Slicing
 ## Interaction
 Click on casts in the stepper to retrieve relevant type slices.
 
 ## Implementation
-(everything)
+- Click to view & Debugging
+- Tag ids during elaboration
+- Fix/ensure correctness of cast tests (d5, d8, ap\_of\_deferral\_of\_hole, tet\_ap\_of\_hole\_deferral)
 
 # Search Procedure
 (everything)
@@ -56,3 +64,4 @@ Click on casts in the stepper to retrieve relevant type slices.
 - Elaboration inserts too many casts during let expressions (see test elaboration3).
 - Let bindings annotated with single `?` fail to pick up correct context slice: `let f : ? = ? in f`
 - Type checking (only the name checking & placing into error holes) for sum types/type aliases is broken by incorrect use of Slice.temp 
+- Ground matching of TEMP slices

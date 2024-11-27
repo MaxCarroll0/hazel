@@ -138,8 +138,8 @@ let of_list_concat = (ctx: Ctx.t, mode: t, concat_ids: list(Id.t)): t =>
     Ana(
       Slice.(
         List(Unknown(SynSwitch) |> Typ.temp) |> Typ.temp,
-        List((Unknown(SynSwitch) |> Typ.temp, SynSwitch, Slice.empty)),
-        Slice.of_ids(concat_ids),
+        List((Unknown(SynSwitch) |> Typ.temp, SynSwitch, empty)),
+        of_ids(concat_ids),
       ),
     )
   | Ana((_, _, _) as s) =>

@@ -92,7 +92,7 @@ let rec ground_cases_of = (ty: Typ.t): ground_cases => {
 /* gives a transition step that can be taken by the cast calculus here if applicable. */
 let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
   switch (DHExp.term_of(d)) {
-  | Cast(d1, t1, t2) =>
+  | Cast(d1, (t1, _, c1) as s1, (t2, _, c2) as s2) =>
     let d1 =
       if (recursive) {
         d1 |> transition(~recursive) |> Option.value(~default=d1);
@@ -111,39 +111,47 @@ let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
 
     | (Hole, Ground) =>
       switch (DHExp.term_of(d1)) {
-      | Cast(d2, t3, {term: Unknown(_), _}) =>
+      | Cast(d2, (t3, _, _) as s3, ({term: Unknown(_), _}, _, _)) =>
         /* by canonical forms, d1' must be of the form d<ty'' -> ?> */
         if (Typ.eq(t3, t2)) {
           Some
             (d2); // Rule ITCastSucceed
         } else {
           Some
-            (FailedCast(d2, t3, t2) |> DHExp.fresh); // Rule ITCastFail
+            (FailedCast(d2, s3, s2) |> DHExp.fresh); // Rule ITCastFail
         }
       | _ => None
       }
 
     | (Hole, NotGroundOrHole(t2_grounded)) =>
       /* ITExpand rule */
-      let inner_cast = Cast(d1, t1, t2_grounded) |> DHExp.fresh;
+      let t2_grounded_slice =
+        Slice.of_ty(Slice.empty, t2_grounded) |> Slice.append(c2);
+      let inner_cast = Cast(d1, s1, t2_grounded_slice) |> DHExp.fresh;
       // HACK: we need to check the inner cast here
       let inner_cast =
         switch (transition(~recursive, inner_cast)) {
         | Some(d1) => d1
         | None => inner_cast
         };
-      Some(Cast(inner_cast, t2_grounded, t2) |> DHExp.fresh);
+      Some(Cast(inner_cast, t2_grounded_slice, s2) |> DHExp.fresh);
 
     | (NotGroundOrHole(t1_grounded), Hole) =>
       /* ITGround rule */
+      let t1_grounded_slice =
+        Slice.of_ty(Slice.empty, t1_grounded) |> Slice.append(c1);
       Some(
-        Cast(Cast(d1, t1, t1_grounded) |> DHExp.fresh, t1_grounded, t2)
+        Cast(
+          Cast(d1, s1, t1_grounded_slice) |> DHExp.fresh,
+          t1_grounded_slice,
+          s2,
+        )
         |> DHExp.fresh,
-      )
+      );
 
     | (Ground, NotGroundOrHole(_)) =>
       switch (DHExp.term_of(d1)) {
-      | Cast(d2, t3, _) =>
+      | Cast(d2, (t3, _, _), _) =>
         if (Typ.eq(t3, t2)) {
           Some(d2);
         } else {
@@ -187,7 +195,11 @@ let pattern_fixup = (p: DHPat.t): DHPat.t => {
       let (p1, d1) = unwrap_casts(p1);
       (
         p1,
-        {term: Cast(d1, t1, t2), copied: p.copied, ids: p.ids}
+        {
+          term: Cast(d1, Slice.of_ty_with_ids(t1), Slice.of_ty_with_ids(t2)),
+          copied: p.copied,
+          ids: p.ids,
+        }
         |> transition_multiple,
       );
     | _ => (p, hole)
@@ -196,17 +208,22 @@ let pattern_fixup = (p: DHPat.t): DHPat.t => {
   let rec rewrap_casts = ((p: DHPat.t, d: DHExp.t)): DHPat.t => {
     switch (DHExp.term_of(d)) {
     | EmptyHole => p
-    | Cast(d1, t1, t2) =>
+    | Cast(d1, s1, s2) =>
       let p1 = rewrap_casts((p, d1));
-      {term: Cast(p1, t1, t2), copied: d.copied, ids: d.ids};
-    | FailedCast(d1, t1, t2) =>
+      {
+        term: Cast(p1, Slice.ty_of(s1), Slice.ty_of(s2)),
+        copied: d.copied,
+        ids: d.ids,
+      };
+    | FailedCast(d1, s1, s2) =>
       let p1 = rewrap_casts((p, d1));
       {
         term:
           Cast(
-            Cast(p1, t1, Typ.fresh(Unknown(Internal))) |> DHPat.fresh,
+            Cast(p1, Slice.ty_of(s1), Typ.fresh(Unknown(Internal)))
+            |> DHPat.fresh,
             Typ.fresh(Unknown(Internal)),
-            t2,
+            Slice.ty_of(s2),
           ),
         copied: d.copied,
         ids: d.ids,

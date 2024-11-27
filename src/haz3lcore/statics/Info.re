@@ -322,36 +322,13 @@ let error_of: t => option(error) =
 
 let exp_co_ctx: exp => CoCtx.t = ({co_ctx, _}) => co_ctx;
 
-// Use slice if synthesising OR a synswitch is at any position in an analysis
-// TODO: Note this is obviously NOT correct in general. Need to use the _correct_ slice for each synswitch.
 let exp_slice: exp => Slice.t =
   ({slice_syn, mode, _}) => {
-    let rec syn = ((_, s_ty, _): Slice.t) =>
-      switch (s_ty) {
-      | SynSwitch => true
-      | List(s')
-      | Rec(_, s')
-      | Forall(_, s') => syn(s')
-      | Join(_, ss)
-      | Prod(ss) => List.fold_left((acc, s') => acc || syn(s'), false, ss)
-      | Sum(m) =>
-        ConstructorMap.fold_vals((acc, s') => acc || syn(s'), false, m)
-      | Arrow(s1, s2)
-      | Ap(s1, s2) => syn(s1) || syn(s2)
-      | Unknown
-      | Int
-      | Float
-      | Bool
-      | String
-      | Var(_)
-      | TEMP => false
-      };
     switch (mode) {
     | Syn
     | SynFun
     | SynTypFun => slice_syn
-    | Ana(s) when syn(s) => slice_syn
-    | Ana(s) => s
+    | Ana(slice_ana) => Slice.match_synswitch(slice_ana, slice_syn)
     };
   };
 
@@ -369,32 +346,11 @@ let pat_ctx: pat => Ctx.t = ({ctx, _}) => ctx;
 let pat_ty: pat => Typ.t = ({ty, _}) => ty;
 let pat_slice: pat => Slice.t =
   ({slice_syn, mode, _}) => {
-    let rec syn = ((_, s_ty, _): Slice.t) =>
-      switch (s_ty) {
-      | SynSwitch => true
-      | List(s')
-      | Rec(_, s')
-      | Forall(_, s') => syn(s')
-      | Join(_, ss)
-      | Prod(ss) => List.fold_left((acc, s') => acc || syn(s'), false, ss)
-      | Sum(m) =>
-        ConstructorMap.fold_vals((acc, s') => acc || syn(s'), false, m)
-      | Arrow(s1, s2)
-      | Ap(s1, s2) => syn(s1) || syn(s2)
-      | Unknown
-      | Int
-      | Float
-      | Bool
-      | String
-      | Var(_)
-      | TEMP => false
-      };
     switch (mode) {
     | Syn
     | SynFun
     | SynTypFun => slice_syn
-    | Ana(s) when syn(s) => slice_syn
-    | Ana(s) => s
+    | Ana(slice_ana) => Slice.match_synswitch(slice_ana, slice_syn)
     };
   };
 let pat_slice_syn: pat => Slice.t = ({slice_syn, _}) => slice_syn;

@@ -414,9 +414,9 @@ let mk =
               DHAnnot.CastDecoration,
               hcats([
                 DHDoc_common.Delim.open_Cast,
-                DHDoc_Typ.mk(~enforce_inline=true, t1),
+                DHDoc_Typ.mk(~enforce_inline=true, t1 |> Slice.ty_of),
                 DHDoc_common.Delim.arrow_Cast,
-                DHDoc_Typ.mk(~enforce_inline=true, t2),
+                DHDoc_Typ.mk(~enforce_inline=true, t2 |> Slice.ty_of),
                 DHDoc_common.Delim.close_Cast,
               ]),
             ),
@@ -462,9 +462,9 @@ let mk =
           hcats([
             DHDoc_common.Delim.open_FailedCast,
             hseps([
-              DHDoc_Typ.mk(~enforce_inline=true, ty1),
+              DHDoc_Typ.mk(~enforce_inline=true, ty1 |> Slice.ty_of),
               DHDoc_common.Delim.arrow_FailedCast,
-              DHDoc_Typ.mk(~enforce_inline=true, ty3),
+              DHDoc_Typ.mk(~enforce_inline=true, ty3 |> Slice.ty_of),
             ]),
             DHDoc_common.Delim.close_FailedCast,
           ])

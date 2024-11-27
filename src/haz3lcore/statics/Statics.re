@@ -241,10 +241,10 @@ and uexp_to_info_map =
       ~slice_syn=Slice.hole_with_ids(ids),
       m,
     );
-  | Cast(e, t1, t2)
-  | FailedCast(e, t1, t2) =>
-    let (e, m) = go(~mode=Ana(t1 |> Slice.(of_ty(of_ids(ids)))), e, m);
-    add(~self=Just(t2), ~co_ctx=e.co_ctx, ~slice_syn=Slice.temp(t2), m);
+  | Cast(e, s1, s2)
+  | FailedCast(e, s1, s2) =>
+    let (e, m) = go(~mode=Ana(s1), e, m);
+    add(~self=Just(Slice.ty_of(s2)), ~co_ctx=e.co_ctx, ~slice_syn=s2, m);
   | Invalid(token) => atomic(BadToken(token), Slice.hole) // Bad Tokens treated as holes
   | EmptyHole =>
     atomic(Just(Unknown(Internal) |> Typ.temp), Slice.hole_with_ids(ids)) // Holes highlight themselves for clarity
@@ -274,7 +274,7 @@ and uexp_to_info_map =
         ~default=Unknown(Internal) |> Typ.temp,
         Self.typ_of(ctx, self),
       );
-    let slice_syn =
+    let slice_syn: Slice.t =
       Slice.(
         ty,
         switch (es) {
@@ -324,7 +324,7 @@ and uexp_to_info_map =
         Self.typ_of(ctx, self),
       );
     let e_ty = Typ.matched_list(ctx, ty);
-    let slice_syn =
+    let slice_syn: Slice.t =
       Slice.(
         ty,
         List((
@@ -342,7 +342,7 @@ and uexp_to_info_map =
         ~default=Unknown(Internal) |> Typ.temp,
         Self.typ_of_exp(ctx, self),
       );
-    let slice_syn =
+    let slice_syn: Slice.t =
       if (Typ.is_unknown(ty)) {
         Slice.hole; // May replace Var ref with ?
       } else {
@@ -422,7 +422,7 @@ and uexp_to_info_map =
       m,
     );
   | BuiltinFun(name) =>
-    let slice_syn =
+    let slice_syn: Slice.t =
       switch (Ctx.lookup_var(Builtins.ctx_init, name)) {
       | Some(var) => Slice.(of_ty(of_ctx([VarEntry(var)]), var.typ))
       // These types could be compound, of_ty annotates each subcomponent with the use of the builtins context
@@ -562,7 +562,7 @@ and uexp_to_info_map =
         Self.typ_of_exp(ctx, self),
         ~default=Unknown(Internal) |> Typ.temp,
       );
-    let slice_syn =
+    let slice_syn: Slice.t =
       Slice.(
         ty,
         Arrow(Info.pat_slice(p), Info.exp_slice(e)),
@@ -642,7 +642,11 @@ and uexp_to_info_map =
             ) =>
             let ss =
               List.map2(ana_ty_fn, List.combine(s_fns1, s_fns2), s_ps);
-            Slice.(Prod(List.map(ty_of, ss)) |> Typ.temp, Prod(ss), empty); // TODO: Check ty is correct here
+            Slice.(
+              Prod(List.map(ty_of, ss)) |> Typ.temp,
+              Prod(ss): s_ty,
+              empty,
+            ); // TODO: Check ty is correct here
           | ((_, _), _) => ana_ty_fn((s_def_base, s_def_base2), s_p_syn)
           };
         let (def, m) = go'(~ctx=def_ctx, ~mode=Ana(ana), def, m);
@@ -663,7 +667,7 @@ and uexp_to_info_map =
     let is_exhaustive = p_ana |> Info.pat_constraint |> Incon.is_exhaustive;
     let self =
       is_exhaustive ? unwrapped_self : InexhaustiveMatch(unwrapped_self);
-    let slice_syn = {
+    let slice_syn: Slice.t = {
       let s_body = Info.exp_slice(body);
       let (ctx_slice, _) = Slice.full_slice(s_body); // Inefficient...
       let s_def = Info.exp_slice(def) |> Slice.full_slice;
@@ -1037,7 +1041,7 @@ and upat_to_info_map =
         Self.typ_of(ctx, self),
         ~default=Unknown(Internal) |> Typ.temp,
       );
-    let slice_syn =
+    let slice_syn: Slice.t =
       Slice.(
         ty,
         switch (infos) {
