@@ -372,6 +372,16 @@ and Exp: {
       Pat.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
     let typ_map_term =
       Typ.map_term(~f_exp, ~f_pat, ~f_typ, ~f_slice, ~f_tpat, ~f_rul, ~f_any);
+    let slice_map_term =
+      Slice.map_term(
+        ~f_exp,
+        ~f_pat,
+        ~f_typ,
+        ~f_slice,
+        ~f_tpat,
+        ~f_rul,
+        ~f_any,
+      );
     let tpat_map_term =
       TPat.map_term(
         ~f_exp,
@@ -446,7 +456,8 @@ and Exp: {
               rls,
             ),
           )
-        | Cast(e, t1, t2) => Cast(exp_map_term(e), t1, t2)
+        | Cast(e, s1, s2) =>
+          Cast(exp_map_term(e), slice_map_term(s1), slice_map_term(s2))
         },
     };
     x |> f_exp(rec_call);
@@ -1174,6 +1185,7 @@ and ClosureEnvironment: {
   let fold: (((Var.t, Exp.t), 'b) => 'b, 'b, t) => 'b;
 
   let without_keys: (list(Var.t), t) => t;
+  let with_symbolic_keys: (list(Var.t), t) => t;
 
   let placeholder: t;
 } = {
@@ -1251,6 +1263,12 @@ and ClosureEnvironment: {
   let placeholder = wrap(Id.invalid, Environment.empty);
 
   let without_keys = keys => update(Environment.without_keys(keys));
+  let with_symbolic_keys = (keys, env) =>
+    List.fold_right(
+      (key, env) => extend(env, (key, Var(key) |> IdTagged.fresh)),
+      keys,
+      env,
+    );
 }
 and StepperFilterKind: {
   [@deriving (show({with_path: false}), sexp, yojson)]
