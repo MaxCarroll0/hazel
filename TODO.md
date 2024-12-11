@@ -24,11 +24,11 @@ Some analysis types (lists, annotations) are closer to being 'correct'.
 - Make the context slices involving annotations maintain the structure of the type (currently : Int -> Int). May actually be more readable as is.
 - Make context slice non-incremental and remove entries accordingly when bound (currently not done). Or alternatively keep incremental but have a second explicit 'bound' context (could be achieved with a Coctx.t).
 - full\_slice: Keep slices of only most specific join branches if consistent.
-- Keep slice of binding definitions when in syn mode. (Intuitively useful, but not theoretically required). Similarly, keep pattern slices. Easiest way to do this would be to generalise type context to a _slice context_.
+- Keep slice of binding definitions when in syn mode. (Intuitively useful, but not theoretically required). Similarly, keep pattern slices. Easiest way to do this would be to generalise type context to a _slice context_. __Alternatively__, the user may move cursor to the binding to get slice (or the implementation could get info map to do this and merge slices)
 - Type slicing for: type aliases, constructors, fix/recursion.
 
 ### Extension
-- Slice normalisation
+- Slice  normalisation
 - Type slicing for patterns & match.
 - Type slicing for type variables and type functions.
 - (low priority) Type slicing for: unquote, tests, filters, deferred applications, 
@@ -57,7 +57,29 @@ Click on casts in the stepper to retrieve relevant type slices.
 - Fix/ensure correctness of cast tests (d5, d8, ap\_of\_deferral\_of\_hole, tet\_ap\_of\_hole\_deferral)
 
 # Search Procedure
-(everything)
+## Core
+### Type witness procedure:
+- Hole substitution
+- Type enumeration
+- Hole instantiation
+- UI
+- Instantiation explaining
+### Error witness search procedure:
+- Find only type witness trace involving cast error. Terminate search at this point.
+- Iterative deepening and backtracking for this.
+### Searching for witnesses of STATIC type errors
+- Track analysis contexts -- The expression
+- Inconsistent ana: use search procedure above in analysis context
+- Inconsistent branches: use type witness procedure for each branch
+- Inconsistent with arrow type: use type witness procedure for the expected arrow. Should end with cast error to `T => ?->?`
+### UI:
+- Stepper for the type witness procedure. Easiest only considering the final instantiation, and reusing existing stepper. Only major change is multiple traces for inconsistent branch errors.
+- Search at expression pointed to by cursor
+- Click on type errors to get trace(s)
+
+## Extensions
+- Type functions
+- Multi-zipper
 
 
 # Bugs
@@ -65,3 +87,4 @@ Click on casts in the stepper to retrieve relevant type slices.
 - Let bindings annotated with single `?` fail to pick up correct context slice: `let f : ? = ? in f`
 - Type checking (only the name checking & placing into error holes) for sum types/type aliases is broken by incorrect use of Slice.temp 
 - Ground matching of TEMP slices
+- Unbound pattern not used in slice is erroneously highlighted
