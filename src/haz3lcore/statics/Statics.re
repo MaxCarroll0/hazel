@@ -573,7 +573,7 @@ and uexp_to_info_map =
     let slice_syn: Slice.t =
       Slice.(
         ty,
-        Arrow(Info.pat_slice(p), Info.exp_slice_syn(e)),
+        Arrow(Info.pat_slice_syn(p), Info.exp_slice_syn(e)),
         of_ids(ids),
       );
     add'(~self, ~co_ctx=CoCtx.mk(ctx, p.ctx, e.co_ctx), ~slice_syn, m);
