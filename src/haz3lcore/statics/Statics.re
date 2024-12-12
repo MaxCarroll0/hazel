@@ -247,10 +247,11 @@ and uexp_to_info_map =
       ~slice_syn=Slice.hole_with_ids(ids),
       m,
     );
-  | Cast(e, s1, s2)
-  | FailedCast(e, s1, s2) =>
-    //let (t, m) = go_typ(t2, ~expects=Info.TypeExpected, m); // TODO:
-    let (e, m) = go(~mode=Ana(s1), /*  ~ctx=t.ctx */ e, m);
+  | Cast(e, s1, (t2, _, _) as s2)
+  | FailedCast(e, s1, (t2, _, _) as s2) =>
+    let (t, m) = go_typ(t2, ~expects=Info.TypeExpected, m); // TODO:
+    let (e, m) =
+      go'(~mode=Ana(t.term |> Slice.of_ty_with_ids), ~ctx=t.ctx, e, m); // TODO: maintain slices?
     add(~self=Just(Slice.ty_of(s2)), ~co_ctx=e.co_ctx, ~slice_syn=s2, m);
   | Invalid(token) => atomic(BadToken(token), Slice.hole) // Bad Tokens treated as holes
   | EmptyHole =>

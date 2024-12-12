@@ -192,7 +192,9 @@ let rec elaborate_pattern =
       upat
       |> cast_from(
            Ctx.lookup_var(ctx, v)
-           |> Option.map((x: Ctx.var_entry) => x.typ |> Typ.normalize(ctx))
+           |> Option.map((x: Ctx.var_entry) =>
+                x.typ |> Typ.normalize(ctx)
+              )
            |> Option.value(~default=Typ.temp(Unknown(Internal))),
          )
     // Type annotations should already appear
@@ -349,17 +351,16 @@ let rec elaborate = (m: Statics.Map.t, uexp: UExp.t): (DHExp.t, Slice.t) => {
         let def = add_name(Pat.get_var(p), def);
         let (def, s2) = elaborate(m, def);
         let (body, s) = elaborate(m, body);
-        let fixf =
-          (FixF(p, fresh_cast(def, s2, s1), None): Exp.term)
-          |> IdTagged.fresh_deterministic(DHExp.rep_id(uexp));
-        Let(p, fixf, body) |> rewrap |> cast_from(s);
+        Let(p, fresh_cast(def, s2, s1), body) |> rewrap |> cast_from(s);
       } else {
         // TODO: Add names to mutually recursive functions
         // TODO: Don't add fixpoint if there already is one
         let def = add_name(Option.map(s => s ++ "+", Pat.get_var(p)), def);
         let (def, s2) = elaborate(m, def);
         let (body, s) = elaborate(m, body);
-        let fixf = FixF(p, fresh_cast(def, s2, s1), None) |> DHExp.fresh;
+        let fixf =
+          (FixF(p, fresh_cast(def, s2, s1), None): Exp.term)
+          |> IdTagged.fresh_deterministic(DHExp.rep_id(uexp));
         Let(p, fixf, body) |> rewrap |> cast_from(s);
       };
     | FixF(p, e, env) =>

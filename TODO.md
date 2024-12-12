@@ -83,7 +83,7 @@ Click on casts in the stepper to retrieve relevant type slices.
 
 
 # Bugs
-- Elaboration inserts too many casts during let expressions (see test elaboration3).
+- Elaboration missing important casts on patterns and definitions (see cast regression tests)!!!!
 - Let bindings annotated with single `?` fail to pick up correct context slice: `let f : ? = ? in f`
 - Type checking (only the name checking & placing into error holes) for sum types/type aliases is broken by incorrect use of Slice.temp 
 - Ground matching of TEMP slices
