@@ -328,7 +328,7 @@ let exp_slice: exp => Slice.t =
     | Syn
     | SynFun
     | SynTypFun => slice_syn
-    | Ana(slice_ana) => Slice.match_synswitch(slice_ana, slice_syn)
+    | Ana(slice_ana) => Slice.match_synswitch(slice_ana, slice_syn) // TODO: CHECK
     };
   };
 

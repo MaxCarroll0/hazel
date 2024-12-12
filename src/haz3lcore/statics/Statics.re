@@ -573,7 +573,7 @@ and uexp_to_info_map =
     let slice_syn: Slice.t =
       Slice.(
         ty,
-        Arrow(Info.pat_slice(p), Info.exp_slice(e)),
+        Arrow(Info.pat_slice(p), Info.exp_slice_syn(e)),
         of_ids(ids),
       );
     add'(~self, ~co_ctx=CoCtx.mk(ctx, p.ctx, e.co_ctx), ~slice_syn, m);
@@ -598,13 +598,12 @@ and uexp_to_info_map =
       m,
     );
   | Let(p, def, body) =>
-    //TODO: Add type slices to pats
     let (p_syn, _) =
       go_pat(~is_synswitch=true, ~co_ctx=CoCtx.empty, ~mode=Syn, p, m);
     let (def, p_ana_ctx, m, s_p_ana) =
       if (!is_recursive(ctx, p, def, p_syn.ty)) {
-        let (def, m) = go(~mode=Ana(Info.pat_slice(p_syn)), def, m);
-        let s_p_ana = Info.exp_slice(def);
+        let (def, m) = go(~mode=Ana(Info.pat_slice_syn(p_syn)), def, m);
+        let s_p_ana = Info.exp_slice_syn(def);
         let (p_ana', _) =
           go_pat(
             ~is_synswitch=false,
@@ -616,8 +615,8 @@ and uexp_to_info_map =
         (def, p_ana'.ctx, m, s_p_ana);
       } else {
         let (def_base, _) =
-          go'(~ctx=p_syn.ctx, ~mode=Ana(Info.pat_slice(p_syn)), def, m);
-        let s_p_ana = Info.exp_slice(def_base);
+          go'(~ctx=p_syn.ctx, ~mode=Ana(Info.pat_slice_syn(p_syn)), def, m);
+        let s_p_ana = Info.exp_slice_syn(def_base);
         /* Analyze pattern to incorporate def type into ctx */
         let (p_ana', _) =
           go_pat(
@@ -629,33 +628,32 @@ and uexp_to_info_map =
           );
         let def_ctx = p_ana'.ctx;
         let (def_base2, _) =
-          go'(~ctx=def_ctx, ~mode=Ana(Info.pat_slice(p_syn)), def, m);
-        let ana_ty_fn = ((s_fn1, s_fn2), s_p) => {
+          go'(~ctx=def_ctx, ~mode=Ana(Info.pat_slice_syn(p_syn)), def, m);
+        let ana_s_fn = ((s_fn1, s_fn2), s_p) => {
           // TODO: make sure slices are handled correctly here!
           Typ.term_of(Slice.ty_of(s_p)) == Unknown(SynSwitch)
           && !Typ.eq(Slice.ty_of(s_fn1), Slice.ty_of(s_fn2))
             ? s_fn1 : s_p;
         };
-        let s_def_base = def_base |> Info.exp_slice;
-        let s_def_base2 = def_base2 |> Info.exp_slice;
-        let s_p_syn = p_syn |> Info.pat_slice;
+        let s_def_base = def_base |> Info.exp_slice_syn;
+        let s_def_base2 = def_base2 |> Info.exp_slice_syn;
+        let s_p_syn = p_syn |> Info.pat_slice_syn;
         let ana =
           switch (
-            (def_base |> Info.exp_slice, def_base2 |> Info.exp_slice),
-            p_syn |> Info.pat_slice,
+            (def_base |> Info.exp_slice_syn, def_base2 |> Info.exp_slice_syn),
+            p_syn |> Info.pat_slice_syn,
           ) {
           | (
               ((_, Prod(s_fns1), _), (_, Prod(s_fns2), _)),
               (_, Prod(s_ps), _),
             ) =>
-            let ss =
-              List.map2(ana_ty_fn, List.combine(s_fns1, s_fns2), s_ps);
+            let ss = List.map2(ana_s_fn, List.combine(s_fns1, s_fns2), s_ps);
             Slice.(
               Prod(List.map(ty_of, ss)) |> Typ.temp,
               Prod(ss): s_ty,
               empty,
             ); // TODO: Check ty is correct here
-          | ((_, _), _) => ana_ty_fn((s_def_base, s_def_base2), s_p_syn)
+          | ((_, _), _) => ana_s_fn((s_def_base, s_def_base2), s_p_syn)
           };
         let (def, m) = go'(~ctx=def_ctx, ~mode=Ana(ana), def, m);
         (def, def_ctx, m, s_p_ana);

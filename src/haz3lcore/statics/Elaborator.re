@@ -192,9 +192,7 @@ let rec elaborate_pattern =
       upat
       |> cast_from(
            Ctx.lookup_var(ctx, v)
-           |> Option.map((x: Ctx.var_entry) =>
-                x.typ |> Typ.normalize(ctx)
-              )
+           |> Option.map((x: Ctx.var_entry) => x.typ |> Typ.normalize(ctx))
            |> Option.value(~default=Typ.temp(Unknown(Internal))),
          )
     // Type annotations should already appear
