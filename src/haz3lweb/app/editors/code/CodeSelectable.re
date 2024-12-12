@@ -14,7 +14,8 @@ module Update = {
     | Jump(Action.jump_target)
     | Select(Action.select)
     | Unselect(option(Util.Direction.t))
-    | Copy;
+    | Copy
+    | DebugConsole(string);
 
   let update = (~settings, action: t, model: Model.t): Updated.t(Model.t) => {
     let action': CodeEditable.Update.t =
@@ -24,6 +25,7 @@ module Update = {
       | Select(select) => Perform(Select(select))
       | Unselect(dir) => Perform(Unselect(dir))
       | Copy => Perform(Copy)
+      | DebugConsole(key) => DebugConsole(key)
       };
     CodeEditable.Update.update(~settings, action', model);
   };
@@ -36,6 +38,7 @@ module Update = {
     | Perform(Select(select)) => Some(Select(select))
     | Perform(Unselect(dir)) => Some(Unselect(dir))
     | Perform(Copy) => Some(Copy)
+    | DebugConsole(key) => Some(DebugConsole(key))
 
     // These actions are not allowed in a CodeSelectable
     | Perform(
@@ -50,7 +53,6 @@ module Update = {
       )
     | Undo
     | Redo
-    | DebugConsole(_)
     | TAB => None;
 
   let calculate = CodeEditable.Update.calculate;
