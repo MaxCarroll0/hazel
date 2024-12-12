@@ -26,29 +26,6 @@ let empty: slice = ([], []);
 let temp = (ty): t => (ty, TEMP, empty);
 
 let ty_of: t => Typ.t = ((ty, _, _)) => ty;
-let rec ty_of_slow: t => Typ.t =
-  ((_, s_ty, _) as s) =>
-    (
-      switch (s_ty) {
-      | TEMP
-      | Unknown => Unknown(Internal)
-      | SynSwitch => Unknown(SynSwitch)
-      | Int => Int
-      | Float => Float
-      | Bool => Bool
-      | String => String
-      | Var(x) => Var(x)
-      | List(t1) => List(ty_of_slow(t1))
-      | Rec(tpat, t1) => Rec(tpat, ty_of_slow(t1))
-      | Forall(tpat, t1) => Forall(tpat, ty_of_slow(t1))
-      | Arrow(t1, t2) => Arrow(ty_of_slow(t1), ty_of_slow(t2))
-      | Ap(t1, t2) => Ap(ty_of_slow(t1), ty_of_slow(t2))
-      | Prod(ts) => Prod(List.map(ty_of_slow, ts))
-      | Sum(_)
-      | Join(_) => ty_of(s) |> Typ.term_of
-      }
-    )
-    |> Typ.temp;
 
 // TODO: filter duplicates
 let union2: (slice, slice) => slice =

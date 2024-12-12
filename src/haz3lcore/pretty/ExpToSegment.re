@@ -419,7 +419,7 @@ let rec exp_to_pretty = (~settings: Settings.t, exp: Exp.t): pretty => {
   | Cast(e, _, s) =>
     let id = exp |> Exp.rep_id;
     let+ e = go(e)
-    and+ t = typ_to_pretty(~settings: Settings.t, s |> Slice.ty_of_slow);
+    and+ t = typ_to_pretty(~settings: Settings.t, s |> Slice.ty_of);
     e @ [mk_form("typeasc", id, [])] @ t;
   | Match(e, rs) =>
     // TODO: Add newlines
