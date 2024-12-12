@@ -414,9 +414,9 @@ let mk =
               DHAnnot.CastDecoration,
               hcats([
                 DHDoc_common.Delim.open_Cast,
-                DHDoc_Typ.mk(~enforce_inline=true, t1 |> Slice.ty_of),
+                DHDoc_Typ.mk(~enforce_inline=true, t1 |> Slice.ty_of_slow),
                 DHDoc_common.Delim.arrow_Cast,
-                DHDoc_Typ.mk(~enforce_inline=true, t2 |> Slice.ty_of),
+                DHDoc_Typ.mk(~enforce_inline=true, t2 |> Slice.ty_of_slow),
                 DHDoc_common.Delim.close_Cast,
               ]),
             ),
