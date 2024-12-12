@@ -225,14 +225,20 @@ and uexp_to_info_map =
       ([], m),
     );
   let go_pat = upat_to_info_map(~ctx, ~ancestors);
+  let go_typ = utyp_to_info_map(~ctx, ~ancestors);
   let atomic = (self, slice_syn) =>
     add(~self, ~co_ctx=CoCtx.empty, ~slice_syn, m);
   let atomic_just = (ty, (s_ty, s)) => atomic(Just(ty), (ty, s_ty, s));
   switch (term) {
-  | Closure(_) =>
-    failwith(
-      "TODO: implement closure type checking - see how dynamic type assignment does it",
-    )
+  | Closure(_, e) =>
+    // TODO: implement closure type checking properly - see how dynamic type assignment does it
+    let (e, m) = go(~mode, e, m);
+    add(
+      ~self=Just(e.ty),
+      ~co_ctx=e.co_ctx,
+      ~slice_syn=e.ty |> Slice.of_ty_with_ids,
+      m,
+    );
   | MultiHole(tms) =>
     let (co_ctxs, m) = multi(~ctx, ~ancestors, m, tms);
     add(
@@ -243,7 +249,8 @@ and uexp_to_info_map =
     );
   | Cast(e, s1, s2)
   | FailedCast(e, s1, s2) =>
-    let (e, m) = go(~mode=Ana(s1), e, m);
+    //let (t, m) = go_typ(t2, ~expects=Info.TypeExpected, m); // TODO:
+    let (e, m) = go(~mode=Ana(s1), /*  ~ctx=t.ctx */ e, m);
     add(~self=Just(Slice.ty_of(s2)), ~co_ctx=e.co_ctx, ~slice_syn=s2, m);
   | Invalid(token) => atomic(BadToken(token), Slice.hole) // Bad Tokens treated as holes
   | EmptyHole =>

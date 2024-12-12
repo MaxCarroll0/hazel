@@ -160,12 +160,16 @@ let ctr_ana_typ = (ctx: Ctx.t, mode: t, ctr: Constructor.t): option(Slice.t) => 
      a sum type having that ctr as a variant, we consider the
      ctr's type to be determined by the sum type */
   switch (mode) {
-  | Ana(({term: Arrow(_, ty_ana), _}, _, _))
-  | Ana((ty_ana, _, _)) =>
-    let+ ctrs = Typ.get_sum_constructors(ctx, ty_ana);
+  | Ana(s_ana) =>
+    let (ty_ana, _, _) as s_ana =
+      switch (Slice.matched_arrow_strict(ctx, s_ana)) {
+      | Some((_, s_ana)) => s_ana
+      | None => s_ana
+      };
+    let+ ctrs = Typ.get_sum_constructors(ctx, ty_ana); // TODO: In Slice.t
     let ty_entry = ConstructorMap.get_entry(ctr, ctrs);
     switch (ty_entry) {
-    | None => ty_ana |> Slice.(of_ty(empty)) //TODO
+    | None => s_ana //TODO
     | Some(ty_in) =>
       Arrow(ty_in, ty_ana) |> Typ.temp |> Slice.(of_ty(empty))
     };
