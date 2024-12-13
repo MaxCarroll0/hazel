@@ -7,6 +7,11 @@ type deferral_position_t =
   | InAp
   | OutsideAp;
 
+[@deriving (show({with_path: false}), sexp, yojson)]
+type var_cls =
+  | Exp
+  | Typ;
+
 /*
    This megafile contains the definitions of the expression data types in
    Hazel. They are all in one file because they are mutually recursive, and
@@ -135,6 +140,38 @@ and typ_term =
   | Rec(tpat_t, typ_t)
   | Forall(tpat_t, typ_t)
 and typ_t = IdTagged.t(typ_term)
+and typslice_incr_typ =
+  | Typ(typ_term)
+  | Unknown(type_provenance)
+  | Int
+  | Float
+  | Bool
+  | String
+  | Var(string)
+  | List(typslice_incr_t)
+  | Arrow(typslice_incr_t, typslice_incr_t)
+  | Sum(ConstructorMap.t(typslice_incr_t))
+  | Prod(list(typslice_incr_t))
+  | Parens(typslice_incr_t)
+  | Ap(typslice_incr_t, typslice_incr_t)
+  | Rec(tpat_t, typslice_incr_t)
+  | Forall(tpat_t, typslice_incr_t)
+and typslice_incr_term = {
+  term: typslice_incr_typ,
+  slice_incr,
+}
+and slice_incr = {
+  ctx_used: list(var_cls),
+  term_ids: list(Id.t),
+} // TODO: make ctx_used a map
+and typslice_incr_t = IdTagged.t(typslice_incr_term)
+and slice_global = slice_incr
+and typslice_term = {
+  term: typslice_incr_typ,
+  slice_incr,
+  slice_global,
+} // incr term + global slice
+and typslice_t = IdTagged.t(typslice_term)
 and tpat_term =
   | Invalid(string)
   | EmptyHole
