@@ -140,8 +140,12 @@ and typ_term =
   | Rec(tpat_t, typ_t)
   | Forall(tpat_t, typ_t)
 and typ_t = IdTagged.t(typ_term)
-and typslice_incr_typ =
-  | Typ(typ_term)
+and slice_incr = {
+  ctx_used: list(var_cls),
+  term_ids: list(Id.t),
+} // TODO: make ctx_used a map
+and slice_global = slice_incr
+and slice_incr_typ =
   | Unknown(type_provenance)
   | Int
   | Float
@@ -156,21 +160,22 @@ and typslice_incr_typ =
   | Ap(typslice_incr_t, typslice_incr_t)
   | Rec(tpat_t, typslice_incr_t)
   | Forall(tpat_t, typslice_incr_t)
-and typslice_incr_term = {
-  term: typslice_incr_typ,
+and slice_incr_term = {
+  term: typslice_incr_term,
   slice_incr,
 }
-and slice_incr = {
-  ctx_used: list(var_cls),
-  term_ids: list(Id.t),
-} // TODO: make ctx_used a map
+and typslice_incr_term =
+  | Typ(typ_term)
+  | Slice(slice_incr_term)
 and typslice_incr_t = IdTagged.t(typslice_incr_term)
-and slice_global = slice_incr
-and typslice_term = {
-  term: typslice_incr_typ,
-  slice_incr,
+and slice_global_term = {
+  term: typslice_incr_term,
   slice_global,
-} // incr term + global slice
+}
+and typslice_term =
+  | Typ(typ_term)
+  | SliceGlobal(slice_global_term)
+  | SliceIncr(slice_incr_term)
 and typslice_t = IdTagged.t(typslice_term)
 and tpat_term =
   | Invalid(string)
