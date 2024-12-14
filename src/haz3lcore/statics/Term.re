@@ -100,7 +100,7 @@ module Pat = {
     switch (pat.term) {
     | Parens(pat) => is_fun_var(pat)
     | Cast(pat, typ, _) =>
-      is_var(pat) && (UTyp.is_arrow(typ) || Typ.is_forall(typ))
+      is_var(pat) && (Typ.is_arrow(typ) || Typ.is_forall(typ))
     | Invalid(_)
     | EmptyHole
     | MultiHole(_)

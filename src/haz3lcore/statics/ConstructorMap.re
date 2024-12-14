@@ -182,7 +182,7 @@ let equal = (eq: ('a, 'a) => bool, m1: t('a), m2: t('a)) => {
   };
 };
 
-let map = (f: option('a) => option('b), m: t('a)): t('b) => {
+let map = (f: option('a) => option('a), m: t('a)): t('a) => {
   List.map(
     fun
     | Variant(ctr, args, value) => Variant(ctr, args, f(value))
@@ -190,6 +190,15 @@ let map = (f: option('a) => option('b), m: t('a)): t('b) => {
     m,
   );
 };
+
+let map_vals = (f: 'a => 'b, m: t('a)): t('b) =>
+  List.map(
+    fun
+    | Variant(ctr, args, val_opt) =>
+      Variant(ctr, args, Option.map(f, val_opt))
+    | BadEntry(value) => BadEntry(f(value)),
+    m,
+  );
 
 let get_entry = (ctr, m) =>
   List.find_map(
