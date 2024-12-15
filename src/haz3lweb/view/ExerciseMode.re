@@ -277,7 +277,7 @@ let view =
                         msg,
                       ),
                       div(
-                        ~attrs=[Attr.class_("edit-icon")],
+                        ~attrs=[Attr.class_("edit-pencil")],
                         [
                           Widgets.button(Icons.pencil, _ =>
                             inject(Set(EditingPrompt))
