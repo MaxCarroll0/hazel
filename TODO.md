@@ -37,4 +37,5 @@ As compared to `witnesses` branch:
 - [ ] More ergonomic use of TypSlice (better versions of map & apply)
 - [ ] Improve performance: Likely issues due to overuse of TypSlice.typ_of? Hopefully not due to TypSlice.wrap_global or wrap_incr.....
 
-
+## Bugs
+- Incorrect elaboration on patterns and definitions in let bindings: see casting documentation :(
