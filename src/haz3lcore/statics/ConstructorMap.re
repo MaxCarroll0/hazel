@@ -101,31 +101,35 @@ let venn_regions =
   go(xs, ys, [], [], []);
 };
 
-let join_entry =
-    (join: ('a, 'a) => option('a), (x: variant('a), y: variant('a)))
-    : option(variant('a)) =>
+let join_entry_using =
+    (
+      join_using: ('a, 'a) => option(('a, BranchUsed.t)),
+      (x: variant('a), y: variant('a)),
+    )
+    : option((variant('a), BranchUsed.t)) =>
   switch (x, y) {
   | (Variant(ctr1, ids1, Some(value1)), Variant(ctr2, _, Some(value2)))
       when Constructor.equal(ctr1, ctr2) =>
-    let+ value = join(value1, value2);
-    Variant(ctr1, ids1, Some(value));
+    let+ (value, branch_used) = join_using(value1, value2);
+    (Variant(ctr1, ids1, Some(value)), branch_used);
   | (Variant(ctr1, ids1, None), Variant(ctr2, _, None))
       when Constructor.equal(ctr1, ctr2) =>
-    Some(Variant(ctr1, ids1, None))
-  | (BadEntry(x), BadEntry(_)) => Some(BadEntry(x))
+    Some((Variant(ctr1, ids1, None), BranchUsed.Left))
+  | (BadEntry(x), BadEntry(_)) => Some((BadEntry(x), BranchUsed.Left))
   | _ => None
   };
 
-let join =
+let join_using =
     (
       eq: ('a, 'a) => bool,
-      join: ('a, 'a) => option('a),
+      join_using: ('a, 'a) => option(('a, BranchUsed.t)),
       m1: t('a),
       m2: t('a),
     )
-    : option(t('a)) => {
+    : option((t('a), list(BranchUsed.t))) => {
   let (inter, left, right) = venn_regions(same_constructor(eq), m1, m2);
-  let join_entries = List.filter_map(join_entry(join), inter);
+  let join_entries = List.filter_map(join_entry_using(join_using), inter);
+  let (join_variants, branches_used) = ListUtil.unzip(join_entries);
   if (List.length(join_entries) == List.length(inter)) {
     switch (
       has_good_entry(left),
@@ -133,10 +137,11 @@ let join =
       has_good_entry(right),
       has_bad_entry(m2),
     ) {
-    | (_, true, _, true) => Some(join_entries @ left @ right)
-    | (false, true, _, _) => Some(join_entries @ right)
-    | (_, _, false, true) => Some(join_entries @ left)
-    | _ when left == [] && right == [] => Some(join_entries)
+    | (_, true, _, true) =>
+      Some((join_variants @ left @ right, branches_used)) // TODO check this branch_used logic
+    | (false, true, _, _) => Some((join_variants @ right, branches_used))
+    | (_, _, false, true) => Some((join_variants @ left, branches_used))
+    | _ when left == [] && right == [] => Some((join_variants, branches_used))
     | _ => None
     };
   } else {

@@ -71,11 +71,11 @@ module Typ = {
     ("++", String),
   ];
 
-  let expected: Info.t => Typ.t =
+  let expected: Info.t => TypSlice.t =
     fun
     | InfoExp({mode, _})
     | InfoPat({mode, _}) => Mode.ty_of(mode)
-    | _ => Unknown(Internal) |> Typ.fresh;
+    | _ => `Typ(Unknown(Internal)) |> TypSlice.fresh;
 
   let filter_by =
       (
@@ -176,7 +176,12 @@ let suggest_form = (ty_map, delims_of_sort, ci: Info.t): list(Suggestion.t) => {
   let sort = Info.sort_of(ci);
   let delims = delims_of_sort(sort);
   let filtered =
-    Typ.filter_by(Info.ctx_of(ci), Typ.expected(ci), ty_map, delims);
+    Typ.filter_by(
+      Info.ctx_of(ci),
+      Typ.expected(ci) |> TypSlice.typ_of,
+      ty_map,
+      delims,
+    );
   switch (sort) {
   | Exp =>
     List.map(

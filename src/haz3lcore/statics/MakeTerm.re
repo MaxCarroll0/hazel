@@ -275,12 +275,6 @@ and exp_term: unsorted => (UExp.term, list(Id.t)) = {
       }
     | _ => ret(hole(tm))
     }
-  | Bin(Exp(l), tiles, Typ(r)) as tm =>
-    switch (tiles) {
-    | ([(_id, ([":"], []))], []) =>
-      ret(Cast(l, Unknown(Internal) |> Typ.fresh, r))
-    | _ => ret(hole(tm))
-    }
   | Bin(Exp(l), tiles, Exp(r)) as tm =>
     switch (is_tuple_exp(tiles)) {
     | Some(between_kids) => ret(Tuple([l] @ between_kids @ [r]))
@@ -379,7 +373,13 @@ and pat_term: unsorted => (UPat.term, list(Id.t)) = {
   | Bin(Pat(p), tiles, Typ(ty)) as tm =>
     switch (tiles) {
     | ([(_id, ([":"], []))], []) =>
-      ret(Cast(p, ty, Unknown(Internal) |> Typ.fresh))
+      ret(
+        Cast(
+          p,
+          ty |> TypSlice.t_of_typ_t,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
+        ),
+      )
     | _ => ret(hole(tm))
     }
   | Bin(Pat(l), tiles, Pat(r)) as tm =>
@@ -393,7 +393,7 @@ and pat_term: unsorted => (UPat.term, list(Id.t)) = {
     }
   | tm => ret(hole(tm));
 }
-and typ = unsorted => {
+and typ = (unsorted): Typ.t => {
   let (term, inner_ids) = typ_term(unsorted);
   let ids = ids(unsorted) @ inner_ids;
   return(ty => Typ(ty), ids, {ids, term, copied: false});
@@ -451,7 +451,10 @@ and typ_term: unsorted => (UTyp.term, list(Id.t)) = {
     | Some(between_kids) =>
       ret(
         Sum(
-          List.map(parse_sum_term, [t1] @ between_kids @ [t2])
+          List.map(
+            parse_sum_term,
+            [t1] @ List.map(TypSlice.typ_of, between_kids) @ [t2],
+          )
           |> ConstructorMap.mk(~mk_bad),
         ),
       )
@@ -459,7 +462,8 @@ and typ_term: unsorted => (UTyp.term, list(Id.t)) = {
     }
   | Bin(Typ(l), tiles, Typ(r)) as tm =>
     switch (is_tuple_typ(tiles)) {
-    | Some(between_kids) => ret(Prod([l] @ between_kids @ [r]))
+    | Some(between_kids) =>
+      ret(Prod([l] @ List.map(TypSlice.typ_of, between_kids) @ [r]))
     | None =>
       switch (tiles) {
       | ([(_id, (["->"], []))], []) => ret(Arrow(l, r))

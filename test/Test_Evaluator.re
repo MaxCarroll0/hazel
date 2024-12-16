@@ -58,48 +58,54 @@ let tet_ap_of_hole_deferral = () =>
       Cast(
         Cast(
           EmptyHole |> Exp.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
+          `Typ(
+            Arrow(
+              Unknown(Internal) |> Typ.fresh,
+              Unknown(Internal) |> Typ.fresh,
+            ),
+          )
+          |> TypSlice.fresh,
+        )
+        |> Exp.fresh,
+        `Typ(
           Arrow(
             Unknown(Internal) |> Typ.fresh,
             Unknown(Internal) |> Typ.fresh,
-          )
-          |> Typ.fresh,
+          ),
         )
-        |> Exp.fresh,
-        Arrow(
-          Unknown(Internal) |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+        |> TypSlice.fresh,
+        `Typ(
+          Arrow(
+            Prod([
+              Unknown(Internal) |> Typ.fresh,
+              Unknown(Internal) |> Typ.fresh,
+              Unknown(Internal) |> Typ.fresh,
+            ])
+            |> Typ.fresh,
+            Unknown(Internal) |> Typ.fresh,
+          ),
         )
-        |> Typ.fresh,
-        Arrow(
-          Prod([
-            Unknown(Internal) |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
-          ])
-          |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
-        )
-        |> Typ.fresh,
+        |> TypSlice.fresh,
       )
       |> Exp.fresh,
       Tuple([
         Cast(
           Float(1.) |> Exp.fresh,
-          Float |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Float) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
         Cast(
           Bool(true) |> Exp.fresh,
-          Bool |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Bool) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
         Cast(
           Int(3) |> Exp.fresh,
-          Int |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Int) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
       ])
@@ -112,29 +118,35 @@ let tet_ap_of_hole_deferral = () =>
         Cast(
           Cast(
             EmptyHole |> Exp.fresh,
-            Unknown(Internal) |> Typ.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+            `Typ(
+              Arrow(
+                Unknown(Internal) |> Typ.fresh,
+                Unknown(Internal) |> Typ.fresh,
+              ),
+            )
+            |> TypSlice.fresh,
+          )
+          |> Exp.fresh,
+          `Typ(
             Arrow(
               Unknown(Internal) |> Typ.fresh,
               Unknown(Internal) |> Typ.fresh,
-            )
-            |> Typ.fresh,
+            ),
           )
-          |> Exp.fresh,
-          Arrow(
-            Unknown(Internal) |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
+          |> TypSlice.fresh,
+          `Typ(
+            Arrow(
+              Prod([
+                Unknown(Internal) |> Typ.fresh,
+                Unknown(Internal) |> Typ.fresh,
+                Unknown(Internal) |> Typ.fresh,
+              ])
+              |> Typ.fresh,
+              Unknown(Internal) |> Typ.fresh,
+            ),
           )
-          |> Typ.fresh,
-          Arrow(
-            Prod([
-              Unknown(Internal) |> Typ.fresh,
-              Unknown(Internal) |> Typ.fresh,
-              Unknown(Internal) |> Typ.fresh,
-            ])
-            |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
-          )
-          |> Typ.fresh,
+          |> TypSlice.fresh,
         )
         |> Exp.fresh,
         [
@@ -142,8 +154,8 @@ let tet_ap_of_hole_deferral = () =>
           Deferral(InAp) |> Exp.fresh,
           Cast(
             Int(3) |> Exp.fresh,
-            Int |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
+            `Typ(Int) |> TypSlice.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
           )
           |> Exp.fresh,
         ],
@@ -152,14 +164,14 @@ let tet_ap_of_hole_deferral = () =>
       Tuple([
         Cast(
           Float(1.) |> Exp.fresh,
-          Float |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Float) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
         Cast(
           Bool(true) |> Exp.fresh,
-          Bool |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Bool) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
       ])

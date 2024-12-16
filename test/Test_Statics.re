@@ -37,7 +37,8 @@ let unapplied_function = () =>
         None,
       )
       |> Exp.fresh,
-    ),
+    )
+    |> Option.map(TypSlice.typ_of),
   );
 
 let tests =
@@ -55,7 +56,8 @@ let tests =
             None,
           )
           |> Exp.fresh,
-        ),
+        )
+        |> Option.map(TypSlice.typ_of),
       )
     ),
     test_case("Function with known param", `Quick, () =>
@@ -64,14 +66,20 @@ let tests =
         Some(arrow(int, int)),
         type_of(
           Fun(
-            Cast(Var("x") |> Pat.fresh, int, unknown(Internal)) |> Pat.fresh,
+            Cast(
+              Var("x") |> Pat.fresh,
+              int |> TypSlice.t_of_typ_t,
+              unknown(Internal) |> TypSlice.t_of_typ_t,
+            )
+            |> Pat.fresh,
             BinOp(Int(Plus), Int(4) |> Exp.fresh, Int(5) |> Exp.fresh)
             |> Exp.fresh,
             None,
             None,
           )
           |> Exp.fresh,
-        ),
+        )
+        |> Option.map(TypSlice.typ_of),
       )
     ),
     test_case("bifunction", `Quick, () =>
@@ -81,9 +89,17 @@ let tests =
         type_of(
           Fun(
             Tuple([
-              Cast(Var("x") |> Pat.fresh, int, unknown(Internal))
+              Cast(
+                Var("x") |> Pat.fresh,
+                int |> TypSlice.t_of_typ_t,
+                unknown(Internal) |> TypSlice.t_of_typ_t,
+              )
               |> Pat.fresh,
-              Cast(Var("y") |> Pat.fresh, int, unknown(Internal))
+              Cast(
+                Var("y") |> Pat.fresh,
+                int |> TypSlice.t_of_typ_t,
+                unknown(Internal) |> TypSlice.t_of_typ_t,
+              )
               |> Pat.fresh,
             ])
             |> Pat.fresh,
@@ -93,7 +109,8 @@ let tests =
             None,
           )
           |> Exp.fresh,
-        ),
+        )
+        |> Option.map(TypSlice.typ_of),
       )
     ),
     test_case("function application", `Quick, () =>
@@ -103,7 +120,8 @@ let tests =
         type_of(
           Ap(Forward, Var("float_of_int") |> Exp.fresh, Int(1) |> Exp.fresh)
           |> Exp.fresh,
-        ),
+        )
+        |> Option.map(TypSlice.typ_of),
       )
     ),
     test_case("function deferral", `Quick, () =>
@@ -120,7 +138,8 @@ let tests =
             ],
           )
           |> Exp.fresh,
-        ),
+        )
+        |> Option.map(TypSlice.typ_of),
       )
     ),
   ];

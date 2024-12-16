@@ -9,23 +9,23 @@ let mode = (info: option(Info.t)): option(Mode.t) =>
   | _ => None
   };
 
-let expected_ty = (info: option(Info.t)): option(Typ.t) =>
+let expected_ty = (info: option(Info.t)): option(TypSlice.t) =>
   switch (mode(info)) {
   | Some(mode) => Some(Mode.ty_of(mode))
   | _ => None
   };
 
-let self_ty = (info: option(Info.t)): option(Typ.t) =>
+let self_ty = (info: option(Info.t)): option(TypSlice.t) =>
   switch (info) {
   | Some(InfoExp({self, ctx, _})) => Self.typ_of_exp(ctx, self)
   | Some(InfoPat({self, ctx, _})) => Self.typ_of_pat(ctx, self)
   | _ => None
   };
 
-let totalize_ty = (expected_ty: option(Typ.t)): Typ.t =>
+let totalize_ty = (expected_ty: option(TypSlice.t)): TypSlice.t =>
   switch (expected_ty) {
   | Some(expected_ty) => expected_ty
-  | None => Typ.fresh(Unknown(Internal))
+  | None => TypSlice.fresh(`Typ(Unknown(Internal)))
   };
 
 module M: Projector = {
@@ -65,7 +65,7 @@ module M: Projector = {
     };
 
   let display = (model, info) =>
-    display_ty(model, info) |> totalize_ty |> Typ.pretty_print;
+    display_ty(model, info) |> totalize_ty |> TypSlice.pretty_print;
 
   let placeholder = (model, info) =>
     Inline((display(model, info.ci) |> String.length) + 5);

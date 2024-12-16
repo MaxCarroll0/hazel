@@ -64,8 +64,9 @@ let view_exp = (~globals: Globals.t, ~settings, exp: Exp.t) => {
   |> view_segment(~globals, ~sort=Exp);
 };
 
-let view_typ = (~globals: Globals.t, ~settings, typ: Typ.t) => {
+let view_typ = (~globals: Globals.t, ~settings, typ: TypSlice.t) => {
   typ
+  |> TypSlice.typ_of
   |> ExpToSegment.typ_to_segment(~settings)
   |> view_segment(~globals, ~sort=Typ);
 };

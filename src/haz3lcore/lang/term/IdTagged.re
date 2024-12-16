@@ -33,3 +33,9 @@ let fast_copy = (id, {term, _}) => {ids: [id], term, copied: true};
 let new_ids =
   fun
   | {ids: _, term, copied} => {ids: [Id.mk()], term, copied};
+// Apply a function to the term keeping ids the same
+let apply = (f, {ids, copied, term}): t('a) => {
+  ids,
+  copied,
+  term: f(term),
+};

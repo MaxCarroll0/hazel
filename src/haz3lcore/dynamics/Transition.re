@@ -163,6 +163,48 @@ module Transition = (EV: EV_MODE) => {
     let (term, rewrap) = DHExp.unwrap(d);
     let wrap_ctx = (term): EvalCtx.t => Term({term, ids: [rep_id(d)]});
 
+    // get forall term
+    let unforall = (s: TypSlice.t) => {
+      // TODO: Move these into TypSlice.re?
+      let unforall =
+        TypSlice.apply(
+          fun
+          | Forall(tpat, ty) => (tpat, ty |> TypSlice.t_of_typ_t)
+          | _ => failwith("Not a forall"),
+          fun
+          | Forall(tpat, s) => (tpat, s)
+          | _ => failwith("Not a forall"),
+        );
+      let s = TypSlice.term_of(s);
+      switch (s) {
+      | `Typ(_)
+      | `SliceIncr(_) => unforall(s) // Drop incremental slices
+      | `SliceGlobal(_, slice_global) =>
+        unforall(s)
+        |> (((x, y)) => (x, y |> TypSlice.wrap_global(slice_global)))
+      };
+    };
+
+    let unarrow = (s: TypSlice.t) => {
+      let unarrow =
+        TypSlice.apply(
+          fun
+          | Arrow(ty1, ty2) =>
+            (ty1, ty2) |> TupleUtil.map2(TypSlice.t_of_typ_t)
+          | _ => failwith("Not an arrow"),
+          fun
+          | Arrow(s1, s2) => (s1, s2)
+          | _ => failwith("Not an arrow"),
+        );
+      let s = TypSlice.term_of(s);
+      switch (s) {
+      | `Typ(_)
+      | `SliceIncr(_) => unarrow(s) // Drop incremental slices
+      | `SliceGlobal(_, slice_global) =>
+        unarrow(s) |> TupleUtil.map2(TypSlice.wrap_global(slice_global))
+      };
+    };
+
     // Transition rules
     switch (term) {
     | Var(x) =>
@@ -298,24 +340,24 @@ module Transition = (EV: EV_MODE) => {
           kind: TypFunAp,
           is_value: false,
         })
-      | Cast(
-          d'',
-          {term: Forall(tp1, _), _} as t1,
-          {term: Forall(tp2, _), _} as t2,
-        ) =>
+      | Cast(d'', s1, s2)
+          when
+            TypSlice.is_forall(~ignore_parens=false, s1)
+            && TypSlice.is_forall(~ignore_parens=false, s2) =>
         /* Rule ITTApCast */
+        let ((tp1, _), (tp2, _)) = (unforall(s1), unforall(s2));
         Step({
           expr:
             Cast(
               TypAp(d'', tau) |> Exp.fresh,
-              Typ.subst(tau, tp1, t1),
-              Typ.subst(tau, tp2, t2),
+              TypSlice.subst(tau |> TypSlice.t_of_typ_t, tp1, s1),
+              TypSlice.subst(tau |> TypSlice.t_of_typ_t, tp2, s2),
             )
             |> Exp.fresh,
           state_update,
           kind: CastTypAp,
           is_value: false,
-        })
+        });
       | _ => raise(EvaluatorError.Exception(InvalidBoxedTypFun(d')))
       };
     | DeferredAp(d1, ds) =>
@@ -353,23 +395,23 @@ module Transition = (EV: EV_MODE) => {
           kind: FunAp,
           is_value: false,
         });
-      | Cast(
-          d3',
-          {term: Arrow(ty1, ty2), _},
-          {term: Arrow(ty1', ty2'), _},
-        ) =>
+      | Cast(d3', s1, s2)
+          when
+            TypSlice.is_arrow(~ignore_parens=false, s1)
+            && TypSlice.is_arrow(~ignore_parens=false, s2) =>
+        let ((s1, s2), (s1', s2')) = (unarrow(s1), unarrow(s2));
         Step({
           expr:
             Cast(
-              Ap(dir, d3', Cast(d2', ty1', ty1) |> fresh) |> fresh,
-              ty2,
-              ty2',
+              Ap(dir, d3', Cast(d2', s1', s1) |> fresh) |> fresh,
+              s2,
+              s2',
             )
             |> fresh,
           state_update,
           kind: CastAp,
           is_value: false,
-        })
+        });
       | BuiltinFun(ident) =>
         if (d2_is_value) {
           Step({

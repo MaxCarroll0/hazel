@@ -185,8 +185,8 @@ module Make = (M: Move.S) => {
         let* ci_gp = statics_of(gp);
         switch (Info.cls_of(ci_parent), Info.cls_of(ci_gp)) {
         | (
-            Exp(Tuple) | Pat(Tuple) | Typ(Prod),
-            Exp(Parens) | Pat(Parens) | Typ(Parens),
+            Exp(Tuple) | Pat(Tuple) | TypSlice((_, Prod)),
+            Exp(Parens) | Pat(Parens) | TypSlice((_, Parens)),
           ) =>
           /* If parent is tuple, check if it's in parens,
            * and if so, select the parens as well */

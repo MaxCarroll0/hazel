@@ -419,7 +419,7 @@ let rec exp_to_pretty = (~settings: Settings.t, exp: Exp.t): pretty => {
   | Cast(e, _, t) =>
     let id = exp |> Exp.rep_id;
     let+ e = go(e)
-    and+ t = typ_to_pretty(~settings: Settings.t, t);
+    and+ t = typ_to_pretty(~settings: Settings.t, t |> TypSlice.typ_of);
     e @ [mk_form("typeasc", id, [])] @ t;
   | Match(e, rs) =>
     // TODO: Add newlines
@@ -535,7 +535,7 @@ and pat_to_pretty = (~settings: Settings.t, pat: Pat.t): pretty => {
   | Cast(p, t, _) =>
     let id = pat |> Pat.rep_id;
     let+ p = go(p)
-    and+ t = typ_to_pretty(~settings: Settings.t, t);
+    and+ t = typ_to_pretty(~settings: Settings.t, t |> TypSlice.typ_of);
     p @ [mk_form("typeann", id, [])] @ t;
   };
 }
@@ -644,6 +644,7 @@ and any_to_pretty = (~settings: Settings.t, any: Any.t): pretty => {
   | Exp(e) => exp_to_pretty(~settings: Settings.t, e)
   | Pat(p) => pat_to_pretty(~settings: Settings.t, p)
   | Typ(t) => typ_to_pretty(~settings: Settings.t, t)
+  | TypSlice(t) => typ_to_pretty(~settings: Settings.t, t |> TypSlice.typ_of)
   | TPat(tp) => tpat_to_pretty(~settings: Settings.t, tp)
   | Any(_)
   | Nul(_)
@@ -903,15 +904,23 @@ let rec parenthesize = (exp: Exp.t): Exp.t => {
   | Cast(e, t1, t2) =>
     Cast(
       parenthesize(e) |> paren_assoc_at(Precedence.cast),
-      parenthesize_typ(t1) |> paren_typ_at(Precedence.cast),
-      parenthesize_typ(t2) |> paren_typ_at(Precedence.cast),
+      parenthesize_typ(t1 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t, // TODO: Keep slices!?
+      parenthesize_typ(t2 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t,
     )
     |> rewrap
   | FailedCast(e, t1, t2) =>
     FailedCast(
       parenthesize(e) |> paren_at(Precedence.cast),
-      parenthesize_typ(t1) |> paren_typ_at(Precedence.cast),
-      parenthesize_typ(t2) |> paren_typ_at(Precedence.cast),
+      parenthesize_typ(t1 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t, // TODO: Keep slices!?
+      parenthesize_typ(t2 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t,
     )
     |> rewrap
   | Test(e) => Test(parenthesize(e) |> paren_at(Precedence.min)) |> rewrap
@@ -1011,8 +1020,12 @@ and parenthesize_pat = (pat: Pat.t): Pat.t => {
   | Cast(p, t1, t2) =>
     Cast(
       parenthesize_pat(p) |> paren_pat_assoc_at(Precedence.cast),
-      parenthesize_typ(t1) |> paren_typ_at(Precedence.max), // Hack[Matt]: always add parens to get the arrows right
-      parenthesize_typ(t2) |> paren_typ_at(Precedence.max),
+      parenthesize_typ(t1 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t, // TODO: Keep slices!?
+      parenthesize_typ(t2 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t,
     )
     |> rewrap
   };
@@ -1119,6 +1132,8 @@ and parenthesize_any = (any: Any.t): Any.t =>
   | Exp(e) => Exp(parenthesize(e))
   | Pat(p) => Pat(parenthesize_pat(p))
   | Typ(t) => Typ(parenthesize_typ(t))
+  | TypSlice(t) =>
+    TypSlice(parenthesize_typ(t |> TypSlice.typ_of) |> TypSlice.t_of_typ_t)
   | TPat(tp) => TPat(parenthesize_tpat(tp))
   | Rul(r) => Rul(parenthesize_rul(r))
   | Any(_) => any

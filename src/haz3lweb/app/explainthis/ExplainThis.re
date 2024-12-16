@@ -2136,7 +2136,7 @@ let get_doc =
       default
     }
   | Some(InfoTyp({term, _} as typ_info)) =>
-    switch (bypass_parens_typ(term).term) {
+    switch (bypass_parens_typ(term |> TypSlice.typ_of).term) {
     | Unknown(SynSwitch)
     | Unknown(Internal)
     | Unknown(Hole(EmptyHole)) => get_message(HoleTyp.empty_hole)

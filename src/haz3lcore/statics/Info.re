@@ -36,20 +36,20 @@ type ancestors = list(Id.t);
 type error_inconsistent =
   /* Self type (syn) inconsistent with expected type (ana) */
   | Expectation({
-      ana: Typ.t,
-      syn: Typ.t,
+      ana: TypSlice.t,
+      syn: TypSlice.t,
     })
   /* Inconsistent match or listlit */
-  | Internal(list(Typ.t))
+  | Internal(list(TypSlice.t))
   /* Bad function position */
-  | WithArrow(Typ.t);
+  | WithArrow(TypSlice.t);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type error_no_type =
   /* Invalid expression token, treated as hole */
   | BadToken(Token.t)
   /* Empty application of function with inconsistent type */
-  | BadTrivAp(Typ.t)
+  | BadTrivAp(TypSlice.t)
   /* Sum constructor neiter bound nor in ana type */
   | FreeConstructor(Constructor.t);
 
@@ -80,27 +80,27 @@ type ok_ana =
   /* The expected (ana) type and the self (syn) type are
      consistent, as witnessed by their joint type (join) */
   | Consistent({
-      ana: Typ.t,
-      syn: Typ.t,
-      join: Typ.t,
+      ana: TypSlice.t,
+      syn: TypSlice.t,
+      join: TypSlice.t,
     })
   /* A match expression or list literal which, in synthetic position,
      would be marked as internally inconsistent, but is considered
      fine as the expected type provides a consistent lower bound
      (often Unknown) for the types of the branches/elements */
   | InternallyInconsistent({
-      ana: Typ.t,
-      nojoin: list(Typ.t),
+      ana: TypSlice.t,
+      nojoin: list(TypSlice.t),
     });
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type ok_common =
-  | Syn(Typ.t)
+  | Syn(TypSlice.t)
   | Ana(ok_ana);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type ok_exp =
-  | AnaDeferralConsistent(Typ.t)
+  | AnaDeferralConsistent(TypSlice.t)
   | Common(ok_common);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -132,8 +132,8 @@ type status_variant =
 [@deriving (show({with_path: false}), sexp, yojson)]
 type typ_expects =
   | TypeExpected
-  | ConstructorExpected(status_variant, Typ.t)
-  | VariantExpected(status_variant, Typ.t);
+  | ConstructorExpected(status_variant, TypSlice.t)
+  | VariantExpected(status_variant, TypSlice.t);
 
 /* Type term errors
    TODO: The three additional errors statuses
@@ -145,16 +145,16 @@ type error_typ =
   | FreeTypeVariable(string) /* Free type variable */
   | DuplicateConstructor(Constructor.t) /* Duplicate ctr in same sum */
   | WantTypeFoundAp
-  | WantConstructorFoundType(Typ.t)
+  | WantConstructorFoundType(TypSlice.t)
   | WantConstructorFoundAp;
 
 /* Type ok statuses for cursor inspector */
 [@deriving (show({with_path: false}), sexp, yojson)]
 type ok_typ =
-  | Variant(Constructor.t, Typ.t)
-  | VariantIncomplete(Typ.t)
-  | TypeAlias(string, Typ.t)
-  | Type(Typ.t);
+  | Variant(Constructor.t, TypSlice.t)
+  | VariantIncomplete(TypSlice.t)
+  | TypeAlias(string, TypSlice.t)
+  | Type(TypSlice.t);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type status_typ =
@@ -200,7 +200,7 @@ type exp = {
   co_ctx: CoCtx.t, /* Locally free variables */
   cls: Cls.t, /* DERIVED: Syntax class (i.e. form name) */
   status: status_exp, /* DERIVED: Ok/Error statuses for display */
-  ty: Typ.t /* DERIVED: Type after nonempty hole fixing */
+  ty: TypSlice.t /* DERIVED: Type after nonempty hole fixing */
 };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -209,18 +209,18 @@ type pat = {
   ancestors,
   ctx: Ctx.t,
   co_ctx: CoCtx.t,
-  prev_synswitch: option(Typ.t), // If a pattern is first synthesized, then analysed, the initial syn is stored here.
+  prev_synswitch: option(TypSlice.t), // If a pattern is first synthesized, then analysed, the initial syn is stored here.
   mode: Mode.t,
   self: Self.pat,
   cls: Cls.t,
   status: status_pat,
-  ty: Typ.t,
+  ty: TypSlice.t,
   constraint_: Constraint.t,
 };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type typ = {
-  term: Typ.t,
+  term: TypSlice.t,
   ancestors,
   ctx: Ctx.t,
   expects: typ_expects,
@@ -297,7 +297,7 @@ let id_of: t => Id.t =
   fun
   | InfoExp(i) => Exp.rep_id(i.term)
   | InfoPat(i) => Pat.rep_id(i.term)
-  | InfoTyp(i) => Typ.rep_id(i.term)
+  | InfoTyp(i) => TypSlice.rep_id(i.term)
   | InfoTPat(i) => TPat.rep_id(i.term)
   | Secondary(s) => s.id;
 
@@ -314,9 +314,9 @@ let error_of: t => option(error) =
   | Secondary(_) => None;
 
 let exp_co_ctx: exp => CoCtx.t = ({co_ctx, _}) => co_ctx;
-let exp_ty: exp => Typ.t = ({ty, _}) => ty;
+let exp_ty: exp => TypSlice.t = ({ty, _}) => ty;
 let pat_ctx: pat => Ctx.t = ({ctx, _}) => ctx;
-let pat_ty: pat => Typ.t = ({ty, _}) => ty;
+let pat_ty: pat => TypSlice.t = ({ty, _}) => ty;
 let pat_constraint: pat => Constraint.t = ({constraint_, _}) => constraint_;
 
 let rec status_common =
@@ -325,10 +325,15 @@ let rec status_common =
   | (Just(ty), Syn) => NotInHole(Syn(ty))
   | (Just(ty), SynFun) =>
     switch (
-      Typ.join_fix(
+      TypSlice.join_fix(
         ctx,
-        Arrow(Unknown(Internal) |> Typ.temp, Unknown(Internal) |> Typ.temp)
-        |> Typ.temp,
+        `Typ(
+          Arrow(
+            Unknown(Internal) |> Typ.temp,
+            Unknown(Internal) |> Typ.temp,
+          ),
+        )
+        |> TypSlice.temp,
         ty,
       )
     ) {
@@ -337,10 +342,10 @@ let rec status_common =
     }
   | (Just(ty), SynTypFun) =>
     switch (
-      Typ.join_fix(
+      TypSlice.join_fix(
         ctx,
-        Forall(Var("?") |> TPat.fresh, Unknown(Internal) |> Typ.temp)
-        |> Typ.temp,
+        `Typ(Forall(Var("?") |> TPat.fresh, Unknown(Internal) |> Typ.temp))
+        |> TypSlice.temp,
         ty,
       )
     ) {
@@ -349,7 +354,7 @@ let rec status_common =
     }
   | (Just(syn), Ana(ana)) =>
     switch (
-      Typ.join_fix(
+      TypSlice.join_fix(
         ctx,
         ana,
         syn /* Note: the ordering of ana, syn matters */
@@ -370,18 +375,20 @@ let rec status_common =
     }
   | (BadToken(name), _) => InHole(NoType(BadToken(name)))
   | (BadTrivAp(ty), _) => InHole(NoType(BadTrivAp(ty)))
-  | (IsMulti, _) => NotInHole(Syn(Unknown(Internal) |> Typ.temp))
+  | (IsMulti, _) =>
+    NotInHole(Syn(`Typ(Unknown(Internal)) |> TypSlice.temp))
   | (NoJoin(wrap, tys), Ana(ana)) =>
-    let syn: Typ.t = Self.join_of(wrap, Unknown(Internal) |> Typ.temp);
-    switch (Typ.join_fix(ctx, ana, syn)) {
+    let syn: TypSlice.t =
+      Self.join_of(wrap, `Typ(Unknown(Internal)) |> TypSlice.temp);
+    switch (TypSlice.join_fix(ctx, ana, syn)) {
     | None => InHole(Inconsistent(Expectation({ana, syn})))
     | Some(_) =>
       NotInHole(
-        Ana(InternallyInconsistent({ana, nojoin: Typ.of_source(tys)})),
+        Ana(InternallyInconsistent({ana, nojoin: TypSlice.of_source(tys)})),
       )
     };
   | (NoJoin(_, tys), Syn | SynFun | SynTypFun) =>
-    InHole(Inconsistent(Internal(Typ.of_source(tys))))
+    InHole(Inconsistent(Internal(TypSlice.of_source(tys))))
   };
 
 let rec status_pat = (ctx: Ctx.t, mode: Mode.t, self: Self.pat): status_pat =>
@@ -452,47 +459,101 @@ let rec status_exp = (ctx: Ctx.t, mode: Mode.t, self: Self.exp): status_exp =>
    separate sort. It also determines semantic properties
    such as whether or not a type variable reference is
    free, and whether a ctr name is a dupe. */
-let status_typ = (ctx: Ctx.t, expects: typ_expects, ty: Typ.t): status_typ =>
-  switch (ty.term) {
-  | Unknown(Hole(Invalid(token))) => InHole(BadToken(token))
-  | Unknown(Hole(EmptyHole)) => NotInHole(Type(ty))
-  | Var(name) =>
-    switch (expects) {
-    | VariantExpected(Unique, sum_ty)
-    | ConstructorExpected(Unique, sum_ty) =>
-      NotInHole(Variant(name, sum_ty))
-    | VariantExpected(Duplicate, _)
-    | ConstructorExpected(Duplicate, _) =>
-      InHole(DuplicateConstructor(name))
-    | TypeExpected =>
-      switch (Ctx.is_alias(ctx, name)) {
-      | false =>
-        switch (Ctx.is_abstract(ctx, name)) {
-        | false => InHole(FreeTypeVariable(name))
-        | true => NotInHole(Type(Var(name) |> Typ.temp))
+let status_typ =
+    (ctx: Ctx.t, expects: typ_expects, ty: TypSlice.t): status_typ => {
+  let rewrap = term => {...ty, term};
+  let f_typ = (ty: Typ.term): status_typ =>
+    switch (ty) {
+    | Unknown(Hole(Invalid(token))) => InHole(BadToken(token))
+    | Unknown(Hole(EmptyHole)) => NotInHole(Type(`Typ(ty) |> rewrap))
+    | Var(name) =>
+      switch (expects) {
+      | VariantExpected(Unique, sum_ty)
+      | ConstructorExpected(Unique, sum_ty) =>
+        NotInHole(Variant(name, sum_ty))
+      | VariantExpected(Duplicate, _)
+      | ConstructorExpected(Duplicate, _) =>
+        InHole(DuplicateConstructor(name))
+      | TypeExpected =>
+        switch (Ctx.is_alias(ctx, name)) {
+        | false =>
+          switch (Ctx.is_abstract(ctx, name)) {
+          | false => InHole(FreeTypeVariable(name))
+          | true => NotInHole(Type(`Typ(Var(name)) |> TypSlice.temp))
+          }
+        | true =>
+          NotInHole(
+            TypeAlias(
+              name,
+              Typ.weak_head_normalize(ctx, ty |> rewrap)
+              |> TypSlice.t_of_typ_t,
+            ),
+          )
         }
-      | true => NotInHole(TypeAlias(name, Typ.weak_head_normalize(ctx, ty)))
       }
-    }
-  | Ap(t1, ty_in) =>
-    switch (expects) {
-    | VariantExpected(status_variant, ty_variant) =>
-      switch (status_variant, t1.term) {
-      | (Unique, Var(name)) =>
-        NotInHole(Variant(name, Arrow(ty_in, ty_variant) |> Typ.temp))
-      | _ =>
-        NotInHole(VariantIncomplete(Arrow(ty_in, ty_variant) |> Typ.temp))
+    | Ap(t1, ty_in) =>
+      switch (expects) {
+      | VariantExpected(status_variant, ty_variant) =>
+        switch (status_variant, t1.term) {
+        | (Unique, Var(name)) =>
+          NotInHole(
+            Variant(
+              name,
+              `SliceIncr((
+                Slice(Arrow(TypSlice.t_of_typ_t(ty_in), ty_variant)),
+                TypSlice.empty_slice_incr,
+              ))
+              |> TypSlice.temp,
+            ),
+          )
+        | _ =>
+          NotInHole(
+            VariantIncomplete(
+              `SliceIncr((
+                Slice(Arrow(TypSlice.t_of_typ_t(ty_in), ty_variant)),
+                TypSlice.empty_slice_incr,
+              ))
+              |> TypSlice.temp,
+            ),
+          )
+        }
+      | ConstructorExpected(_) => InHole(WantConstructorFoundAp)
+      | TypeExpected => InHole(WantTypeFoundAp)
       }
-    | ConstructorExpected(_) => InHole(WantConstructorFoundAp)
-    | TypeExpected => InHole(WantTypeFoundAp)
-    }
-  | _ =>
-    switch (expects) {
-    | TypeExpected => NotInHole(Type(ty))
-    | ConstructorExpected(_)
-    | VariantExpected(_) => InHole(WantConstructorFoundType(ty))
-    }
-  };
+    | _ =>
+      switch (expects) {
+      | TypeExpected => NotInHole(Type(`Typ(ty) |> rewrap))
+      | ConstructorExpected(_)
+      | VariantExpected(_) =>
+        InHole(WantConstructorFoundType(`Typ(ty) |> rewrap))
+      }
+    };
+  let f_slc = (s: TypSlice.slc_typ_term): status_typ =>
+    switch (s) {
+    | Ap(t1, ty_in) =>
+      switch (expects) {
+      | VariantExpected(_, ty_variant) =>
+        NotInHole(
+          VariantIncomplete(
+            `SliceIncr((
+              Slice(Arrow(ty_in, ty_variant)),
+              TypSlice.empty_slice_incr,
+            ))
+            |> TypSlice.temp,
+          ),
+        )
+      | ConstructorExpected(_) => InHole(WantConstructorFoundAp)
+      | TypeExpected => InHole(WantTypeFoundAp)
+      }
+    | _ =>
+      switch (expects) {
+      | TypeExpected => NotInHole(Type(ty))
+      | ConstructorExpected(_)
+      | VariantExpected(_) => InHole(WantConstructorFoundType(ty))
+      }
+    };
+  TypSlice.apply(f_typ, f_slc, TypSlice.term_of(ty));
+};
 
 let status_tpat = (ctx: Ctx.t, utpat: TPat.t): status_tpat =>
   switch (utpat.term) {
@@ -541,36 +602,38 @@ let is_error = (ci: t): bool => {
 /* Determined the type of an expression or pattern 'after hole fixing';
    that is, some ill-typed terms are considered to be 'wrapped in
    non-empty holes', i.e. assigned Unknown type. */
-let fixed_typ_ok: ok_pat => Typ.t =
+let fixed_typ_ok: ok_pat => TypSlice.t =
   fun
   | Syn(syn) => syn
   | Ana(Consistent({join, _})) => join
   | Ana(InternallyInconsistent({ana, _})) => ana;
 
-let fixed_typ_err_common: error_common => Typ.t =
+let fixed_typ_err_common: error_common => TypSlice.t =
   fun
-  | NoType(_) => Unknown(Internal) |> Typ.temp
+  | NoType(_) => `Typ(Unknown(Internal)) |> TypSlice.temp
   | Inconsistent(Expectation({ana, _})) => ana
-  | Inconsistent(Internal(_)) => Unknown(Internal) |> Typ.temp // Should this be some sort of meet?
+  | Inconsistent(Internal(_)) => `Typ(Unknown(Internal)) |> TypSlice.temp // Should this be some sort of meet?
   | Inconsistent(WithArrow(_)) =>
-    Arrow(Unknown(Internal) |> Typ.temp, Unknown(Internal) |> Typ.temp)
-    |> Typ.temp;
+    `Typ(
+      Arrow(Unknown(Internal) |> Typ.temp, Unknown(Internal) |> Typ.temp),
+    )
+    |> TypSlice.temp;
 
-let fixed_typ_err: error_exp => Typ.t =
+let fixed_typ_err: error_exp => TypSlice.t =
   fun
-  | FreeVariable(_) => Unknown(Internal) |> Typ.temp
-  | UnusedDeferral => Unknown(Internal) |> Typ.temp
-  | BadPartialAp(_) => Unknown(Internal) |> Typ.temp
-  | InexhaustiveMatch(_) => Unknown(Internal) |> Typ.temp
+  | FreeVariable(_) => `Typ(Unknown(Internal)) |> TypSlice.temp
+  | UnusedDeferral => `Typ(Unknown(Internal)) |> TypSlice.temp
+  | BadPartialAp(_) => `Typ(Unknown(Internal)) |> TypSlice.temp
+  | InexhaustiveMatch(_) => `Typ(Unknown(Internal)) |> TypSlice.temp
   | Common(err) => fixed_typ_err_common(err);
 
-let fixed_typ_err_pat: error_pat => Typ.t =
+let fixed_typ_err_pat: error_pat => TypSlice.t =
   fun
-  | ExpectedConstructor => Unknown(Internal) |> Typ.temp
-  | Redundant(_) => Unknown(Internal) |> Typ.temp
+  | ExpectedConstructor => `Typ(Unknown(Internal)) |> TypSlice.temp
+  | Redundant(_) => `Typ(Unknown(Internal)) |> TypSlice.temp
   | Common(err) => fixed_typ_err_common(err);
 
-let fixed_typ_pat = (ctx, mode: Mode.t, self: Self.pat): Typ.t => {
+let fixed_typ_pat = (ctx, mode: Mode.t, self: Self.pat): TypSlice.t => {
   // TODO: get rid of unwrapping (probably by changing the implementation of error_exp.Redundant)
   let self =
     switch (self) {
@@ -595,13 +658,13 @@ let fixed_constraint_pat =
   switch (upat.term) {
   | Cast(_) => constraint_
   | _ =>
-    switch (fixed_typ_pat(ctx, mode, self) |> Typ.term_of) {
+    switch (fixed_typ_pat(ctx, mode, self) |> TypSlice.typ_of |> Typ.term_of) {
     | Unknown(_) => Constraint.Hole
     | _ => constraint_
     }
   };
 
-let fixed_typ_exp = (ctx, mode: Mode.t, self: Self.exp): Typ.t =>
+let fixed_typ_exp = (ctx, mode: Mode.t, self: Self.exp): TypSlice.t =>
   switch (status_exp(ctx, mode, self)) {
   | InHole(err) => fixed_typ_err(err)
   | NotInHole(AnaDeferralConsistent(ana)) => ana
@@ -650,13 +713,13 @@ let derived_pat =
 };
 
 /* Add derivable attributes for types */
-let derived_typ = (~utyp: UTyp.t, ~ctx, ~ancestors, ~expects): typ => {
+let derived_typ = (~utyp: TypSlice.t, ~ctx, ~ancestors, ~expects): typ => {
   let cls: Cls.t =
     /* Hack to improve CI display */
-    switch (expects, UTyp.cls_of_term(utyp.term)) {
-    | (VariantExpected(_) | ConstructorExpected(_), Var) =>
-      Cls.Typ(Constructor)
-    | (_, cls) => Cls.Typ(cls)
+    switch (expects, TypSlice.cls_of_term(utyp.term)) {
+    | (VariantExpected(_) | ConstructorExpected(_), (cls_slc, Var)) =>
+      Cls.TypSlice((cls_slc, Constructor))
+    | (_, cls) => Cls.TypSlice(cls)
     };
   let status = status_typ(ctx, expects, utyp);
   {cls, ctx, ancestors, status, expects, term: utyp};
@@ -680,7 +743,14 @@ let get_binding_site = (info: t): option(Id.t) => {
   | InfoPat({term: {term: Constructor(name, _), _}, ctx, _}) =>
     let+ entry = Ctx.lookup_ctr(ctx, name);
     entry.id;
-  | InfoTyp({term: {term: Var(name), _}, ctx, _}) =>
+  | InfoTyp({term: {term: `Typ(Var(name)), _}, ctx, _})
+  | InfoTyp({term: {term: `SliceIncr(Typ(Var(name)), _), _}, ctx, _})
+  | InfoTyp({term: {term: `SliceGlobal(`Typ(Var(name)), _), _}, ctx, _})
+  | InfoTyp({
+      term: {term: `SliceGlobal(`SliceIncr(Typ(Var(name)), _), _), _},
+      ctx,
+      _,
+    }) =>
     Ctx.lookup_tvar_id(ctx, name)
   | _ => None
   };

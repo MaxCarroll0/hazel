@@ -99,7 +99,10 @@ let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
       } else {
         d1;
       };
-    switch (ground_cases_of(t1), ground_cases_of(t2)) {
+    switch (
+      ground_cases_of(t1 |> TypSlice.typ_of),
+      ground_cases_of(t2 |> TypSlice.typ_of),
+    ) {
     | (Hole, Hole)
     | (Ground, Ground) =>
       /* if two types are ground and consistent, then they are eq */
@@ -111,14 +114,18 @@ let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
 
     | (Hole, Ground) =>
       switch (DHExp.term_of(d1)) {
-      | Cast(d2, t3, {term: Unknown(_), _}) =>
-        /* by canonical forms, d1' must be of the form d<ty'' -> ?> */
-        if (Typ.eq(t3, t2)) {
-          Some
-            (d2); // Rule ITCastSucceed
-        } else {
-          Some
-            (FailedCast(d2, t3, t2) |> DHExp.fresh); // Rule ITCastFail
+      | Cast(d2, t3, t4) =>
+        switch (TypSlice.typ_of(t4) |> Typ.term_of) {
+        | Unknown(_) =>
+          /* by canonical forms, d1' must be of the form d<ty'' -> ?> */
+          if (TypSlice.eq(t3, t2)) {
+            Some
+              (d2); // Rule ITCastSucceed
+          } else {
+            Some
+              (FailedCast(d2, t3, t2) |> DHExp.fresh); // Rule ITCastFail
+          }
+        | _ => None
         }
       | _ => None
       }
@@ -126,7 +133,12 @@ let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
     | (Hole, NotGroundOrHole(t2_grounded)) =>
       /* ITExpand rule */
       let inner_cast =
-        Cast(d1, t1, t2_grounded |> DHExp.replace_all_ids_typ) |> DHExp.fresh;
+        Cast(
+          d1,
+          t1,
+          t2_grounded |> DHExp.replace_all_ids_typ |> TypSlice.t_of_typ_t,
+        )
+        |> DHExp.fresh;
       // HACK: we need to check the inner cast here
       let inner_cast =
         switch (transition(~recursive, inner_cast)) {
@@ -134,7 +146,11 @@ let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
         | None => inner_cast
         };
       Some(
-        Cast(inner_cast, t2_grounded |> DHExp.replace_all_ids_typ, t2)
+        Cast(
+          inner_cast,
+          t2_grounded |> DHExp.replace_all_ids_typ |> TypSlice.t_of_typ_t,
+          t2,
+        )
         |> DHExp.fresh,
       );
 
@@ -142,9 +158,13 @@ let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
       /* ITGround rule */
       Some(
         Cast(
-          Cast(d1, t1, t1_grounded |> DHExp.replace_all_ids_typ)
+          Cast(
+            d1,
+            t1,
+            t1_grounded |> DHExp.replace_all_ids_typ |> TypSlice.t_of_typ_t,
+          )
           |> DHExp.fresh,
-          t1_grounded |> DHExp.replace_all_ids_typ,
+          t1_grounded |> DHExp.replace_all_ids_typ |> TypSlice.t_of_typ_t,
           t2,
         )
         |> DHExp.fresh,
@@ -153,7 +173,7 @@ let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
     | (Ground, NotGroundOrHole(_)) =>
       switch (DHExp.term_of(d1)) {
       | Cast(d2, t3, _) =>
-        if (Typ.eq(t3, t2)) {
+        if (TypSlice.eq(t3, t2)) {
           Some(d2);
         } else {
           None;
@@ -166,7 +186,7 @@ let rec transition = (~recursive=false, d: DHExp.t): option(DHExp.t) => {
 
     | (NotGroundOrHole(_), NotGroundOrHole(_)) =>
       /* they might be eq in this case, so remove cast if so */
-      if (Typ.eq(t1, t2)) {
+      if (TypSlice.eq(t1, t2)) {
         Some
           (d1); // Rule ITCastId
       } else {
@@ -213,8 +233,9 @@ let pattern_fixup = (p: DHPat.t): DHPat.t => {
       {
         term:
           Cast(
-            Cast(p1, t1, Typ.fresh(Unknown(Internal))) |> DHPat.fresh,
-            Typ.fresh(Unknown(Internal)),
+            Cast(p1, t1, TypSlice.fresh(`Typ(Unknown(Internal))))
+            |> DHPat.fresh,
+            TypSlice.fresh(`Typ(Unknown(Internal))),
             t2,
           ),
         copied: d.copied,

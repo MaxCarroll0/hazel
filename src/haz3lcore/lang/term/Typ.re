@@ -106,9 +106,29 @@ let show_cls: cls => string =
   | Rec => "Recursive type"
   | Forall => "Forall type";
 
-let rec is_arrow = (typ: t) => {
+let is_parens = (typ: t) => {
   switch (typ.term) {
-  | Parens(typ) => is_arrow(typ)
+  | Parens(_) => true
+  | Arrow(_)
+  | Unknown(_)
+  | Int
+  | Float
+  | Bool
+  | String
+  | List(_)
+  | Prod(_)
+  | Var(_)
+  | Ap(_)
+  | Sum(_)
+  | Forall(_)
+  | Rec(_) => false
+  };
+};
+
+// ignore_parens=false can give a syntactic notion (e.g. for use in pattern matching).
+let rec is_arrow = (~ignore_parens=true, typ: t) => {
+  switch (typ.term) {
+  | Parens(typ) => ignore_parens ? false : is_arrow(typ)
   | Arrow(_) => true
   | Unknown(_)
   | Int
@@ -125,9 +145,47 @@ let rec is_arrow = (typ: t) => {
   };
 };
 
-let rec is_forall = (typ: t) => {
+let rec is_unknown = (~ignore_parens=true, typ: t) => {
   switch (typ.term) {
-  | Parens(typ) => is_forall(typ)
+  | Parens(typ) => ignore_parens ? false : is_unknown(typ)
+  | Unknown(_) => true
+  | Arrow(_)
+  | Int
+  | Float
+  | Bool
+  | String
+  | List(_)
+  | Prod(_)
+  | Var(_)
+  | Ap(_)
+  | Sum(_)
+  | Forall(_)
+  | Rec(_) => false
+  };
+};
+
+let rec is_list = (~ignore_parens=true, typ: t) => {
+  switch (typ.term) {
+  | Parens(typ) => ignore_parens ? false : is_list(typ)
+  | List(_) => true
+  | Unknown(_)
+  | Int
+  | Float
+  | Bool
+  | String
+  | Arrow(_)
+  | Prod(_)
+  | Var(_)
+  | Ap(_)
+  | Sum(_)
+  | Forall(_)
+  | Rec(_) => false
+  };
+};
+
+let rec is_forall = (~ignore_parens=true, typ: t) => {
+  switch (typ.term) {
+  | Parens(typ) => ignore_parens ? false : is_forall(typ)
   | Forall(_) => true
   | Unknown(_)
   | Int
@@ -140,6 +198,24 @@ let rec is_forall = (typ: t) => {
   | Var(_)
   | Ap(_)
   | Sum(_)
+  | Rec(_) => false
+  };
+};
+let rec is_sum = (~ignore_parens=true, typ: t) => {
+  switch (typ.term) {
+  | Parens(typ) => ignore_parens ? false : is_sum(typ)
+  | Sum(_) => true
+  | Unknown(_)
+  | Int
+  | Float
+  | Bool
+  | String
+  | Arrow(_)
+  | List(_)
+  | Prod(_)
+  | Var(_)
+  | Ap(_)
+  | Forall(_)
   | Rec(_) => false
   };
 };
@@ -214,93 +290,129 @@ let eq = (t1: t, t2: t): bool => fast_equal(t1, t2);
    resolve parameter specifies whether, in the case of a type
    variable and a succesful join, to return the resolved join type,
    or to return the (first) type variable for readability */
-let rec join = (~resolve=false, ~fix, ctx: Ctx.t, ty1: t, ty2: t): option(t) => {
-  let join' = join(~resolve, ~fix, ctx);
-  switch (term_of(ty1), term_of(ty2)) {
-  | (_, Parens(ty2)) => join'(ty1, ty2)
-  | (Parens(ty1), _) => join'(ty1, ty2)
-  | (_, Unknown(Hole(_))) when fix =>
-    /* NOTE(andrew): This is load bearing
-       for ensuring that function literals get appropriate
-       casts. Documentation/Dynamics has regression tests */
-    Some(ty2)
-  | (Unknown(p1), Unknown(p2)) =>
-    Some(Unknown(join_type_provenance(p1, p2)) |> temp)
-  | (Unknown(_), _) => Some(ty2)
-  | (_, Unknown(Internal | SynSwitch)) => Some(ty1)
-  | (Var(n1), Var(n2)) =>
-    if (n1 == n2) {
-      Some(ty1);
-    } else {
-      let* ty1 = Ctx.lookup_alias(ctx, n1);
-      let* ty2 = Ctx.lookup_alias(ctx, n2);
-      let+ ty_join = join'(ty1, ty2);
-      !resolve && eq(ty1, ty_join) ? ty1 : ty_join;
+
+// Tracks if atomic type of either branch is used in the join type.
+// strictly picks LEFT side when same leaf used in both branches
+// join used leaves from either: none, left branch, right branch, or both.
+// None here occurs if both branches are Unknown.
+let rec join_using =
+        (~resolve=false, ~fix, ctx: Ctx.t, ty1: t, ty2: t)
+        : option((t, BranchUsed.t)) => {
+  let join' = join_using(~resolve, ~fix, ctx);
+  BranchUsed.(
+    switch (term_of(ty1), term_of(ty2)) {
+    | (_, Parens(ty2)) => join'(ty1, ty2)
+    | (Parens(ty1), _) => join'(ty1, ty2)
+    | (_, Unknown(Hole(_))) when fix =>
+      /* NOTE(andrew): This is load bearing
+         for ensuring that function literals get appropriate
+         casts. Documentation/Dynamics has regression tests */
+      Some((ty2, Right)) // TODO: Check this rule
+    | (Unknown(p1), Unknown(p2)) =>
+      Some((Unknown(join_type_provenance(p1, p2)) |> temp, None))
+    | (Unknown(_), _) => Some((ty2, Right))
+    | (_, Unknown(Internal | SynSwitch)) => Some((ty1, Left))
+    | (Var(n1), Var(n2)) =>
+      if (n1 == n2) {
+        Some((ty1, Left));
+      } else {
+        let* ty1 =
+          Ctx.lookup_alias(ctx, n1) |> Option.map(TermBase.TypSlice.typ_of);
+        let* ty2 =
+          Ctx.lookup_alias(ctx, n2) |> Option.map(TermBase.TypSlice.typ_of);
+        let+ (ty_join, branch_used) = join'(ty1, ty2);
+        !resolve && eq(ty1, ty_join) ? (ty1, Left) : (ty_join, branch_used);
+      }
+    | (Var(name), _) =>
+      let* ty_name =
+        Ctx.lookup_alias(ctx, name) |> Option.map(TermBase.TypSlice.typ_of);
+      let+ (ty_join, branch_used) = join'(ty_name, ty2);
+      !resolve && eq(ty_name, ty_join)
+        ? (ty1, Left) : (ty_join, branch_used);
+    | (_, Var(name)) =>
+      let* ty_name =
+        Ctx.lookup_alias(ctx, name) |> Option.map(TermBase.TypSlice.typ_of);
+      let+ (ty_join, branch_used) = join'(ty_name, ty1);
+      !resolve && eq(ty_name, ty_join)
+        ? (ty2, Right) : (ty_join, branch_used);
+    /* Note: Ordering of Unknown, Var, and Rec above is load-bearing! */
+    | (Rec(tp1, ty1), Rec(tp2, ty2)) =>
+      let ctx = Ctx.extend_dummy_tvar(ctx, tp1);
+      let ty1' =
+        switch (TPat.tyvar_of_utpat(tp2)) {
+        | Some(x2) => subst(Var(x2) |> temp, tp1, ty1)
+        | None => ty1
+        };
+      let+ (ty_body, branch_used) =
+        join_using(~resolve, ~fix, ctx, ty1', ty2);
+      (Rec(tp1, ty_body) |> temp, branch_used);
+    | (Rec(_), _) => None
+    | (Forall(x1, ty1), Forall(x2, ty2)) =>
+      let ctx = Ctx.extend_dummy_tvar(ctx, x1);
+      let ty1' =
+        switch (TPat.tyvar_of_utpat(x2)) {
+        | Some(x2) => subst(Var(x2) |> temp, x1, ty1)
+        | None => ty1
+        };
+      let+ (ty_body, branch_used) =
+        join_using(~resolve, ~fix, ctx, ty1', ty2);
+      (Forall(x1, ty_body) |> temp, branch_used);
+    /* Note for above: there is no danger of free variable capture as
+       subst itself performs capture avoiding substitution. However this
+       may generate internal type variable names that in corner cases can
+       be exposed to the user. We preserve the variable name of the
+       second type to preserve synthesized type variable names, which
+       come from user annotations. */
+    | (Forall(_), _) => None
+    | (Int, Int) => Some((ty1, Left))
+    | (Int, _) => None
+    | (Float, Float) => Some((ty1, Left))
+    | (Float, _) => None
+    | (Bool, Bool) => Some((ty1, Left))
+    | (Bool, _) => None
+    | (String, String) => Some((ty1, Left))
+    | (String, _) => None
+    | (Arrow(ty1, ty2), Arrow(ty1', ty2')) =>
+      let* (ty1, branch_used1) = join'(ty1, ty1');
+      let+ (ty2, branch_used2) = join'(ty2, ty2');
+      (
+        Arrow(ty1, ty2) |> temp,
+        combine_branches_used(branch_used1, branch_used2),
+      );
+    | (Arrow(_), _) => None
+    | (Prod(tys1), Prod(tys2)) =>
+      let* joins = ListUtil.map2_opt(join', tys1, tys2);
+      let+ joins = OptUtil.sequence(joins);
+      let (tys, branches_used) = ListUtil.unzip(joins);
+      (
+        Prod(tys) |> temp,
+        List.fold_left(combine_branches_used, None, branches_used),
+      );
+    | (Prod(_), _) => None
+    | (Sum(sm1), Sum(sm2)) =>
+      let+ (sm', branches_used) =
+        ConstructorMap.join_using(
+          eq,
+          join_using(~resolve, ~fix, ctx),
+          sm1,
+          sm2,
+        );
+      (
+        Sum(sm') |> temp,
+        List.fold_left(combine_branches_used, None, branches_used),
+      ); // TODO: Check!
+    | (Sum(_), _) => None
+    | (List(ty1), List(ty2)) =>
+      let+ (ty, branch_used) = join'(ty1, ty2);
+      (List(ty) |> temp, branch_used);
+    | (List(_), _) => None
+    | (Ap(_), _) => failwith("Type join of ap")
     }
-  | (Var(name), _) =>
-    let* ty_name = Ctx.lookup_alias(ctx, name);
-    let+ ty_join = join'(ty_name, ty2);
-    !resolve && eq(ty_name, ty_join) ? ty1 : ty_join;
-  | (_, Var(name)) =>
-    let* ty_name = Ctx.lookup_alias(ctx, name);
-    let+ ty_join = join'(ty_name, ty1);
-    !resolve && eq(ty_name, ty_join) ? ty2 : ty_join;
-  /* Note: Ordering of Unknown, Var, and Rec above is load-bearing! */
-  | (Rec(tp1, ty1), Rec(tp2, ty2)) =>
-    let ctx = Ctx.extend_dummy_tvar(ctx, tp1);
-    let ty1' =
-      switch (TPat.tyvar_of_utpat(tp2)) {
-      | Some(x2) => subst(Var(x2) |> temp, tp1, ty1)
-      | None => ty1
-      };
-    let+ ty_body = join(~resolve, ~fix, ctx, ty1', ty2);
-    Rec(tp1, ty_body) |> temp;
-  | (Rec(_), _) => None
-  | (Forall(x1, ty1), Forall(x2, ty2)) =>
-    let ctx = Ctx.extend_dummy_tvar(ctx, x1);
-    let ty1' =
-      switch (TPat.tyvar_of_utpat(x2)) {
-      | Some(x2) => subst(Var(x2) |> temp, x1, ty1)
-      | None => ty1
-      };
-    let+ ty_body = join(~resolve, ~fix, ctx, ty1', ty2);
-    Forall(x1, ty_body) |> temp;
-  /* Note for above: there is no danger of free variable capture as
-     subst itself performs capture avoiding substitution. However this
-     may generate internal type variable names that in corner cases can
-     be exposed to the user. We preserve the variable name of the
-     second type to preserve synthesized type variable names, which
-     come from user annotations. */
-  | (Forall(_), _) => None
-  | (Int, Int) => Some(ty1)
-  | (Int, _) => None
-  | (Float, Float) => Some(ty1)
-  | (Float, _) => None
-  | (Bool, Bool) => Some(ty1)
-  | (Bool, _) => None
-  | (String, String) => Some(ty1)
-  | (String, _) => None
-  | (Arrow(ty1, ty2), Arrow(ty1', ty2')) =>
-    let* ty1 = join'(ty1, ty1');
-    let+ ty2 = join'(ty2, ty2');
-    Arrow(ty1, ty2) |> temp;
-  | (Arrow(_), _) => None
-  | (Prod(tys1), Prod(tys2)) =>
-    let* tys = ListUtil.map2_opt(join', tys1, tys2);
-    let+ tys = OptUtil.sequence(tys);
-    Prod(tys) |> temp;
-  | (Prod(_), _) => None
-  | (Sum(sm1), Sum(sm2)) =>
-    let+ sm' = ConstructorMap.join(eq, join(~resolve, ~fix, ctx), sm1, sm2);
-    Sum(sm') |> temp;
-  | (Sum(_), _) => None
-  | (List(ty1), List(ty2)) =>
-    let+ ty = join'(ty1, ty2);
-    List(ty) |> temp;
-  | (List(_), _) => None
-  | (Ap(_), _) => failwith("Type join of ap")
-  };
+  );
 };
+
+let rec join = (~resolve=false, ~fix, ctx: Ctx.t, ty1: t, ty2: t): option(t) =>
+  join_using(~resolve, ~fix, ctx, ty1, ty2) |> Option.map(fst);
 
 /* REQUIRES NORMALIZED TYPES
    Remove synswitches from t1 by matching against t2 */
@@ -352,7 +464,7 @@ let rec weak_head_normalize = (ctx: Ctx.t, ty: t): t =>
   switch (term_of(ty)) {
   | Parens(t) => weak_head_normalize(ctx, t)
   | Var(x) =>
-    switch (Ctx.lookup_alias(ctx, x)) {
+    switch (Ctx.lookup_alias(ctx, x) |> Option.map(TermBase.TypSlice.typ_of)) {
     | Some(ty) => weak_head_normalize(ctx, ty)
     | None => ty
     }
@@ -363,7 +475,7 @@ let rec normalize = (ctx: Ctx.t, ty: t): t => {
   let (term, rewrap) = unwrap(ty);
   switch (term) {
   | Var(x) =>
-    switch (Ctx.lookup_alias(ctx, x)) {
+    switch (Ctx.lookup_alias(ctx, x) |> Option.map(TermBase.TypSlice.typ_of)) {
     | Some(ty) => normalize(ctx, ty)
     | None => ty
     }
@@ -484,13 +596,6 @@ let rec get_sum_constructors = (ctx: Ctx.t, ty: t): option(sum_map) => {
   | _ => None
   };
 };
-
-let rec is_unknown = (ty: t): bool =>
-  switch (ty |> term_of) {
-  | Parens(x) => is_unknown(x)
-  | Unknown(_) => true
-  | _ => false
-  };
 
 /* Does the type require parentheses when on the left of an arrow for printing? */
 let rec needs_parens = (ty: t): bool =>

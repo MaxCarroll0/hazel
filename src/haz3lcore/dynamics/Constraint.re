@@ -129,7 +129,9 @@ let of_ap = (ctx, mode, ctr: option(Constructor.t), arg: t, syn_ty): t =>
       };
     switch (ty) {
     | Some(ty) =>
-      switch (Typ.weak_head_normalize(ctx, ty) |> Typ.term_of) {
+      switch (
+        Typ.weak_head_normalize(ctx, ty |> TypSlice.typ_of) |> Typ.term_of
+      ) {
       | Rec(_, {term: Sum(map), _})
       | Sum(map) =>
         let num_variants =

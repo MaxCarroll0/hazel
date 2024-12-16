@@ -45,12 +45,16 @@ let u5 =
 let d5 =
   BinOp(
     Int(Plus),
-    FailedCast(Bool(false) |> Exp.fresh, Bool |> Typ.fresh, Int |> Typ.fresh)
+    FailedCast(
+      Bool(false) |> Exp.fresh,
+      `Typ(Bool) |> TypSlice.fresh,
+      `Typ(Int) |> TypSlice.fresh,
+    )
     |> Exp.fresh,
     Cast(
       Var("y") |> Exp.fresh,
-      Unknown(Internal) |> Typ.fresh,
-      Int |> Typ.fresh,
+      `Typ(Unknown(Internal)) |> TypSlice.fresh,
+      `Typ(Int) |> TypSlice.fresh,
     )
     |> Exp.fresh,
   )
@@ -110,8 +114,8 @@ let d8: Exp.t =
         Bool(true) |> Pat.fresh,
         Cast(
           Int(24) |> Exp.fresh,
-          Int |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Int) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
       ),
@@ -119,8 +123,8 @@ let d8: Exp.t =
         Bool(false) |> Pat.fresh,
         Cast(
           Bool(false) |> Exp.fresh,
-          Bool |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Bool) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
       ),
@@ -139,8 +143,8 @@ let u9: Exp.t =
   Let(
     Cast(
       Var("f") |> Pat.fresh,
-      Arrow(Int |> Typ.fresh, Int |> Typ.fresh) |> Typ.fresh,
-      Unknown(Internal) |> Typ.fresh,
+      `Typ(Arrow(Int |> Typ.fresh, Int |> Typ.fresh)) |> TypSlice.fresh,
+      `Typ(Unknown(Internal)) |> TypSlice.fresh,
     )
     |> Pat.fresh,
     Fun(
@@ -246,29 +250,35 @@ let ap_of_deferral_of_hole = () =>
         Cast(
           Cast(
             EmptyHole |> Exp.fresh,
-            Unknown(Internal) |> Typ.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+            `Typ(
+              Arrow(
+                Unknown(Internal) |> Typ.fresh,
+                Unknown(Internal) |> Typ.fresh,
+              ),
+            )
+            |> TypSlice.fresh,
+          )
+          |> Exp.fresh,
+          `Typ(
             Arrow(
               Unknown(Internal) |> Typ.fresh,
               Unknown(Internal) |> Typ.fresh,
-            )
-            |> Typ.fresh,
+            ),
           )
-          |> Exp.fresh,
-          Arrow(
-            Unknown(Internal) |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
+          |> TypSlice.fresh,
+          `Typ(
+            Arrow(
+              Prod([
+                Unknown(Internal) |> Typ.fresh,
+                Unknown(Internal) |> Typ.fresh,
+                Unknown(Internal) |> Typ.fresh,
+              ])
+              |> Typ.fresh,
+              Unknown(Internal) |> Typ.fresh,
+            ),
           )
-          |> Typ.fresh,
-          Arrow(
-            Prod([
-              Unknown(Internal) |> Typ.fresh,
-              Unknown(Internal) |> Typ.fresh,
-              Unknown(Internal) |> Typ.fresh,
-            ])
-            |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
-          )
-          |> Typ.fresh,
+          |> TypSlice.fresh,
         )
         |> Exp.fresh,
         [
@@ -276,8 +286,8 @@ let ap_of_deferral_of_hole = () =>
           Deferral(InAp) |> Exp.fresh,
           Cast(
             Int(3) |> Exp.fresh,
-            Int |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
+            `Typ(Int) |> TypSlice.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
           )
           |> Exp.fresh,
         ],
@@ -286,14 +296,14 @@ let ap_of_deferral_of_hole = () =>
       Tuple([
         Cast(
           Float(1.) |> Exp.fresh,
-          Float |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Float) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
         Cast(
           Bool(true) |> Exp.fresh,
-          Bool |> Typ.fresh,
-          Unknown(Internal) |> Typ.fresh,
+          `Typ(Bool) |> TypSlice.fresh,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh,
         )
         |> Exp.fresh,
       ])

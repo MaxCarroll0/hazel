@@ -29,8 +29,8 @@ type term =
   | Cons2(DHExp.t, t)
   | ListConcat1(t, DHExp.t)
   | ListConcat2(DHExp.t, t)
-  | Cast(t, Typ.t, Typ.t)
-  | FailedCast(t, Typ.t, Typ.t)
+  | Cast(t, TypSlice.t, TypSlice.t)
+  | FailedCast(t, TypSlice.t, TypSlice.t)
   | DynamicErrorHole(t, InvalidOperationError.t)
   | MatchScrut(t, list((UPat.t, DHExp.t)))
   | MatchRule(
@@ -130,12 +130,12 @@ let rec compose = (ctx: t, d: DHExp.t): DHExp.t => {
     | FixF(v, ctx, env) =>
       let d = compose(ctx, d);
       FixF(v, d, env) |> wrap;
-    | Cast(ctx, ty1, ty2) =>
+    | Cast(ctx, s1, s2) =>
       let d = compose(ctx, d);
-      Cast(d, ty1, ty2) |> wrap;
-    | FailedCast(ctx, ty1, ty2) =>
+      Cast(d, s1, s2) |> wrap;
+    | FailedCast(ctx, s1, s2) =>
       let d = compose(ctx, d);
-      FailedCast(d, ty1, ty2) |> wrap;
+      FailedCast(d, s1, s2) |> wrap;
     | DynamicErrorHole(ctx, err) =>
       let d = compose(ctx, d);
       DynamicErrorHole(d, err) |> wrap;

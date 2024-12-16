@@ -2,14 +2,14 @@ open Util;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type kind =
-  | Singleton(TermBase.typ_t)
+  | Singleton(TermBase.typslice_t)
   | Abstract;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type var_entry = {
   name: Var.t,
   id: Id.t,
-  typ: TermBase.typ_t,
+  typ: TermBase.typslice_t,
 };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -33,7 +33,8 @@ let extend = (ctx, entry) => List.cons(entry, ctx);
 let extend_tvar = (ctx: t, tvar_entry: tvar_entry): t =>
   extend(ctx, TVarEntry(tvar_entry));
 
-let extend_alias = (ctx: t, name: string, id: Id.t, ty: TermBase.Typ.t): t =>
+let extend_alias =
+    (ctx: t, name: string, id: Id.t, ty: TermBase.TypSlice.t): t =>
   extend_tvar(ctx, {name, id, kind: Singleton(ty)});
 
 let extend_dummy_tvar = (ctx: t, tvar: TPat.t) =>
@@ -94,13 +95,14 @@ let is_abstract = (ctx: t, name: string): bool =>
   | None => false
   };
 
-let lookup_alias = (ctx: t, name: string): option(TermBase.Typ.t) =>
+let lookup_alias = (ctx: t, name: string): option(TermBase.TypSlice.t) =>
   switch (lookup_tvar(ctx, name)) {
   | Some(Singleton(ty)) => Some(ty)
   | Some(Abstract) => None
   | None =>
     Some(
-      (Unknown(Hole(Invalid(name))): TermBase.Typ.term) |> IdTagged.fresh,
+      `Typ(Unknown(Hole(Invalid(name))): TermBase.Typ.term)
+      |> IdTagged.fresh,
     )
   };
 
@@ -114,10 +116,10 @@ let add_ctrs = (ctx: t, name: string, id: Id.t, ctrs: TermBase.Typ.sum_map): t =
           id,
           typ:
             switch (typ) {
-            | None => (Var(name): TermBase.typ_term) |> IdTagged.fresh
+            | None => `Typ(Var(name): TermBase.typ_term) |> IdTagged.fresh
             | Some(typ) =>
-              (
-                Arrow(typ, (Var(name): TermBase.typ_term) |> IdTagged.fresh): TermBase.typ_term
+              `Typ(
+                Arrow(typ, (Var(name): TermBase.typ_term) |> IdTagged.fresh): TermBase.typ_term,
               )
               |> IdTagged.fresh
             },

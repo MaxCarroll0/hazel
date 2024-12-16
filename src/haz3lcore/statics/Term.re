@@ -100,7 +100,7 @@ module Pat = {
     switch (pat.term) {
     | Parens(pat) => is_fun_var(pat)
     | Cast(pat, typ, _) =>
-      is_var(pat) && (Typ.is_arrow(typ) || Typ.is_forall(typ))
+      is_var(pat) && (TypSlice.is_arrow(typ) || TypSlice.is_forall(typ))
     | Invalid(_)
     | EmptyHole
     | MultiHole(_)
@@ -189,7 +189,7 @@ module Pat = {
     switch (pat.term) {
     | Parens(pat) => get_fun_var(pat)
     | Cast(pat, t1, _) =>
-      if (Typ.is_arrow(t1) || UTyp.is_forall(t1)) {
+      if (TypSlice.is_arrow(t1) || TypSlice.is_forall(t1)) {
         get_var(pat) |> Option.map(var => var);
       } else {
         None;
@@ -807,9 +807,10 @@ module Any = {
     fun
     | Pat(p) => Some(p)
     | _ => None;
-  let is_typ: t => option(TermBase.Typ.t) =
+  let is_typ: t => option(TermBase.TypSlice.t) =
     fun
-    | Typ(t) => Some(t)
+    | TypSlice(t) => Some(t)
+    | Typ(t) => Some(t |> TypSlice.t_of_typ_t)
     | _ => None;
 
   let rec ids: TermBase.any_t => list(Id.t) =
@@ -817,6 +818,7 @@ module Any = {
     | Exp(tm) => tm.ids
     | Pat(tm) => tm.ids
     | Typ(tm) => tm.ids
+    | TypSlice(tm) => tm.ids
     | TPat(tm) => tm.ids
     | Rul(tm) => Rul.ids(~any_ids=ids, tm)
     | Nul ()
@@ -838,6 +840,7 @@ module Any = {
     | (Exp(tm): TermBase.any_t) => Exp.rep_id(tm)
     | Pat(tm) => Pat.rep_id(tm)
     | Typ(tm) => Typ.rep_id(tm)
+    | TypSlice(tm) => TypSlice.rep_id(tm)
     | TPat(tm) => TPat.rep_id(tm)
     | Rul(tm) => Rul.rep_id(~any_ids=ids, tm)
     | Nul ()

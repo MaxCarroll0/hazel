@@ -30,7 +30,7 @@ open Util;
 [@deriving (show({with_path: false}), sexp, yojson)]
 type entry = {
   id: Id.t,
-  expected_ty: Typ.t,
+  expected_ty: TypSlice.t,
 };
 
 /* Each co-context entry is a list of the uses of a variable
@@ -60,13 +60,17 @@ let singleton = (name, id, expected_ty): t => [
   (name, [{id, expected_ty}]),
 ];
 
-let join: (Ctx.t, list(entry)) => Typ.t =
+let join: (Ctx.t, list(entry)) => TypSlice.t =
   (ctx, entries) => {
     let expected_tys = List.map(entry => entry.expected_ty, entries);
     switch (
-      Typ.join_all(~empty=Unknown(Internal) |> Typ.fresh, ctx, expected_tys)
+      TypSlice.join_all(
+        ~empty=`Typ(Unknown(Internal)) |> TypSlice.fresh,
+        ctx,
+        expected_tys,
+      )
     ) {
-    | None => Unknown(Internal) |> Typ.fresh
+    | None => `Typ(Unknown(Internal)) |> TypSlice.fresh
     | Some(ty) => ty
     };
   };

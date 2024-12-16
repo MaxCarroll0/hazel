@@ -99,7 +99,7 @@ let common_err_view = (~globals, cls: Cls.t, err: Info.error_common) => {
       text("Function argument type"),
       view_type(ty),
       text("inconsistent with"),
-      view_type(Prod([]) |> Typ.fresh),
+      view_type(`Typ(Prod([])) |> TypSlice.fresh),
     ]
   | NoType(FreeConstructor(name)) => [code_err(name), text("not found")]
   | Inconsistent(WithArrow(typ)) => [
@@ -185,20 +185,20 @@ let typ_ok_view = (~globals, cls: Cls.t, ok: Info.ok_typ) => {
       },
       ~info_map=Id.Map.empty,
     );
-  switch (ok) {
-  | Type(_) when cls == Typ(EmptyHole) => [text("Fillable by any type")]
-  | Type(ty) => [view_type(ty), text("is a type")]
-  | TypeAlias(name, ty_lookup) => [
-      view_type(Var(name) |> Typ.fresh),
+  switch (ok, cls) {
+  | (Type(_), TypSlice((_, EmptyHole))) => [text("Fillable by any type")]
+  | (Type(ty), _) => [view_type(ty), text("is a type")]
+  | (TypeAlias(name, ty_lookup), _) => [
+      view_type(`Typ(Var(name)) |> TypSlice.fresh),
       text("is an alias for"),
       view_type(ty_lookup),
     ]
-  | Variant(name, sum_ty) => [
-      view_type(Var(name) |> Typ.fresh),
+  | (Variant(name, sum_ty), _) => [
+      view_type(`Typ(Var(name)) |> TypSlice.fresh),
       text("is a sum type constuctor of type"),
       view_type(sum_ty),
     ]
-  | VariantIncomplete(sum_ty) => [
+  | (VariantIncomplete(sum_ty), _) => [
       text("An incomplete sum type constuctor of type"),
       view_type(sum_ty),
     ]
@@ -220,7 +220,7 @@ let typ_err_view = (~globals, ok: Info.error_typ) => {
     );
   switch (ok) {
   | FreeTypeVariable(name) => [
-      view_type(Var(name) |> Typ.fresh) |> code_box_container,
+      view_type(`Typ(Var(name)) |> TypSlice.fresh) |> code_box_container,
       text("not found"),
     ]
   | BadToken(token) => [
@@ -231,7 +231,7 @@ let typ_err_view = (~globals, ok: Info.error_typ) => {
   | WantConstructorFoundType(_) => [text("Expected a constructor")]
   | WantTypeFoundAp => [text("Must be part of a sum type")]
   | DuplicateConstructor(name) => [
-      view_type(Var(name) |> Typ.fresh) |> code_box_container,
+      view_type(`Typ(Var(name)) |> TypSlice.fresh) |> code_box_container,
       text("already used in this sum"),
     ]
   };
@@ -331,17 +331,17 @@ let tpat_view = (~globals, _: Cls.t, status: Info.status_tpat) => {
   | InHole(ShadowsType(name, BaseTyp)) =>
     div_err([
       text("Can't shadow base type"),
-      view_type(Var(name) |> Typ.fresh) |> code_box_container,
+      view_type(`Typ(Var(name)) |> TypSlice.fresh) |> code_box_container,
     ])
   | InHole(ShadowsType(name, TyAlias)) =>
     div_err([
       text("Can't shadow existing alias"),
-      view_type(Var(name) |> Typ.fresh) |> code_box_container,
+      view_type(`Typ(Var(name)) |> TypSlice.fresh) |> code_box_container,
     ])
   | InHole(ShadowsType(name, TyVar)) =>
     div_err([
       text("Can't shadow existing type variable"),
-      view_type(Var(name) |> Typ.fresh) |> code_box_container,
+      view_type(`Typ(Var(name)) |> TypSlice.fresh) |> code_box_container,
     ])
   };
 };

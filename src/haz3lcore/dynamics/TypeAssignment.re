@@ -35,7 +35,8 @@ let dhpat_extend_ctx = (dhpat: DHPat.t, ty: Typ.t, ctx: Ctx.t): option(Ctx.t) =>
           (dhpat: DHPat.t, ty: Typ.t): option(list(Ctx.entry)) => {
     switch (dhpat |> Pat.term_of) {
     | Var(name) =>
-      let entry = Ctx.VarEntry({name, id: Id.invalid, typ: ty});
+      let entry =
+        Ctx.VarEntry({name, id: Id.invalid, typ: ty |> TypSlice.t_of_typ_t});
       Some([entry]);
     | Tuple(l1) =>
       let* ts = Typ.matched_prod_strict(ctx, List.length(l1), ty);
@@ -71,7 +72,8 @@ let dhpat_extend_ctx = (dhpat: DHPat.t, ty: Typ.t, ctx: Ctx.t): option(Ctx.t) =>
     | String(_) => Typ.eq(ty, String |> Typ.temp) ? Some([]) : None
     | Constructor(_) => Some([]) // TODO: make this stricter
     | Cast(dhp, ty1, ty2) =>
-      Typ.eq(ty, ty2) ? dhpat_var_entry(dhp, ty1) : None
+      Typ.eq(ty, ty2 |> TypSlice.typ_of)
+        ? dhpat_var_entry(dhp, ty1 |> TypSlice.typ_of) : None
     };
   };
   let+ l = dhpat_var_entry(dhpat, ty);
@@ -103,7 +105,7 @@ let rec dhpat_synthesize = (dhpat: DHPat.t, ctx: Ctx.t): option(Typ.t) => {
   | Float(_) => Some(Float |> Typ.temp)
   | Bool(_) => Some(Bool |> Typ.temp)
   | String(_) => Some(String |> Typ.temp)
-  | Cast(_, _, ty) => Some(ty)
+  | Cast(_, _, ty) => Some(ty |> TypSlice.typ_of)
   };
 };
 
@@ -115,7 +117,7 @@ let rec env_extend_ctx =
     |> ClosureEnvironment.to_list
     |> List.map(((name, de)) => {
          let+ ty = typ_of_dhexp(ctx, m, de);
-         Ctx.VarEntry({name, id: Id.invalid, typ: ty});
+         Ctx.VarEntry({name, id: Id.invalid, typ: ty |> TypSlice.t_of_typ_t});
        })
     |> OptUtil.sequence;
   List.fold_left((ctx, var_entry) => Ctx.extend(ctx, var_entry), ctx, l);
@@ -135,7 +137,7 @@ and typ_of_dhexp = (ctx: Ctx.t, m: Statics.Map.t, dh: DHExp.t): option(Typ.t) =>
   | Filter(_, d) => typ_of_dhexp(ctx, m, d)
   | Var(name) =>
     let* var = Ctx.lookup_var(ctx, name);
-    Some(var.typ);
+    Some(var.typ |> TypSlice.typ_of);
   | Seq(d1, d2) =>
     let* _ = typ_of_dhexp(ctx, m, d1);
     typ_of_dhexp(ctx, m, d2);
@@ -218,7 +220,7 @@ and typ_of_dhexp = (ctx: Ctx.t, m: Statics.Map.t, dh: DHExp.t): option(Typ.t) =>
 
   | BuiltinFun(name) =>
     let* var = Ctx.lookup_var(ctx, name);
-    Some(var.typ);
+    Some(var.typ |> TypSlice.typ_of);
   | Test(dtest) =>
     let* ty = typ_of_dhexp(ctx, m, dtest);
     Typ.eq(ty, Bool |> Typ.temp) ? Some(Prod([]) |> Typ.temp) : None;
@@ -324,13 +326,23 @@ and typ_of_dhexp = (ctx: Ctx.t, m: Statics.Map.t, dh: DHExp.t): option(Typ.t) =>
     let* rules_ty = List.map(rule_to_ty, rules) |> OptUtil.sequence;
     List.for_all(Typ.eq(rule_ty, _), rules_ty) ? Some(rule_ty) : None;
   | Cast(d, ty1, ty2) =>
-    let* _ = Typ.join(~fix=true, ctx, ty1, ty2);
+    let* _ =
+      Typ.join(
+        ~fix=true,
+        ctx,
+        ty1 |> TypSlice.typ_of,
+        ty2 |> TypSlice.typ_of,
+      );
     let* tyd = typ_of_dhexp(ctx, m, d);
-    Typ.eq(tyd, ty1) ? Some(ty2) : None;
+    Typ.eq(tyd, ty1 |> TypSlice.typ_of)
+      ? Some(ty2 |> TypSlice.typ_of) : None;
   | FailedCast(d, ty1, ty2) =>
-    if (ground(ty1) && ground(ty2) && !Typ.eq(ty1, ty2)) {
+    if (ground(ty1 |> TypSlice.typ_of)
+        && ground(ty2 |> TypSlice.typ_of)
+        && !Typ.eq(ty1 |> TypSlice.typ_of, ty2 |> TypSlice.typ_of)) {
       let* tyd = typ_of_dhexp(ctx, m, d);
-      Typ.eq(tyd, ty1) ? Some(ty2) : None;
+      Typ.eq(tyd, ty1 |> TypSlice.typ_of)
+        ? Some(ty2 |> TypSlice.typ_of) : None;
     } else {
       None;
     }

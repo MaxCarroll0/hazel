@@ -368,13 +368,21 @@ let ctx_init: Ctx.t = {
     Ctx.TVarEntry({
       name: "$Meta",
       id: Id.invalid,
-      kind: Ctx.Singleton(Sum(meta_cons_map) |> Typ.fresh),
+      kind:
+        Ctx.Singleton(
+          Sum(meta_cons_map) |> Typ.fresh |> TypSlice.t_of_typ_t,
+        ),
     });
   List.map(
     fun
-    | (name, Const(typ, _)) => Ctx.VarEntry({name, typ, id: Id.invalid})
+    | (name, Const(typ, _)) =>
+      Ctx.VarEntry({name, typ: typ |> TypSlice.t_of_typ_t, id: Id.invalid})
     | (name, Fn(t1, t2, _)) =>
-      Ctx.VarEntry({name, typ: Arrow(t1, t2) |> Typ.fresh, id: Id.invalid}),
+      Ctx.VarEntry({
+        name,
+        typ: Arrow(t1, t2) |> Typ.fresh |> TypSlice.t_of_typ_t,
+        id: Id.invalid,
+      }),
     Pervasives.builtins,
   )
   |> Ctx.extend(_, meta)

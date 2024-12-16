@@ -27,14 +27,14 @@ type join_type =
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t =
-  | Just(Typ.t) /* Just a regular type */
-  | NoJoin(join_type, list(Typ.source)) /* Inconsistent types for e.g match, listlits */
+  | Just(TypSlice.t) /* Just a regular type */
+  | NoJoin(join_type, list(TypSlice.source)) /* Inconsistent types for e.g match, listlits */
   | BadToken(Token.t) /* Invalid expression token, treated as hole */
-  | BadTrivAp(Typ.t) /* Trivial (nullary) ap on function that doesn't take triv */
+  | BadTrivAp(TypSlice.t) /* Trivial (nullary) ap on function that doesn't take triv */
   | IsMulti /* Multihole, treated as hole */
   | IsConstructor({
       name: Constructor.t,
-      syn_ty: option(Typ.t),
+      syn_ty: option(TypSlice.t),
     }); /* Constructors have special ana logic */
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -59,16 +59,18 @@ type pat =
   | Redundant(pat)
   | Common(t);
 
-let join_of = (j: join_type, ty: Typ.t): Typ.t =>
+let join_of = (j: join_type, ty: TypSlice.t): TypSlice.t =>
   switch (j) {
   | Id => ty
-  | List => List(ty) |> Typ.fresh
+  | List =>
+    `SliceIncr((Slice(List(ty)), TypSlice.empty_slice_incr))
+    |> TypSlice.fresh
   };
 
 /* What the type would be if the position had been
    synthetic, so no hole fixing. Returns none if
    there's no applicable synthetic rule. */
-let typ_of: (Ctx.t, t) => option(Typ.t) =
+let typ_of: (Ctx.t, t) => option(TypSlice.t) =
   _ctx =>
     fun
     | Just(typ) => Some(typ)
@@ -78,7 +80,7 @@ let typ_of: (Ctx.t, t) => option(Typ.t) =
     | IsMulti
     | NoJoin(_) => None;
 
-let typ_of_exp: (Ctx.t, exp) => option(Typ.t) =
+let typ_of_exp: (Ctx.t, exp) => option(TypSlice.t) =
   ctx =>
     fun
     | Free(_)
@@ -87,7 +89,7 @@ let typ_of_exp: (Ctx.t, exp) => option(Typ.t) =
     | IsBadPartialAp(_) => None
     | Common(self) => typ_of(ctx, self);
 
-let rec typ_of_pat: (Ctx.t, pat) => option(Typ.t) =
+let rec typ_of_pat: (Ctx.t, pat) => option(TypSlice.t) =
   ctx =>
     fun
     | Redundant(pat) => typ_of_pat(ctx, pat)
@@ -114,7 +116,8 @@ let of_ctr = (ctx: Ctx.t, name: Constructor.t): t =>
       },
   });
 
-let of_deferred_ap = (args, ty_ins: list(Typ.t), ty_out: Typ.t): exp => {
+let of_deferred_ap =
+    (args, ty_ins: list(TypSlice.t), ty_out: TypSlice.t): exp => {
   let expected = List.length(ty_ins);
   let actual = List.length(args);
   if (expected != actual) {
@@ -128,27 +131,51 @@ let of_deferred_ap = (args, ty_ins: list(Typ.t), ty_out: Typ.t): exp => {
       |> List.map(snd);
     let ty_in =
       List.length(ty_ins) == 1
-        ? List.hd(ty_ins) : Prod(ty_ins) |> Typ.fresh;
-    Common(Just(Arrow(ty_in, ty_out) |> Typ.fresh));
+        ? List.hd(ty_ins)
+        : `SliceIncr((Slice(Prod(ty_ins)), TypSlice.empty_slice_incr))
+          |> TypSlice.fresh;
+    Common(
+      Just(
+        `SliceIncr((Slice(Arrow(ty_in, ty_out)), TypSlice.empty_slice_incr))
+        |> TypSlice.fresh,
+      ),
+    );
   };
 };
 
-let add_source = List.map2((id, ty) => Typ.{id, ty});
+let add_source = List.map2((id, ty) => TypSlice.{id, ty});
 
-let match = (ctx: Ctx.t, tys: list(Typ.t), ids: list(Id.t)): t =>
-  switch (Typ.join_all(~empty=Unknown(Internal) |> Typ.fresh, ctx, tys)) {
+let match = (ctx: Ctx.t, tys: list(TypSlice.t), ids: list(Id.t)): t =>
+  switch (
+    TypSlice.join_all(
+      ~empty=`Typ(Unknown(Internal)) |> TypSlice.fresh,
+      ctx,
+      tys,
+    )
+  ) {
   | None => NoJoin(Id, add_source(ids, tys))
   | Some(ty) => Just(ty)
   };
 
-let listlit = (~empty, ctx: Ctx.t, tys: list(Typ.t), ids: list(Id.t)): t =>
-  switch (Typ.join_all(~empty, ctx, tys)) {
+let listlit =
+    (~empty, ctx: Ctx.t, tys: list(TypSlice.t), ids: list(Id.t)): t =>
+  switch (TypSlice.join_all(~empty, ctx, tys)) {
   | None => NoJoin(List, add_source(ids, tys))
-  | Some(ty) => Just(List(ty) |> Typ.fresh)
+  | Some(ty) =>
+    Just(
+      `SliceIncr((Slice(List(ty)), TypSlice.empty_slice_incr))
+      |> TypSlice.fresh,
+    )
   };
 
-let list_concat = (ctx: Ctx.t, tys: list(Typ.t), ids: list(Id.t)): t =>
-  switch (Typ.join_all(~empty=Unknown(Internal) |> Typ.fresh, ctx, tys)) {
+let list_concat = (ctx: Ctx.t, tys: list(TypSlice.t), ids: list(Id.t)): t =>
+  switch (
+    TypSlice.join_all(
+      ~empty=`Typ(Unknown(Internal)) |> TypSlice.fresh,
+      ctx,
+      tys,
+    )
+  ) {
   | None => NoJoin(List, add_source(ids, tys))
   | Some(ty) => Just(ty)
   };
