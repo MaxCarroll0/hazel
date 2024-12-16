@@ -1147,6 +1147,7 @@ and TypSlice: {
     term |> typ_term_of_term |> rewrap;
   };
 
+  // TODO: use map_term?
   let subst = (r: t, x: TPat.t, s: t): t => {
     let subst_typ_term = (ty: Typ.term): Typ.term =>
       Typ.subst(r |> typ_of, x, ty |> IdTagged.fresh) |> IdTagged.term_of;
@@ -1168,7 +1169,31 @@ and TypSlice: {
       | `SliceIncr(Typ(ty), slice_incr) =>
         `SliceIncr((Typ(subst_typ_term(ty)), slice_incr))
       | `SliceIncr(Slice(s), slice_incr) =>
-        `SliceIncr((Slice(s), slice_incr)) // No vars in slc_typ_term
+        `SliceIncr((
+          Slice(
+            switch (TPat.tyvar_of_utpat(x)) {
+            | Some(str) =>
+              switch (s) {
+              | Arrow(s1, s2) => Arrow(subst(s1), subst(s2))
+              | Prod(ss) => Prod(List.map(subst, ss))
+              | Sum(sm) => Sum(ConstructorMap.map(Option.map(subst), sm))
+              | Forall(tp2, s)
+                  when TPat.tyvar_of_utpat(x) == TPat.tyvar_of_utpat(tp2) =>
+                Forall(tp2, s)
+              | Forall(tp2, s) => Forall(tp2, subst(s))
+              | Rec(tp2, s)
+                  when TPat.tyvar_of_utpat(x) == TPat.tyvar_of_utpat(tp2) =>
+                Rec(tp2, s)
+              | Rec(tp2, s) => Rec(tp2, subst(s))
+              | List(s) => List(subst(s))
+              | Parens(s) => Parens(subst(s))
+              | Ap(s1, s2) => Ap(subst(s1), subst(s2))
+              }
+            | None => s
+            },
+          ),
+          slice_incr,
+        ))
       };
     };
     subst(s);
