@@ -9,8 +9,8 @@ type deferral_position_t =
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type var_cls =
-  | Exp
-  | Typ;
+  | Exp(Var.t)
+  | Typ(Var.t);
 
 /*
    This megafile contains the definitions of the expression data types in
@@ -975,6 +975,8 @@ and TypSlice: {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t = typslice_t;
   [@deriving (show({with_path: false}), sexp, yojson)]
+  type ctx_var = var_cls;
+  [@deriving (show({with_path: false}), sexp, yojson)]
   type slc_typ_term = slice_typ_term;
   [@deriving (show({with_path: false}), sexp, yojson)]
   type typslc_typ_term = typslice_typ_term;
@@ -1020,6 +1022,8 @@ and TypSlice: {
   type term = typslice_term;
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t = typslice_t;
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type ctx_var = var_cls;
   [@deriving (show({with_path: false}), sexp, yojson)]
   type slc_typ_term = slice_typ_term;
   [@deriving (show({with_path: false}), sexp, yojson)]

@@ -65,6 +65,16 @@ let union_slice_global: (slc_global, slc_global) => slc_global =
     term_ids: c1 @ c2,
   };
 
+let slice_of_ids = (term_ids): slc_incr => {ctx_used: [], term_ids};
+let slice_of_ctx = (ctx_used: list(ctx_var)): slc_incr => {
+  ctx_used,
+  term_ids: [],
+};
+let slice_of_ctx_ids = (ctx_used, term_ids): slc_incr => {
+  ctx_used,
+  term_ids,
+};
+
 // wraps a t inside a `SliceGlobal: unioning the global slices if required
 let wrap_global = (slice_global: slc_global, s: t): t => {
   let (term, rewrap) = s |> IdTagged.unwrap;
@@ -207,6 +217,42 @@ let cls_of_term = (s): cls => (cls_slc_of_term(s), cls_typ_of_term(s));
 let show_cls = ((cls_slc, cls_typ): cls) =>
   show_cls_slc(cls_slc) ++ "(" ++ show_cls_typ(cls_typ) ++ ")";
 
+//TODO: remove duplicates
+let rec full_slice: term => slc_global =
+  fun
+  | `Typ(_) => empty_slice_global
+  | `SliceIncr(Typ(_), slice_incr) => slice_incr
+  | `SliceIncr(Slice(s), slice_incr) =>
+    union_slice_global(
+      slice_incr,
+      switch (s) {
+      | List(s)
+      | Parens(s)
+      | Rec(_, s)
+      | Forall(_, s) => full_slice(s |> term_of)
+      | Arrow(s1, s2)
+      | Ap(s1, s2) =>
+        union_slice_global(
+          full_slice(s1 |> term_of),
+          full_slice(s2 |> term_of),
+        )
+      | Prod(ss) =>
+        List.fold_left(
+          (acc, s) => union_slice_global(full_slice(s |> term_of), acc),
+          empty_slice_global,
+          ss,
+        )
+      | Sum(m) =>
+        ConstructorMap.fold_vals(
+          (acc, s) => union_slice_global(full_slice(s |> term_of), acc),
+          empty_slice_global,
+          m,
+        )
+      },
+    )
+  | `SliceGlobal(s, slice_global) =>
+    union_slice_global(slice_global, full_slice((s :> term)));
+
 // These pattern matching functions can be optimised by direct pattern matching vs use of typ_of
 let is_unknown = (~ignore_parens=?, s: t) =>
   s |> typ_of |> Typ.is_unknown(~ignore_parens?);
@@ -347,6 +393,13 @@ let rec join_using =
     join_typ_rewrap(
       ((ty, b)): (term, BranchUsed.t) =>
         (left(b) ? `SliceIncr((Typ(ty), slice_incr)) : `Typ(ty), b),
+      ty1,
+      ty2,
+    )
+  | (`Typ(ty1), `SliceIncr(Typ(ty2), slice_incr)) =>
+    join_typ_rewrap(
+      ((ty, b)): (term, BranchUsed.t) =>
+        (right(b) ? `SliceIncr((Typ(ty), slice_incr)) : `Typ(ty), b),
       ty1,
       ty2,
     )
@@ -695,10 +748,18 @@ let rec join_using =
     | (List(_), _) => None
     | (Ap(_), _) => failwith("Type join of ap")
     }
-  | (`SliceGlobal(s1, slice_global), _) =>
+  | (`SliceIncr(Typ(ty1), slice_incr1), _) =>
+    let+ (s, branch_used) = join'(`Typ(ty1) |> rewrap1, s2);
+    (left(branch_used) ? wrap_incr(slice_incr1, s) : s, branch_used);
+  | (_, `SliceIncr(Typ(ty2), slice_incr2)) =>
+    let+ (s, branch_used) = join'(s1, `Typ(ty2) |> rewrap2);
+    (right(branch_used) ? wrap_incr(slice_incr2, s) : s, branch_used);
+  | (`SliceGlobal(s1, slice_global1), _) =>
     let+ (s, branch_used) = join'((s1 :> term) |> rewrap1, s2);
-    (left(branch_used) ? wrap_global(slice_global, s) : s, branch_used);
-  | _ => join'(s2, s1) |> Option.map(((s, b_used)) => (s, flip(b_used)))
+    (left(branch_used) ? wrap_global(slice_global1, s) : s, branch_used);
+  | (_, `SliceGlobal(s2, slice_global2)) =>
+    let+ (s, branch_used) = join'(s1, (s2 :> term) |> rewrap2);
+    (right(branch_used) ? wrap_global(slice_global2, s) : s, branch_used);
   };
 };
 

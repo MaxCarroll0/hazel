@@ -205,6 +205,18 @@ let map_vals = (f: 'a => 'b, m: t('a)): t('b) =>
     m,
   );
 
+let fold_vals = (f: ('acc, 'a) => 'acc, z: 'acc, m: t('a)): 'acc =>
+  List.fold_left(
+    (acc, v) =>
+      switch (v) {
+      | Variant(_, _, Some(value))
+      | BadEntry(value) => f(acc, value)
+      | Variant(_, _, None) => z
+      },
+    z,
+    m,
+  );
+
 let get_entry = (ctr, m) =>
   List.find_map(
     fun

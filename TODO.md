@@ -8,6 +8,7 @@ As compared to `witnesses` branch:
 - [x] Implement as a SUM TYPE. With empty slices being exactly as Typ.
 - [x] Therefore: we can combine slices and types in the same tree to get partially computed slices.
 - [ ] Add syntactic destructuring functions (see in Unboxing.re) to TypSlice.re
+- [ ] Simplify and remove redundancy from join_using
 
 ## Use of Typ:
 - [ ] Replace all use of Typ with TypSlice.
@@ -36,6 +37,7 @@ As compared to `witnesses` branch:
 - [ ] Remove redundancy in uinfo_of_typ and also consider using Typ.t for Info.typ
 - [ ] More ergonomic use of TypSlice (better versions of map & apply)
 - [ ] Improve performance: Likely issues due to overuse of TypSlice.typ_of? Hopefully not due to TypSlice.wrap_global or wrap_incr.....
+- [ ] Remove slc_incr
 
 ## Bugs
 - Incorrect elaboration on patterns and definitions in let bindings: see casting documentation :(
