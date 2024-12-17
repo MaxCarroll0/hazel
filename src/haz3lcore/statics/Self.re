@@ -97,22 +97,32 @@ let rec typ_of_pat: (Ctx.t, pat) => option(TypSlice.t) =
 
 /* The self of a var depends on the ctx; if the
    lookup fails, it is a free variable */
-let of_exp_var = (ctx: Ctx.t, name: Var.t): exp =>
+// Slice of a var is the ids of the term + the var_entry in ctx_used + the slice from the context
+let of_exp_var = (ids: list(Id.t), ctx: Ctx.t, name: Var.t): exp =>
   switch (Ctx.lookup_var(ctx, name)) {
   | None => Free(name)
-  | Some(var) => Common(Just(var.typ))
+  | Some(var) =>
+    Common(
+      Just(
+        TypSlice.(
+          var.typ |> wrap_incr(slice_of_ctx_ids([Exp(var.name)], ids))
+        ),
+      ),
+    )
   };
 
 /* The self of a ctr depends on the ctx, but a
    lookup failure doesn't necessarily means its
    free; it may be given a type analytically */
-let of_ctr = (ctx: Ctx.t, name: Constructor.t): t =>
+// The syn slice should include ids of the ctr
+let of_ctr = (ids, ctx: Ctx.t, name: Constructor.t): t =>
   IsConstructor({
     name,
     syn_ty:
       switch (Ctx.lookup_ctr(ctx, name)) {
       | None => None
-      | Some({typ, _}) => Some(typ)
+      | Some({typ, _}) =>
+        Some(typ |> TypSlice.(wrap_incr(slice_of_ids(ids))))
       },
   });
 
@@ -145,7 +155,9 @@ let of_deferred_ap =
 
 let add_source = List.map2((id, ty) => TypSlice.{id, ty});
 
-let match = (ctx: Ctx.t, tys: list(TypSlice.t), ids: list(Id.t)): t =>
+let of_match =
+    (ids: list(Id.t), ctx: Ctx.t, tys: list(TypSlice.t), c_ids: list(Id.t))
+    : t =>
   switch (
     TypSlice.join_all(
       ~empty=`Typ(Unknown(Internal)) |> TypSlice.fresh,
@@ -153,29 +165,240 @@ let match = (ctx: Ctx.t, tys: list(TypSlice.t), ids: list(Id.t)): t =>
       tys,
     )
   ) {
-  | None => NoJoin(Id, add_source(ids, tys))
-  | Some(ty) => Just(ty)
+  | None => NoJoin(Id, add_source(c_ids, tys))
+  | Some(ty) => Just(ty |> TypSlice.(wrap_incr(slice_of_ids(ids))))
   };
 
-let listlit =
-    (~empty, ctx: Ctx.t, tys: list(TypSlice.t), ids: list(Id.t)): t =>
+// Slices of list literals is just the join of the element slices + the ids of the listlit constructor
+let of_list_lit =
+    (
+      ~empty,
+      ids: list(Id.t),
+      ctx: Ctx.t,
+      tys: list(TypSlice.t),
+      elem_ids: list(Id.t),
+    )
+    : t =>
   switch (TypSlice.join_all(~empty, ctx, tys)) {
-  | None => NoJoin(List, add_source(ids, tys))
+  | None => NoJoin(List, add_source(elem_ids, tys))
   | Some(ty) =>
     Just(
-      `SliceIncr((Slice(List(ty)), TypSlice.empty_slice_incr))
-      |> TypSlice.fresh,
+      `SliceIncr((Slice(List(ty)), TypSlice.slice_of_ids(ids)))
+      |> TypSlice.temp,
     )
   };
 
-let list_concat = (ctx: Ctx.t, tys: list(TypSlice.t), ids: list(Id.t)): t =>
+// Slice of a cons is just the slice of the head element + the ids of the cons constructor
+let of_list_cons = (ids: list(Id.t), hd_ty: TypSlice.t): t =>
+  Just(
+    `SliceIncr((Slice(List(hd_ty)), TypSlice.slice_of_ids(ids)))
+    |> TypSlice.temp,
+  );
+
+// Slice of a concat is just the joined slice of the list arguments + the @ operator ids
+let of_list_concat =
+    (ids: list(Id.t), ctx: Ctx.t, tys: list(TypSlice.t), c_ids: list(Id.t))
+    : t =>
   switch (
     TypSlice.join_all(
-      ~empty=`Typ(Unknown(Internal)) |> TypSlice.fresh,
+      ~empty=`Typ(Unknown(Internal)) |> TypSlice.temp,
       ctx,
       tys,
     )
   ) {
   | None => NoJoin(List, add_source(ids, tys))
-  | Some(ty) => Just(ty)
+  | Some(ty) => Just(TypSlice.(ty |> wrap_incr(slice_of_ids(ids))))
   };
+
+let of_prod = (ids: list(Id.t), tys: list(TypSlice.t)) =>
+  Just(
+    `SliceIncr((Slice(Prod(tys)), ids |> TypSlice.slice_of_ids))
+    |> TypSlice.temp,
+  );
+
+// Base types slices should all contain the term's ids
+let of_base = (ids: list(Id.t), ty: Typ.term) =>
+  Just(
+    `SliceGlobal((`Typ(ty), TypSlice.slice_of_ids(ids))) |> TypSlice.temp,
+  );
+// Operation slices are similarly determined by their ids
+let of_op = of_base;
+
+let of_seq = (ids: list(Id.t), ty: TypSlice.t) =>
+  Just(ty |> TypSlice.(wrap_incr(slice_of_ids(ids))));
+let of_filter = of_seq; // TODO: check
+let of_fix = of_seq;
+let of_ap_ok = of_seq;
+
+// Holes should be omitted from slices
+let hole = Just(`Typ(Unknown(Internal)) |> TypSlice.temp);
+
+// Where arg has been analysed to check if nullary_args
+let of_ap =
+    (
+      ids: list(Id.t),
+      ctx: Ctx.t,
+      arg_ids: list(Id.t),
+      ty_in: TypSlice.t,
+      ty_out: TypSlice.t,
+    )
+    : t =>
+  Id.is_nullary_ap_flag(arg_ids)
+  && !TypSlice.is_consistent(ctx, ty_in, `Typ(Prod([])) |> TypSlice.temp)
+    ? BadTrivAp(ty_in) : ty_out |> of_ap_ok(ids);
+
+let of_typap = (ids: list(Id.t), ctx: Ctx.t, typ_ap: Typ.t, ty: TypSlice.t) => {
+  let (option_name, ty_body) = TypSlice.matched_forall(ctx, ty);
+  switch (option_name) {
+  | Some(name) =>
+    Just(
+      TypSlice.(
+        subst(typ_ap |> t_of_typ_t, name, ty_body)
+        |> wrap_incr(slice_of_ids(ids))
+      ),
+    ) // TODO: Check slices here
+  | None => Just(ty_body) /* invalid name matches with no free type variables. */
+  };
+};
+
+let of_fun =
+    (
+      ids: list(Id.t),
+      is_exhaustive: bool,
+      ty_in: TypSlice.t,
+      ty_out: TypSlice.t,
+    ) => {
+  let unwrapped_self: exp =
+    Common(
+      Just(
+        `SliceIncr((
+          Slice(Arrow(ty_in, ty_out)),
+          TypSlice.slice_of_ids(ids),
+        ))
+        |> TypSlice.temp,
+      ),
+    );
+  is_exhaustive ? unwrapped_self : InexhaustiveMatch(unwrapped_self);
+};
+
+let of_typfun = (ids: list(Id.t), tpat, ty) =>
+  Just(
+    `SliceIncr((Slice(Forall(tpat, ty)), TypSlice.slice_of_ids(ids)))
+    |> TypSlice.temp,
+  );
+
+let of_let = (ids: list(Id.t), is_exhaustive: bool, ty: TypSlice.t) => {
+  let unwrapped_self: exp =
+    Common(Just(TypSlice.(ty |> wrap_incr(slice_of_ids(ids)))));
+  is_exhaustive ? unwrapped_self : InexhaustiveMatch(unwrapped_self);
+};
+
+// skip_slices will not tag slices to anything if the term is a slice. i.e. not a pure type `Typ(ty)
+let of_annot = (~skip_slices=true, ids: list(Id.t), ty: TypSlice.t): t => {
+  // Create type slice corresponding to ids in type. This could be done in parsing instead.
+  let rec create_slices = ({term, ids, _} as s: TypSlice.t): TypSlice.t => {
+    let (_, rewrap) = IdTagged.unwrap(ty);
+
+    TypSlice.(
+      switch (term) {
+      // TODO: consider slice with type variables!
+      | `Typ(ty) =>
+        (
+          switch (ty) {
+          | (Unknown(_) | Int | Float | Bool | String | Var(_)) as ty =>
+            `SliceGlobal((`Typ(ty), slice_of_ids(ids)))
+          | List(ty) => (
+              `SliceIncr((
+                Slice(List(create_slices(ty |> t_of_typ_t))),
+                slice_of_ids(ids),
+              )): term
+            )
+          | Arrow(ty1, ty2) =>
+            `SliceIncr((
+              Slice(
+                Arrow(
+                  create_slices(ty1 |> t_of_typ_t),
+                  create_slices(ty2 |> t_of_typ_t),
+                ),
+              ),
+              slice_of_ids(ids),
+            ))
+          | Sum(m) =>
+            `SliceIncr((
+              Slice(
+                Sum(
+                  ConstructorMap.map_vals(
+                    ty => create_slices(ty |> t_of_typ_t),
+                    m,
+                  ),
+                ),
+              ),
+              slice_of_ids(ids),
+            ))
+          | Prod(tys) =>
+            `SliceIncr((
+              Slice(
+                Prod(List.map(ty => create_slices(ty |> t_of_typ_t), tys)),
+              ),
+              slice_of_ids(ids),
+            ))
+          | Parens(ty) =>
+            `SliceIncr((
+              Slice(Parens(create_slices(ty |> t_of_typ_t))),
+              slice_of_ids(ids),
+            ))
+          | Ap(ty1, ty2) =>
+            `SliceIncr((
+              Slice(
+                Ap(
+                  create_slices(ty1 |> t_of_typ_t),
+                  create_slices(ty2 |> t_of_typ_t),
+                ),
+              ),
+              slice_of_ids(ids),
+            ))
+          | Rec(tpat, ty) =>
+            `SliceIncr((
+              Slice(Rec(tpat, create_slices(ty |> t_of_typ_t))),
+              slice_of_ids(ids),
+            ))
+          | Forall(tpat, ty) =>
+            `SliceIncr((
+              Slice(Forall(tpat, create_slices(ty |> t_of_typ_t))),
+              slice_of_ids(ids),
+            ))
+          }
+        )
+        |> rewrap
+      // Skip slices
+      | `SliceIncr(_, _)
+      | `SliceGlobal(_, _) when skip_slices => s
+      // If not skipping slices: continue searching through subterms for `Typs.
+      | `SliceIncr(Typ(ty), slice_incr) =>
+        create_slices(`Typ(ty) |> rewrap) |> wrap_incr(slice_incr)
+      | `SliceIncr(Slice(s), slice_incr) =>
+        `SliceIncr((
+          Slice(
+            switch (s) {
+            | List(ty) => List(create_slices(ty))
+            | Arrow(ty1, ty2) =>
+              Arrow(create_slices(ty1), create_slices(ty2))
+            | Sum(m) =>
+              Sum(ConstructorMap.map_vals(ty => create_slices(ty), m))
+            | Prod(tys) => Prod(List.map(ty => create_slices(ty), tys))
+            | Parens(ty) => Parens(create_slices(ty))
+            | Ap(ty1, ty2) => Ap(create_slices(ty1), create_slices(ty2))
+            | Rec(tpat, ty) => Rec(tpat, create_slices(ty))
+            | Forall(tpat, ty) => Forall(tpat, create_slices(ty))
+            },
+          ),
+          slice_incr,
+        ))
+        |> rewrap
+      | `SliceGlobal(s, slice_global) =>
+        create_slices((s :> term) |> rewrap) |> wrap_global(slice_global)
+      }
+    );
+  };
+  Just(create_slices(ty) |> TypSlice.(wrap_incr(slice_of_ids(ids))));
+};

@@ -205,3 +205,9 @@ let of_deferred_ap_args = (length: int, ty_ins: list(TypSlice.t)): list(t) =>
         )
   )
   |> List.map(ty => Ana(ty));
+
+// Operations are analysed against the return type.
+let of_op = (ids: list(Id.t), ty: Typ.term) =>
+  Ana(
+    `SliceGlobal((`Typ(ty), TypSlice.slice_of_ids(ids))) |> TypSlice.temp,
+  );
