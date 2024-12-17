@@ -133,6 +133,7 @@ module View = {
         ~signal: event => Ui_effect.t(unit),
         ~inject: Update.t => Ui_effect.t(unit),
         ~selected: option(Selection.t),
+        ~cursor: option(Cursor.cursor('a))=?,
         ~caption: option(Node.t)=?,
         ~sort=?,
         ~result_kind=?,
@@ -186,6 +187,7 @@ module View = {
               ? _ => Ui_effect.Ignore
               : (action => inject(MainEditor(action))),
           ~selected=selected == Some(MainEditor),
+          ~cursor?,
           ~overlays=overlays(model.editor.editor),
           ~sort?,
           model.editor,

@@ -569,6 +569,34 @@ module Deco =
 
   let statics = () => [errors()];
 
+  // TODO: Slices for cursor inspector view.
+  let slice = (c: Cursor.cursor('a)) => {
+    let info = c.info;
+    switch (info) {
+    | Some(info) =>
+      switch (info) {
+      | InfoTyp(typ) =>
+        let {ctx_used, term_ids}: TypSlice.slc_incr =
+          TypSlice.full_slice(typ.term |> TypSlice.term_of);
+        // TODO: ctx_used
+        div_c("errors", List.map(error_view, term_ids));
+      // TODO: Only show slices for expressions when cursor is in Edtior: ids and info not preserved in other regions!
+      | InfoExp(exp) =>
+        let {ctx_used, term_ids}: TypSlice.slc_incr =
+          TypSlice.full_slice(Info.exp_ty(exp) |> TypSlice.term_of);
+        // TODO: ctx_used
+        div_c("errors", List.map(error_view, term_ids));
+      | InfoPat(pat) =>
+        let {ctx_used, term_ids}: TypSlice.slc_incr =
+          TypSlice.full_slice(Info.pat_ty(pat) |> TypSlice.term_of);
+        // TODO: ctx_used
+        div_c("errors", List.map(error_view, term_ids));
+      | _ => div_empty
+      };
+    | None => div_empty
+    };
+  };
+
   let editor = (z, selected: bool) =>
     selected
       ? [

@@ -483,6 +483,7 @@ module View = {
           | MakeActive(selection) => inject(MakeActive(selection)),
         ~inject=a => inject(Editors(a)),
         ~selection=Some(selection),
+        ~cursor,
         model.editors,
       );
     [

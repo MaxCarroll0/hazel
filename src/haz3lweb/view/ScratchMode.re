@@ -242,6 +242,7 @@ module View = {
         ~signal: event => 'a,
         ~inject: Update.t => 'a,
         ~selected: option(Selection.t),
+        ~cursor: option(Cursor.cursor('b))=?,
         model: Model.t,
       ) => {
     (
@@ -258,6 +259,7 @@ module View = {
           | MakeActive(selection) => signal(MakeActive(selection)),
         ~inject=a => inject(CellAction(a)),
         ~selected,
+        ~cursor?,
         ~locked=false,
         List.nth(model.scratchpads, model.current) |> snd,
       ),

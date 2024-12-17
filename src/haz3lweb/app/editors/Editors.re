@@ -251,6 +251,7 @@ module View = {
         ~selection: option(Selection.t),
         ~signal,
         ~inject,
+        ~cursor: Cursor.cursor('a),
         editors: Model.t,
       ) =>
     switch (editors) {
@@ -265,6 +266,7 @@ module View = {
           | Some(Scratch(s)) => Some(s)
           | _ => None
           },
+        ~cursor,
         ~inject=a => Update.Scratch(a) |> inject,
         m,
       )
@@ -279,6 +281,7 @@ module View = {
           | Some(Scratch(s)) => Some(s)
           | _ => None
           },
+        ~cursor,
         ~inject=a => Update.Scratch(a) |> inject,
         m,
       )

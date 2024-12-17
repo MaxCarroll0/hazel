@@ -242,6 +242,7 @@ module View = {
         ~signal: event => Ui_effect.t(unit),
         ~inject: Update.t => Ui_effect.t(unit),
         ~selected: bool,
+        ~cursor: Cursor.cursor('a)=Cursor.empty,
         ~overlays: list(Node.t)=[],
         ~sort=?,
         model: Model.t,
@@ -253,7 +254,8 @@ module View = {
           let globals = globals;
           let statics = model.statics;
         });
-      Deco.editor(model.editor.state.zipper, selected);
+      Deco.editor(model.editor.state.zipper, selected)
+      @ [Deco.slice(cursor)];
     };
     let projectors =
       ProjectorView.all(
