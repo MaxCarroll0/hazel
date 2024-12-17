@@ -41,7 +41,8 @@ let unapplied_function = () =>
     |> Option.map(TypSlice.typ_of),
   );
 
-let tests =
+let tests = (
+  "Statics",
   FreshId.[
     test_case("Function with unknown param", `Quick, () =>
       alco_check(
@@ -142,4 +143,5 @@ let tests =
         |> Option.map(TypSlice.typ_of),
       )
     ),
-  ];
+  ],
+);
