@@ -19,11 +19,12 @@ As compared to `witnesses` branch:
 ## Self.re:
 - [x] Term id logic for synthesis slices
 - [x] Ctx slice logic for synthesis slices
-- [ ] Display ctx slices.
+- [x] Display ctx slices.
+- [ ] Don't highlight let bindings when var left unused.
 
 ## Mode.re:
-- [-] Term id logic for analysis slices
-- [ ] Ctx slice logic for analysis slices
+- [x] Term id logic for analysis slices _(bugchecking todo)_
+- [x] Ctx slice logic for analysis slices
 
 ## Info.re:
 - [ ] Add slice-related functions. i.e. getting synthesis slice, analysis slice (from mode and self respectively) and fixed slice (real `Info.ty`).
@@ -44,5 +45,6 @@ As compared to `witnesses` branch:
 - [ ] More ergonomic use of TypSlice (better versions of map & apply)
 - [ ] Improve performance: Likely issues due to overuse of TypSlice.typ_of? Hopefully not due to TypSlice.wrap_global or wrap_incr.....
 
-
 ## Bugs
+- [ ] Parentheses not highlighted in slices (likely due to type normliasation?)
+- [ ] Constructor names not highlighted in slices
