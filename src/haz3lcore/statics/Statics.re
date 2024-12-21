@@ -229,7 +229,7 @@ and uexp_to_info_map =
   | String(_) => atomic(String |> Self.of_base(ids))
   | ListLit(es) =>
     let e_ids = List.map(UExp.rep_id, es);
-    let modes = Mode.of_list_lit(ctx, List.length(es), mode);
+    let modes = Mode.of_list_lit(ids, ctx, List.length(es), mode);
     let (es, m) = map_m_go(m, modes, es);
     let tys = List.map(Info.exp_ty, es);
     add(
@@ -245,15 +245,15 @@ and uexp_to_info_map =
       m,
     );
   | Cons(hd, tl) =>
-    let (hd, m) = go(~mode=Mode.of_cons_hd(ctx, mode), hd, m);
-    let (tl, m) = go(~mode=Mode.of_cons_tl(ctx, mode, hd.ty), tl, m);
+    let (hd, m) = go(~mode=Mode.of_cons_hd(ids, ctx, mode), hd, m);
+    let (tl, m) = go(~mode=Mode.of_cons_tl(ids, ctx, mode, hd.ty), tl, m);
     add(
       ~self=hd.ty |> Self.of_list_cons(ids),
       ~co_ctx=CoCtx.union([hd.co_ctx, tl.co_ctx]),
       m,
     );
   | ListConcat(e1, e2) =>
-    let mode = Mode.of_list_concat(ctx, mode);
+    let mode = Mode.of_list_concat(ids, ctx, mode);
     let c_ids = List.map(UExp.rep_id, [e1, e2]);
     let (e1, m) = go(~mode, e1, m);
     let (e2, m) = go(~mode, e2, m);
@@ -270,8 +270,8 @@ and uexp_to_info_map =
     )
   | DynamicErrorHole(e, _)
   | Parens(e) =>
-    let (e, m) = go(~mode, e, m);
-    add(~self=Just(e.ty), ~co_ctx=e.co_ctx, m);
+    let (e, m) = go(~mode=Mode.of_parens(ids, mode), e, m);
+    add(~self=e.ty |> Self.of_parens(ids), ~co_ctx=e.co_ctx, m);
   | UnOp(Meta(Unquote), e) when is_in_filter =>
     let e: UExp.t = {
       ids: e.ids,
@@ -306,7 +306,7 @@ and uexp_to_info_map =
       m,
     )
   | Tuple(es) =>
-    let modes = Mode.of_prod(ctx, mode, List.length(es));
+    let modes = Mode.of_prod(ids, ctx, mode, List.length(es));
     let (es, m) = map_m_go(m, modes, es);
     add(
       ~self=List.map(Info.exp_ty, es) |> Self.of_prod(ids),
@@ -789,7 +789,7 @@ and upat_to_info_map =
     atomic(String |> Self.of_base(ids), Constraint.String(string))
   | ListLit(ps) =>
     let ids = List.map(UPat.rep_id, ps);
-    let modes = Mode.of_list_lit(ctx, List.length(ps), mode);
+    let modes = Mode.of_list_lit(ids, ctx, List.length(ps), mode);
     let (ctx, tys, cons, m) = ctx_fold(ctx, m, ps, modes);
     let rec cons_fold_list = cs =>
       switch (cs) {
@@ -804,9 +804,9 @@ and upat_to_info_map =
       m,
     );
   | Cons(hd, tl) =>
-    let (hd, m) = go(~ctx, ~mode=Mode.of_cons_hd(ctx, mode), hd, m);
+    let (hd, m) = go(~ctx, ~mode=Mode.of_cons_hd(ids, ctx, mode), hd, m);
     let (tl, m) =
-      go(~ctx=hd.ctx, ~mode=Mode.of_cons_tl(ctx, mode, hd.ty), tl, m);
+      go(~ctx=hd.ctx, ~mode=Mode.of_cons_tl(ids, ctx, mode, hd.ty), tl, m);
     add(
       ~self=hd.ty |> Self.of_list_cons(ids),
       ~ctx=tl.ctx,
@@ -833,7 +833,7 @@ and upat_to_info_map =
       m,
     );
   | Tuple(ps) =>
-    let modes = Mode.of_prod(ctx, mode, List.length(ps));
+    let modes = Mode.of_prod(ids, ctx, mode, List.length(ps));
     let (ctx, tys, cons, m) = ctx_fold(ctx, m, ps, modes);
     let rec cons_fold_tuple = cs =>
       switch (cs) {
@@ -848,8 +848,13 @@ and upat_to_info_map =
       m,
     );
   | Parens(p) =>
-    let (p, m) = go(~ctx, ~mode, p, m);
-    add(~self=Just(p.ty), ~ctx=p.ctx, ~constraint_=p.constraint_, m);
+    let (p, m) = go(~ctx, ~mode=Mode.of_parens(ids, mode), p, m);
+    add(
+      ~self=p.ty |> Self.of_parens(ids),
+      ~ctx=p.ctx,
+      ~constraint_=p.constraint_,
+      m,
+    );
   | Constructor(ctr, _) =>
     let self = Self.of_ctr(ids, ctx, ctr);
     atomic(self, Constraint.of_ctr(ctx, mode, ctr, self));
@@ -868,7 +873,7 @@ and upat_to_info_map =
     );
   | Cast(p, ann, _) =>
     let (ann, m) = utyp_to_info_map(~ctx, ~ancestors, ann, m);
-    let (p, m) = go(~ctx, ~mode=Ana(ann.term), p, m);
+    let (p, m) = go(~ctx, ~mode=Mode.of_ann(ids, ann.term), p, m);
     add(
       ~self=ann.term |> Self.of_annot(ids),
       ~ctx=p.ctx,
@@ -893,7 +898,7 @@ and utyp_to_info_map =
   let ancestors = [TypSlice.rep_id(utyp)] @ ancestors;
   let go' = utyp_to_info_map(~ctx, ~ancestors);
   let go = go'(~expects=TypeExpected);
-  // Ensure f_typ and f_slc coincide
+  // Ensure f_typ and f_slc coincide: TODO: remove redundancy.
   let f_typ = (term: Typ.term) =>
     switch (term) {
     | Unknown(Hole(MultiHole(tms))) =>

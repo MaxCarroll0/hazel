@@ -376,8 +376,8 @@ and pat_term: unsorted => (UPat.term, list(Id.t)) = {
       ret(
         Cast(
           p,
-          ty |> TypSlice.t_of_typ_t,
-          `Typ(Unknown(Internal)) |> TypSlice.fresh,
+          ty |> TypSlice.t_of_typ_t_sliced,
+          `Typ(Unknown(Internal)) |> TypSlice.fresh // TODO: a slice might be useful here
         ),
       )
     | _ => ret(hole(tm))

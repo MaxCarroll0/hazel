@@ -592,7 +592,7 @@ module Deco =
         // TODO: ctx_used
         div_c("errors", List.map(error_view, term_ids));
       | _ => div_empty
-      };
+      }
     | None => div_empty
     };
   };

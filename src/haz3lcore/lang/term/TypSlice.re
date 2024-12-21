@@ -75,6 +75,21 @@ let slice_of_ctx_ids = (ctx_used, term_ids): slc_incr => {
   term_ids,
 };
 
+let get_incr_slice: term => option(slc_incr) =
+  fun
+  | `Typ(_)
+  | `SliceGlobal(_) => None
+  | `SliceIncr(_, slice_incr) => Some(slice_incr);
+let get_global_slice: term => option(slc_incr) =
+  fun
+  | `Typ(_)
+  | `SliceIncr(_) => None
+  | `SliceGlobal(_, slice_global) => Some(slice_global);
+let get_incr_slice_or_empty = s =>
+  s |> get_incr_slice |> Option.value(~default=empty_slice_incr);
+let get_global_slice_or_empty = s =>
+  s |> get_global_slice |> Option.value(~default=empty_slice_global);
+
 // wraps a t inside a `SliceGlobal: unioning the global slices if required
 let wrap_global = (slice_global: slc_global, s: t): t => {
   let (term, rewrap) = s |> IdTagged.unwrap;
@@ -329,6 +344,58 @@ let typslc_typ_t_of_slc = (s: slc_typ_t): typslc_typ_t => {
 let t_of_typ_t = (ty: Typ.t): t => {
   let (ty, rewrap) = ty |> IdTagged.unwrap;
   `Typ(ty) |> rewrap;
+};
+
+// Creates a slice from the ids of a typ_t. Used in creating slices of type annotations.
+// This could instead be done directly in parsing.
+let rec t_of_typ_t_sliced = ({ids, _} as ty: Typ.t): t => {
+  let (ty, rewrap) = ty |> IdTagged.unwrap;
+  (
+    switch (ty) {
+    | Unknown(_) => (`Typ(ty): term) // Don't slice holes
+    | Int => `SliceIncr((Typ(Int), slice_of_ids(ids)))
+    | Bool => `SliceIncr((Typ(Bool), slice_of_ids(ids)))
+    | Float => `SliceIncr((Typ(Float), slice_of_ids(ids)))
+    | String => `SliceIncr((Typ(String), slice_of_ids(ids)))
+    | Var(name) => `SliceIncr((Typ(Var(name)), slice_of_ids(ids)))
+    // Note: ctx slice not relevant in the above (types used in local scope)
+    | List(t) =>
+      `SliceIncr((Slice(List(t_of_typ_t_sliced(t))), slice_of_ids(ids)))
+    | Parens(t) =>
+      `SliceIncr((Slice(Parens(t_of_typ_t_sliced(t))), slice_of_ids(ids)))
+    | Arrow(t1, t2) =>
+      `SliceIncr((
+        Slice(Arrow(t_of_typ_t_sliced(t1), t_of_typ_t_sliced(t2))),
+        slice_of_ids(ids),
+      ))
+    | Ap(t1, t2) =>
+      `SliceIncr((
+        Slice(Ap(t_of_typ_t_sliced(t1), t_of_typ_t_sliced(t2))),
+        slice_of_ids(ids),
+      ))
+    | Sum(m) =>
+      `SliceIncr((
+        Slice(Sum(ConstructorMap.map_vals(t_of_typ_t_sliced, m))),
+        slice_of_ids(ids),
+      ))
+    | Prod(ts) =>
+      `SliceIncr((
+        Slice(Prod(List.map(t_of_typ_t_sliced, ts))),
+        slice_of_ids(ids),
+      ))
+    | Rec(tpat, t) =>
+      `SliceIncr((
+        Slice(Rec(tpat, t_of_typ_t_sliced(t))),
+        slice_of_ids(ids),
+      ))
+    | Forall(tpat, t) =>
+      `SliceIncr((
+        Slice(Forall(tpat, t_of_typ_t_sliced(t))),
+        slice_of_ids(ids),
+      ))
+    }
+  )
+  |> rewrap;
 };
 
 let t_of_slc_typ_t = (ty: slc_typ_t): t => {
@@ -892,6 +959,18 @@ let join_all = (~empty: t, ctx: Ctx.t, ts: list(t)): option(t) =>
 let is_consistent = (ctx: Ctx.t, ty1: t, ty2: t): bool =>
   join(~fix=false, ctx, ty1, ty2) != None;
 
+// Destructuring constructs
+let unparens =
+  map_merge(
+    fun
+    | Parens(ty) => t_of_typ_t(ty)
+    | _ => failwith("Not a parens"),
+    fun
+    | Parens(s) => s
+    | _ => failwith("Not a parens"),
+  );
+
+// Normalisation
 let rec weak_head_normalize = (ctx: Ctx.t, s: t): t => {
   let (_, rewrap) = s |> IdTagged.unwrap;
   let typ_normalize = (ty: Typ.term) =>
@@ -902,7 +981,7 @@ let rec weak_head_normalize = (ctx: Ctx.t, s: t): t => {
     | Parens(s') => weak_head_normalize(ctx, s')
     | _ => s
     };
-  apply(typ_normalize, slc_normalize, term_of(s));
+  map_merge(typ_normalize, slc_normalize, s);
 };
 
 let wrap_empty_incr = s =>
@@ -943,9 +1022,10 @@ let rec normalize = (ctx: Ctx.t, s: t): t => {
       |> rewrap
     };
   };
-  apply(typ_normalize, slc_normalize, term_of(s));
+  map_merge(typ_normalize, slc_normalize, s);
 };
 
+// Matching functions
 let rec matched_arrow_strict = (ctx, s: t) => {
   let (_, rewrap) = s |> IdTagged.unwrap;
   switch (term_of(weak_head_normalize(ctx, s))) {
@@ -953,9 +1033,9 @@ let rec matched_arrow_strict = (ctx, s: t) => {
   | `SliceIncr(Typ(ty), _) =>
     Typ.matched_arrow_strict(ctx, ty |> rewrap)
     |> Option.map(TupleUtil.map2(t_of_typ_t))
-  | `SliceIncr(Slice(s), _) =>
-    switch (s) {
-    | Parens(s) => matched_arrow_strict(ctx, s)
+  | `SliceIncr(Slice(s'), _) =>
+    switch (s') {
+    | Parens(_) => matched_arrow_strict(ctx, unparens(s))
     | Arrow(s1, s2) => Some((s1, s2))
     | _ => None
     }
@@ -981,9 +1061,9 @@ let rec matched_forall_strict = (ctx, s) => {
   | `SliceIncr(Typ(ty), _) =>
     Typ.matched_forall_strict(ctx, ty |> rewrap)
     |> Option.map(((tpat, ty)) => (tpat, t_of_typ_t(ty)))
-  | `SliceIncr(Slice(s), _) =>
-    switch (s) {
-    | Parens(ty) => matched_forall_strict(ctx, ty)
+  | `SliceIncr(Slice(s'), _) =>
+    switch (s') {
+    | Parens(_) => matched_forall_strict(ctx, unparens(s))
     | Forall(t, ty) => Some((Some(t), ty))
     | _ => None // (None, Unknown(Internal) |> temp)
     }
@@ -1004,9 +1084,9 @@ let rec matched_prod_strict = (ctx, length, s) => {
   | `SliceIncr(Typ(ty), _) =>
     Typ.matched_prod_strict(ctx, length, ty |> rewrap)
     |> Option.map(List.map(t_of_typ_t))
-  | `SliceIncr(Slice(s), _) =>
-    switch (s) {
-    | Parens(ty) => matched_prod_strict(ctx, length, ty)
+  | `SliceIncr(Slice(s'), _) =>
+    switch (s') {
+    | Parens(_) => matched_prod_strict(ctx, length, unparens(s))
     | Prod(tys) when List.length(tys) == length => Some(tys)
     | _ => None
     }
@@ -1028,9 +1108,9 @@ let rec matched_list_strict = (ctx, s) => {
   | `Typ(ty)
   | `SliceIncr(Typ(ty), _) =>
     Typ.matched_list_strict(ctx, ty |> rewrap) |> Option.map(t_of_typ_t)
-  | `SliceIncr(Slice(s), _) =>
-    switch (s) {
-    | Parens(ty) => matched_list_strict(ctx, ty)
+  | `SliceIncr(Slice(s'), _) =>
+    switch (s') {
+    | Parens(_) => matched_list_strict(ctx, unparens(s))
     | List(ty) => Some(ty)
     | _ => None
     }
@@ -1052,9 +1132,9 @@ let rec matched_args = (ctx, default_arity, s) => {
   | `SliceIncr(Typ(ty), _) =>
     Typ.matched_args(ctx, default_arity, ty |> rewrap)
     |> List.map(t_of_typ_t)
-  | `SliceIncr(Slice(s), _) =>
-    switch (s) {
-    | Parens(ty) => matched_args(ctx, default_arity, ty)
+  | `SliceIncr(Slice(s''), _) =>
+    switch (s'') {
+    | Parens(_) => matched_args(ctx, default_arity, unparens(s))
     | Prod([_, ..._] as tys) => tys
     | _ => [s']
     }
@@ -1075,7 +1155,7 @@ let rec get_sum_constructors =
     |> Option.map(ConstructorMap.map_vals(t_of_typ_t))
   | `SliceIncr(Slice(s'), _) =>
     switch (s') {
-    | Parens(ty) => get_sum_constructors(ctx, ty)
+    | Parens(_) => get_sum_constructors(ctx, unparens(s))
     | Sum(sm) => Some(sm)
     | Rec(_) =>
       /* Note: We must unroll here to get right ctr types;

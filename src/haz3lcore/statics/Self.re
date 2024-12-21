@@ -224,8 +224,9 @@ let of_base = (ids: list(Id.t), ty: Typ.term) =>
 // Operation slices are similarly determined by their ids
 let of_op = of_base;
 
-let of_seq = (ids: list(Id.t), ty: TypSlice.t) =>
+let of_parens = (ids: list(Id.t), ty: TypSlice.t) =>
   Just(ty |> TypSlice.(wrap_incr(slice_of_ids(ids))));
+let of_seq = of_parens;
 let of_filter = of_seq; // TODO: check
 let of_fix = of_seq;
 let of_ap_ok = of_seq;
@@ -295,110 +296,115 @@ let of_let = (ids: list(Id.t), is_exhaustive: bool, ty: TypSlice.t) => {
 
 // skip_slices will not tag slices to anything if the term is a slice. i.e. not a pure type `Typ(ty)
 let of_annot = (~skip_slices=true, ids: list(Id.t), ty: TypSlice.t): t => {
-  // Create type slice corresponding to ids in type. This could be done in parsing instead.
-  let rec create_slices = ({term, ids, _} as s: TypSlice.t): TypSlice.t => {
-    let (_, rewrap) = IdTagged.unwrap(ty);
+  /*
+   // Create type slice corresponding to ids in type. This could be done in parsing instead.
+   let rec create_slices = ({term, ids, _} as s: TypSlice.t): TypSlice.t => {
+     let (_, rewrap) = IdTagged.unwrap(ty);
 
-    TypSlice.(
-      switch (term) {
-      // TODO: consider slice with type variables!
-      | `Typ(ty) =>
-        (
-          switch (ty) {
-          | (Unknown(_) | Int | Float | Bool | String | Var(_)) as ty =>
-            `SliceGlobal((`Typ(ty), slice_of_ids(ids)))
-          | List(ty) => (
-              `SliceIncr((
-                Slice(List(create_slices(ty |> t_of_typ_t))),
-                slice_of_ids(ids),
-              )): term
-            )
-          | Arrow(ty1, ty2) =>
-            `SliceIncr((
-              Slice(
-                Arrow(
-                  create_slices(ty1 |> t_of_typ_t),
-                  create_slices(ty2 |> t_of_typ_t),
-                ),
-              ),
-              slice_of_ids(ids),
-            ))
-          | Sum(m) =>
-            `SliceIncr((
-              Slice(
-                Sum(
-                  ConstructorMap.map_vals(
-                    ty => create_slices(ty |> t_of_typ_t),
-                    m,
-                  ),
-                ),
-              ),
-              slice_of_ids(ids),
-            ))
-          | Prod(tys) =>
-            `SliceIncr((
-              Slice(
-                Prod(List.map(ty => create_slices(ty |> t_of_typ_t), tys)),
-              ),
-              slice_of_ids(ids),
-            ))
-          | Parens(ty) =>
-            `SliceIncr((
-              Slice(Parens(create_slices(ty |> t_of_typ_t))),
-              slice_of_ids(ids),
-            ))
-          | Ap(ty1, ty2) =>
-            `SliceIncr((
-              Slice(
-                Ap(
-                  create_slices(ty1 |> t_of_typ_t),
-                  create_slices(ty2 |> t_of_typ_t),
-                ),
-              ),
-              slice_of_ids(ids),
-            ))
-          | Rec(tpat, ty) =>
-            `SliceIncr((
-              Slice(Rec(tpat, create_slices(ty |> t_of_typ_t))),
-              slice_of_ids(ids),
-            ))
-          | Forall(tpat, ty) =>
-            `SliceIncr((
-              Slice(Forall(tpat, create_slices(ty |> t_of_typ_t))),
-              slice_of_ids(ids),
-            ))
-          }
-        )
-        |> rewrap
-      // Skip slices
-      | `SliceIncr(_, _)
-      | `SliceGlobal(_, _) when skip_slices => s
-      // If not skipping slices: continue searching through subterms for `Typs.
-      | `SliceIncr(Typ(ty), slice_incr) =>
-        create_slices(`Typ(ty) |> rewrap) |> wrap_incr(slice_incr)
-      | `SliceIncr(Slice(s), slice_incr) =>
-        `SliceIncr((
-          Slice(
-            switch (s) {
-            | List(ty) => List(create_slices(ty))
-            | Arrow(ty1, ty2) =>
-              Arrow(create_slices(ty1), create_slices(ty2))
-            | Sum(m) =>
-              Sum(ConstructorMap.map_vals(ty => create_slices(ty), m))
-            | Prod(tys) => Prod(List.map(ty => create_slices(ty), tys))
-            | Parens(ty) => Parens(create_slices(ty))
-            | Ap(ty1, ty2) => Ap(create_slices(ty1), create_slices(ty2))
-            | Rec(tpat, ty) => Rec(tpat, create_slices(ty))
-            | Forall(tpat, ty) => Forall(tpat, create_slices(ty))
-            },
-          ),
-          slice_incr,
-        ))
-        |> rewrap
-      | `SliceGlobal(s, slice_global) =>
-        create_slices((s :> term) |> rewrap) |> wrap_global(slice_global)
-      }
-    );
-  };
-  Just(create_slices(ty) |> TypSlice.(wrap_incr(slice_of_ids(ids))));
+     TypSlice.(
+       switch (term) {
+       // TODO: consider slice with type variables!
+       | `Typ(ty) =>
+         (
+           switch (ty) {
+           | (Unknown(_) | Int | Float | Bool | String | Var(_)) as ty =>
+             `SliceGlobal((`Typ(ty), slice_of_ids(ids)))
+           | List(ty) => (
+               `SliceIncr((
+                 Slice(List(create_slices(ty |> t_of_typ_t))),
+                 slice_of_ids(ids),
+               )): term
+             )
+           | Arrow(ty1, ty2) =>
+             `SliceIncr((
+               Slice(
+                 Arrow(
+                   create_slices(ty1 |> t_of_typ_t),
+                   create_slices(ty2 |> t_of_typ_t),
+                 ),
+               ),
+               slice_of_ids(ids),
+             ))
+           | Sum(m) =>
+             `SliceIncr((
+               Slice(
+                 Sum(
+                   ConstructorMap.map_vals(
+                     ty => create_slices(ty |> t_of_typ_t),
+                     m,
+                   ),
+                 ),
+               ),
+               slice_of_ids(ids),
+             ))
+           | Prod(tys) =>
+             `SliceIncr((
+               Slice(
+                 Prod(List.map(ty => create_slices(ty |> t_of_typ_t), tys)),
+               ),
+               slice_of_ids(ids),
+             ))
+           | Parens(ty) =>
+             `SliceIncr((
+               Slice(Parens(create_slices(ty |> t_of_typ_t))),
+               slice_of_ids(ids),
+             ))
+           | Ap(ty1, ty2) =>
+             `SliceIncr((
+               Slice(
+                 Ap(
+                   create_slices(ty1 |> t_of_typ_t),
+                   create_slices(ty2 |> t_of_typ_t),
+                 ),
+               ),
+               slice_of_ids(ids),
+             ))
+           | Rec(tpat, ty) =>
+             `SliceIncr((
+               Slice(Rec(tpat, create_slices(ty |> t_of_typ_t))),
+               slice_of_ids(ids),
+             ))
+           | Forall(tpat, ty) =>
+             `SliceIncr((
+               Slice(Forall(tpat, create_slices(ty |> t_of_typ_t))),
+               slice_of_ids(ids),
+             ))
+           }
+         )
+         |> rewrap
+       // Skip slices
+       | `SliceIncr(_, _)
+       | `SliceGlobal(_, _) when skip_slices => s
+       // If not skipping slices: continue searching through subterms for `Typs.
+       | `SliceIncr(Typ(ty), slice_incr) =>
+         create_slices(`Typ(ty) |> rewrap) |> wrap_incr(slice_incr)
+       | `SliceIncr(Slice(s), slice_incr) =>
+         `SliceIncr((
+           Slice(
+             switch (s) {
+             | List(ty) => List(create_slices(ty))
+             | Arrow(ty1, ty2) =>
+               Arrow(create_slices(ty1), create_slices(ty2))
+             | Sum(m) =>
+               Sum(ConstructorMap.map_vals(ty => create_slices(ty), m))
+             | Prod(tys) => Prod(List.map(ty => create_slices(ty), tys))
+             | Parens(ty) => Parens(create_slices(ty))
+             | Ap(ty1, ty2) => Ap(create_slices(ty1), create_slices(ty2))
+             | Rec(tpat, ty) => Rec(tpat, create_slices(ty))
+             | Forall(tpat, ty) => Forall(tpat, create_slices(ty))
+             },
+           ),
+           slice_incr,
+         ))
+         |> rewrap
+       | `SliceGlobal(s, slice_global) =>
+         create_slices((s :> term) |> rewrap) |> wrap_global(slice_global)
+       }
+     );
+   };
+   */
+  // The annotation should be global
+  Just(
+    /*create_slices*/ ty |> TypSlice.(wrap_global(slice_of_ids(ids))),
+  );
 };

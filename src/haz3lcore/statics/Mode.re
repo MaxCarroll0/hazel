@@ -45,6 +45,15 @@ let ty_of: t => TypSlice.t =
     )
     |> TypSlice.temp; /* TODO: naming the type variable? */
 
+//maintain parentheses in slices
+let of_parens = (ids, mode: t): t =>
+  switch (mode) {
+  | Syn
+  | SynFun
+  | SynTypFun => mode
+  | Ana(ty) => Ana(ty |> TypSlice.(wrap_incr(slice_of_ids(ids))))
+  };
+
 let of_arrow = (ctx: Ctx.t, mode: t): (t, t) =>
   switch (mode) {
   | Syn
@@ -73,67 +82,89 @@ let of_forall = (ctx: Ctx.t, name_opt: option(string), mode: t): t =>
     };
   };
 
-let of_prod = (ctx: Ctx.t, mode: t, length): list(t) =>
+let of_prod = (ids, ctx: Ctx.t, mode: t, length): list(t) =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun => List.init(length, _ => Syn)
-  | Ana(ty) => ty |> TypSlice.matched_prod(ctx, length) |> List.map(ana)
+  | Ana(ty) =>
+    ty
+    |> TypSlice.matched_prod(ctx, length)
+    |> List.map(TypSlice.(wrap_global(slice_of_ids(ids))))
+    |> List.map(ana)
   };
 
-let of_cons_hd = (ctx: Ctx.t, mode: t): t =>
+let of_cons_hd = (ids: list(Id.t), ctx: Ctx.t, mode: t): t =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun => Syn
-  | Ana(ty) => Ana(TypSlice.matched_list(ctx, ty))
+  | Ana(ty) =>
+    Ana(TypSlice.(matched_list(ctx, ty) |> wrap_global(slice_of_ids(ids))))
   };
 
-let of_cons_tl = (ctx: Ctx.t, mode: t, hd_ty: TypSlice.t): t =>
+let of_cons_tl = (ids: list(Id.t), ctx: Ctx.t, mode: t, hd_ty: TypSlice.t): t =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun =>
     Ana(
       `SliceIncr((Slice(List(hd_ty)), TypSlice.empty_slice_incr))
-      |> TypSlice.temp,
+      |> TypSlice.temp
+      |> TypSlice.(wrap_global(slice_of_ids(ids))),
     )
   | Ana(ty) =>
     Ana(
       `SliceIncr((
         Slice(List(TypSlice.matched_list(ctx, ty))),
-        TypSlice.empty_slice_incr,
+        TypSlice.(
+          // Re-add incremental slice of list, as we rewrap in a list: TODO - check this
+          ty |> term_of |> get_incr_slice_or_empty
+        ),
       ))
-      |> TypSlice.temp,
+      |> TypSlice.temp
+      |> TypSlice.(wrap_global(slice_of_ids(ids))),
     )
   };
 
-let of_list = (ctx: Ctx.t, mode: t): t =>
+let of_list = (ids: list(Id.t), ctx: Ctx.t, mode: t): t =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun => Syn
-  | Ana(ty) => Ana(TypSlice.matched_list(ctx, ty))
+  | Ana(ty) =>
+    Ana(TypSlice.(matched_list(ctx, ty) |> wrap_global(slice_of_ids(ids))))
   };
 
-let of_list_concat = (ctx: Ctx.t, mode: t): t =>
+let of_list_concat = (ids: list(Id.t), ctx: Ctx.t, mode: t): t =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun =>
-    Ana(`Typ(List(Unknown(SynSwitch) |> Typ.temp)) |> TypSlice.temp)
+    Ana(
+      `SliceIncr((
+        Typ(List(Unknown(SynSwitch) |> Typ.temp)),
+        TypSlice.empty_slice_incr,
+      ))
+      |> TypSlice.temp
+      |> TypSlice.wrap_global(TypSlice.slice_of_ids(ids)),
+    )
   | Ana(ty) =>
     Ana(
       `SliceIncr((
         Slice(List(TypSlice.matched_list(ctx, ty))),
-        TypSlice.empty_slice_incr,
+        TypSlice.(
+          // Re-add incremental slice of list, as we rewrap in a list
+          ty |> term_of |> get_incr_slice_or_empty
+        ),
       ))
-      |> TypSlice.temp,
+      |> TypSlice.temp
+      |> TypSlice.(wrap_global(slice_of_ids(ids))),
     )
   };
 
-let of_list_lit = (ctx: Ctx.t, length, mode: t): list(t) =>
-  List.init(length, _ => of_list(ctx, mode));
+let of_list_lit = (ids: list(Id.t), ctx: Ctx.t, length, mode: t): list(t) =>
+  List.init(length, _ => of_list(ids, ctx, mode));
 
 let ctr_ana_typ =
     (ctx: Ctx.t, mode: t, ctr: Constructor.t): option(TypSlice.t) => {
@@ -211,3 +242,7 @@ let of_op = (ids: list(Id.t), ty: Typ.term) =>
   Ana(
     `SliceGlobal((`Typ(ty), TypSlice.slice_of_ids(ids))) |> TypSlice.temp,
   );
+
+let of_ann = (ids: list(Id.t), ty: TypSlice.t): t => {
+  Ana(ty |> TypSlice.(wrap_global(slice_of_ids(ids))));
+};

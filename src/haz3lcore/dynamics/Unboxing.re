@@ -47,15 +47,7 @@ let fixup_cast = Casts.transition_multiple;
 
 let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
   (request, expr) => {
-    let unparens =
-      TypSlice.map_merge(
-        fun
-        | Parens(ty) => TypSlice.t_of_typ_t(ty)
-        | _ => failwith("Not a parens"),
-        fun
-        | Parens(s) => s
-        | _ => failwith("Not a parens"),
-      );
+    let unparens = TypSlice.unparens;
     let unlist =
       TypSlice.map_merge(
         ~drop_incr=true,
