@@ -53,6 +53,11 @@
   --GB0: oklch(70% 0.05 120); /* ! nut menu active */
   --GB1: oklch(45% 0.05 120); /* ! nut menu fill */
 
+  /* BLUE -- slices */
+  --B0: oklch(96% 0.2 260);
+  --B1: oklch(60% 0.2 260);
+  --B2: oklch(40% 0.2 260);
+
   /* FREE PARKING - ??? */
 
   --textarea-v-stripe: oklch(78% 0.14 6 / 55%);
@@ -123,6 +128,10 @@
   /* ERROR HOLE DECO */
 
   --error-hole-fill: var(--ERRHOLE);
+
+  /* SLICE DECO */
+  --slice-stroke: var(--B2);
+  --slice-fill: var(--G1);
 
   /* BACKPACK DECO */
 
@@ -199,6 +208,7 @@
   --tile-z: 1;
   --projector-backing-z: 1;
   --err-hole-z: 2;
+  --slice-z: 3;
   --select-z: 4;
   --test-result-z: 5;
 

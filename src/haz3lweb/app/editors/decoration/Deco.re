@@ -569,6 +569,58 @@ module Deco =
 
   let statics = () => [errors()];
 
+  let slice_view = (id: Id.t) =>
+    try(
+      switch (Id.Map.find_opt(id, projectors)) {
+      | Some(p) =>
+        /* Special case for projectors as they are not in tile map */
+        let shapes = ProjectorBase.shapes(p);
+        let measurement = Id.Map.find(id, measured.projectors);
+        div_c(
+          "slice-piece",
+          [
+            PieceDec.simple_shard_slice({
+              font_metrics,
+              tips: PieceDec.tips_of_shapes(shapes),
+              measurement,
+            }),
+          ],
+        );
+      | None =>
+        let p = Piece.Tile(tile(id));
+        let tiles = all_tiles(p);
+        let shard_decos =
+          tiles
+          |> List.map(((_, mold, shards)) =>
+               PieceDec.simple_shards_slice(~font_metrics, mold, shards)
+             )
+          |> List.flatten;
+        switch (term_range(p)) {
+        | Some(range) =>
+          let rows = measured.rows;
+          let decos =
+            shard_decos
+            @ PieceDec.uni_lines(
+                ~font_metrics,
+                ~rows,
+                range,
+                tiles,
+                ~line_clss=[],
+              )
+            @ PieceDec.bi_lines(~font_metrics, ~rows, tiles, ~line_clss=[]);
+          div_c("slice-piece", decos);
+        | None => div_c("slice-piece", shard_decos)
+        };
+      }
+    ) {
+    | Not_found =>
+      /* This is caused by the statics overloading for exercise mode. The overriding
+       * Exercise mode statics maps are calculated based on splicing together multiple
+       * editors, but error_ids are extracted generically from the statics map, so
+       * there may be error holes that don't occur in the editor being rendered */
+      Node.div([])
+    };
+
   // TODO: Slices for cursor inspector view.
   let slice = (c: Cursor.cursor('a)) => {
     let info = c.info;
@@ -600,7 +652,7 @@ module Deco =
                  | _ => failwith("TODO: view ctx_used"),
                [],
              );
-        div_c("errors", List.map(error_view, term_ids @ ctx_used_ids));
+        div_c("slice", List.map(slice_view, term_ids @ ctx_used_ids));
       // TODO: Only show slices for expressions when cursor is in Edtior: ids and info not preserved in other regions!
       | InfoExp(exp) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
@@ -627,12 +679,12 @@ module Deco =
                  | _ => failwith("TODO: view ctx_used"),
                [],
              );
-        div_c("errors", List.map(error_view, term_ids @ ctx_used_ids));
+        div_c("slice", List.map(slice_view, term_ids @ ctx_used_ids));
       | InfoPat(pat) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
           TypSlice.full_slice(Info.pat_ty(pat) |> TypSlice.term_of);
         // TODO: ctx_used
-        div_c("errors", List.map(error_view, term_ids));
+        div_c("slice", List.map(error_view, term_ids));
       | _ => div_empty
       }
     | None => div_empty
