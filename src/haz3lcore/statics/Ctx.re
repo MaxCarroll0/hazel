@@ -106,7 +106,16 @@ let lookup_alias = (ctx: t, name: string): option(TermBase.TypSlice.t) =>
     )
   };
 
-let add_ctrs = (ctx: t, name: string, id: Id.t, ctrs: TermBase.Typ.sum_map): t =>
+// var_ids are the ids to slice source of name
+let add_ctrs =
+    (
+      name_ids: list(Id.t),
+      ctx: t,
+      name: string,
+      id: Id.t,
+      ctrs: TermBase.TypSlice.sum_map,
+    )
+    : t =>
   List.filter_map(
     fun
     | ConstructorMap.Variant(ctr, _, typ) =>
@@ -118,9 +127,19 @@ let add_ctrs = (ctx: t, name: string, id: Id.t, ctrs: TermBase.Typ.sum_map): t =
             switch (typ) {
             | None => `Typ(Var(name): TermBase.typ_term) |> IdTagged.fresh
             | Some(typ) =>
-              `Typ(
-                Arrow(typ, (Var(name): TermBase.typ_term) |> IdTagged.fresh): TermBase.typ_term,
-              )
+              `SliceIncr((
+                Slice(
+                  Arrow(
+                    typ,
+                    `SliceGlobal((
+                      `Typ(Var(name): TermBase.typ_term),
+                      {ctx_used: [], term_ids: name_ids}: TermBase.slice_global,
+                    ))
+                    |> IdTagged.fresh: TermBase.typslice_t,
+                  ),
+                ): TermBase.typslice_typ_term,
+                {ctx_used: [], term_ids: [id]}: TermBase.slice_incr,
+              ))
               |> IdTagged.fresh
             },
         }),

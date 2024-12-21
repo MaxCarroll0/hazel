@@ -105,7 +105,7 @@ let of_exp_var = (ids: list(Id.t), ctx: Ctx.t, name: Var.t): exp =>
     Common(
       Just(
         TypSlice.(
-          var.typ |> wrap_incr(slice_of_ctx_ids([Exp(var.name)], ids))
+          var.typ |> wrap_incr(slice_of_ctx_ids([Var(var.name)], ids))
         ),
       ),
     )

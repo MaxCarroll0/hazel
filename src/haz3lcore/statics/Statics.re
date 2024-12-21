@@ -637,26 +637,27 @@ and uexp_to_info_map =
          tentatively add an abtract type to the ctx, representing the
          speculative rec parameter. */
       let (ty_def, ctx_def, ctx_body) = {
+        let utyp_slice = utyp |> TypSlice.t_of_typ_t_sliced;
         switch (utyp.term) {
         | Sum(_) when List.mem(name, Typ.free_vars(utyp)) =>
           /* NOTE: When debugging type system issues it may be beneficial to
              use a different name than the alias for the recursive parameter */
           //let ty_rec = TypSlice.Rec("α", TypSlice.subst(Var("α"), name, ty_pre));
           let ty_rec =
-            `Typ(Rec((Var(name): TPat.term) |> IdTagged.fresh, utyp))
+            `SliceIncr((
+              Slice(
+                Rec((Var(name): TPat.term) |> IdTagged.fresh, utyp_slice),
+              ),
+              TypSlice.slice_of_ids(ids),
+            ))
             |> TypSlice.temp;
           let ctx_def =
             Ctx.extend_alias(ctx, name, TPat.rep_id(typat), ty_rec);
           (ty_rec, ctx_def, ctx_def);
         | _ => (
-            utyp |> TypSlice.t_of_typ_t,
+            utyp_slice,
             ctx,
-            Ctx.extend_alias(
-              ctx,
-              name,
-              TPat.rep_id(typat),
-              utyp |> TypSlice.t_of_typ_t,
-            ),
+            Ctx.extend_alias(ctx, name, TPat.rep_id(typat), utyp_slice),
           )
         /* NOTE(yuchen): Below is an alternative implementation that attempts to
            add a rec whenever type alias is present. It may cause trouble to the
@@ -677,10 +678,11 @@ and uexp_to_info_map =
         switch (TypSlice.get_sum_constructors(ctx, ty_def)) {
         | Some(sm) =>
           Ctx.add_ctrs(
+            [TPat.rep_id(typat)],
             ctx_body,
             name,
             Typ.rep_id(utyp),
-            ConstructorMap.map_vals(TypSlice.typ_of, sm),
+            sm,
           )
         | None => ctx_body
         };
@@ -692,7 +694,7 @@ and uexp_to_info_map =
         utyp_to_info_map(
           ~ctx=ctx_def,
           ~ancestors,
-          utyp |> TypSlice.t_of_typ_t,
+          utyp |> TypSlice.t_of_typ_t_sliced,
           m,
         )
         |> snd;

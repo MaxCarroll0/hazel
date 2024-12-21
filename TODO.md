@@ -37,10 +37,12 @@ As compared to `witnesses` branch:
 ## Parsing
 - [ ] Make decision on full use of TypSlice or use of Typ for this stage
 - [ ] Attach slices correctly to types/casts in this stage if using TypSlice.
+- [ ] Type aliases should be slices. Currently converted in Statics.
 
 ## Other
 - [ ] Remove redundancy in uinfo_of_typ and also consider using Typ.t for Info.typ
 - [ ] More ergonomic use of TypSlice (better versions of map & apply)
 - [ ] Improve performance: Likely issues due to overuse of TypSlice.typ_of? Hopefully not due to TypSlice.wrap_global or wrap_incr.....
+
 
 ## Bugs

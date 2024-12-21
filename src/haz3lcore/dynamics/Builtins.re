@@ -408,7 +408,13 @@ let ctx_init: Ctx.t = {
     Pervasives.builtins,
   )
   |> Ctx.extend(_, meta)
-  |> Ctx.add_ctrs(_, "$Meta", Id.invalid, meta_cons_map);
+  |> Ctx.add_ctrs(
+       [],
+       _,
+       "$Meta",
+       Id.invalid,
+       meta_cons_map |> ConstructorMap.map_vals(TypSlice.t_of_typ_t),
+     );
 };
 
 let forms_init: forms =

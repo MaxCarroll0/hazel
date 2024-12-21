@@ -375,7 +375,7 @@ let rec t_of_typ_t_sliced = ({ids, _} as ty: Typ.t): t => {
       ))
     | Sum(m) =>
       `SliceIncr((
-        Slice(Sum(ConstructorMap.map_vals(t_of_typ_t_sliced, m))),
+        Slice(Sum(m |> ConstructorMap.map_vals(t_of_typ_t_sliced))),
         slice_of_ids(ids),
       ))
     | Prod(ts) =>
