@@ -9,8 +9,10 @@ type deferral_position_t =
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type var_cls =
-  | Exp(Var.t)
-  | Typ(Var.t);
+  | Var(Var.t)
+  | TVar(Var.t)
+  | Ctr(Var.t)
+  | Alias(Var.t);
 
 /*
    This megafile contains the definitions of the expression data types in

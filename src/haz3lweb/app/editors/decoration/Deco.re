@@ -578,14 +578,56 @@ module Deco =
       | InfoTyp(typ) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
           TypSlice.full_slice(typ.term |> TypSlice.term_of);
-        // TODO: ctx_used
-        div_c("errors", List.map(error_view, term_ids));
+        let ctx_used_ids =
+          ctx_used
+          |> List.fold_left(
+               (acc: list(Id.t)): (TypSlice.ctx_var => list(Id.t)) =>
+                 fun
+                 | Var(name) =>
+                   (
+                     Ctx.lookup_var(typ.ctx, name)
+                     |> Option.map(v => [Ctx.get_id(VarEntry(v))])
+                     |> Option.value(~default=[])
+                   )
+                   @ acc
+                 | Ctr(name) =>
+                   (
+                     Ctx.lookup_ctr(typ.ctx, name)
+                     |> Option.map(v => [Ctx.get_id(VarEntry(v))])
+                     |> Option.value(~default=[])
+                   )
+                   @ acc
+                 | _ => failwith("TODO: view ctx_used"),
+               [],
+             );
+        div_c("errors", List.map(error_view, term_ids @ ctx_used_ids));
       // TODO: Only show slices for expressions when cursor is in Edtior: ids and info not preserved in other regions!
       | InfoExp(exp) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
           TypSlice.full_slice(Info.exp_ty(exp) |> TypSlice.term_of);
-        // TODO: ctx_used
-        div_c("errors", List.map(error_view, term_ids));
+        let ctx_used_ids =
+          ctx_used
+          |> List.fold_left(
+               (acc: list(Id.t)): (TypSlice.ctx_var => list(Id.t)) =>
+                 fun
+                 | Var(name) =>
+                   (
+                     Ctx.lookup_var(exp.ctx, name)
+                     |> Option.map(v => [Ctx.get_id(VarEntry(v))])
+                     |> Option.value(~default=[])
+                   )
+                   @ acc
+                 | Ctr(name) =>
+                   (
+                     Ctx.lookup_ctr(exp.ctx, name)
+                     |> Option.map(v => [Ctx.get_id(VarEntry(v))])
+                     |> Option.value(~default=[])
+                   )
+                   @ acc
+                 | _ => failwith("TODO: view ctx_used"),
+               [],
+             );
+        div_c("errors", List.map(error_view, term_ids @ ctx_used_ids));
       | InfoPat(pat) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
           TypSlice.full_slice(Info.pat_ty(pat) |> TypSlice.term_of);

@@ -106,7 +106,7 @@ let lookup_alias = (ctx: t, name: string): option(TermBase.TypSlice.t) =>
     )
   };
 
-// var_ids are the ids to slice source of name
+// name_ids are the ids to slice source of name
 let add_ctrs =
     (
       name_ids: list(Id.t),

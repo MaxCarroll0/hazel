@@ -122,7 +122,9 @@ let of_ctr = (ids, ctx: Ctx.t, name: Constructor.t): t =>
       switch (Ctx.lookup_ctr(ctx, name)) {
       | None => None
       | Some({typ, _}) =>
-        Some(typ |> TypSlice.(wrap_incr(slice_of_ids(ids))))
+        Some(
+          typ |> TypSlice.(wrap_incr(slice_of_ctx_ids([Ctr(name)], ids))),
+        )
       },
   });
 
