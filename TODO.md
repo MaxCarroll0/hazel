@@ -49,3 +49,6 @@ As compared to `witnesses` branch:
 - [ ] Parentheses not highlighted in slices (likely due to type normliasation?)
 - [ ] Constructor names not highlighted in slices
 - [ ] Type slice substitution drops all slices (as `Var(_)` appears only in Typ. and Typ.subst is used here)
+- [ ] Cast slice stack overflows see: `let f : forall A -> A -> A = typfun B -> fun x -> x in f@<Int>(2)`
+- [ ] Cast slicing in stepper only highlights per line.
+- [ ] Various bugs with displaying slices/holes in stepper & cursor movement in stepper
