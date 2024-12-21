@@ -346,7 +346,7 @@ and uexp_to_info_map =
     let fn_mode = Mode.of_ap(ctx, mode, UExp.ctr_name(fn));
     let (fn, m) = go(~mode=fn_mode, fn, m);
     let (ty_in, ty_out) = TypSlice.matched_arrow(ctx, fn.ty);
-    let (arg, m) = go(~mode=Ana(ty_in), arg, m);
+    let (arg, m) = go(~mode=ty_in |> Mode.of_ap_arg(ids), arg, m);
     let self: Self.t = Self.of_ap(ids, ctx, arg.term.ids, ty_in, ty_out); // TODO: Re-add incremental ids used in arrow type ty_in -> ty_out
     add(~self, ~co_ctx=CoCtx.union([fn.co_ctx, arg.co_ctx]), m);
   | TypAp(fn, utyp) =>
@@ -374,7 +374,7 @@ and uexp_to_info_map =
     let arg_co_ctx = CoCtx.union(List.map(Info.exp_co_ctx, args));
     add'(~self, ~co_ctx=CoCtx.union([fn.co_ctx, arg_co_ctx]), m);
   | Fun(p, e, _, _) =>
-    let (mode_pat, mode_body) = Mode.of_arrow(ctx, mode);
+    let (mode_pat, mode_body) = Mode.of_arrow(ids, ctx, mode);
     let (p', _) =
       go_pat(~is_synswitch=false, ~co_ctx=CoCtx.empty, ~mode=mode_pat, p, m);
     let (e, m) = go'(~ctx=p'.ctx, ~mode=mode_body, e, m);

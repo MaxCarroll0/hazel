@@ -54,12 +54,17 @@ let of_parens = (ids, mode: t): t =>
   | Ana(ty) => Ana(ty |> TypSlice.(wrap_incr(slice_of_ids(ids))))
   };
 
-let of_arrow = (ctx: Ctx.t, mode: t): (t, t) =>
+let of_arrow = (ids: list(Id.t), ctx: Ctx.t, mode: t): (t, t) =>
   switch (mode) {
   | Syn
   | SynFun
   | SynTypFun => (Syn, Syn)
-  | Ana(ty) => ty |> TypSlice.matched_arrow(ctx) |> TupleUtil.map2(ana)
+  | Ana(ty) =>
+    ty
+    |> TypSlice.matched_arrow(ctx)
+    |> TupleUtil.map2(t =>
+         Ana(TypSlice.wrap_global(TypSlice.slice_of_ids(ids), t))
+       )
   };
 
 let of_forall = (ctx: Ctx.t, name_opt: option(string), mode: t): t =>
@@ -246,3 +251,5 @@ let of_op = (ids: list(Id.t), ty: Typ.term) =>
 let of_ann = (ids: list(Id.t), ty: TypSlice.t): t => {
   Ana(ty |> TypSlice.(wrap_global(slice_of_ids(ids))));
 };
+
+let of_ap_arg = of_ann;
