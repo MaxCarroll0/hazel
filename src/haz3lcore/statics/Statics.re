@@ -353,7 +353,12 @@ and uexp_to_info_map =
     let typfn_mode = Mode.typap_mode;
     let (fn, m) = go(~mode=typfn_mode, fn, m);
     let (_, m) =
-      utyp_to_info_map(~ctx, ~ancestors, utyp |> TypSlice.t_of_typ_t, m);
+      utyp_to_info_map(
+        ~ctx,
+        ~ancestors,
+        utyp |> TypSlice.t_of_typ_t_sliced,
+        m,
+      );
     let self = fn.ty |> Self.of_typap(ids, ctx, utyp);
     add(~self, ~co_ctx=fn.co_ctx, m);
   | DeferredAp(fn, args) =>

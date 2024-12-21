@@ -33,12 +33,12 @@ As compared to `witnesses` branch:
 
 ## Statics.re & Elaboration.re:
 - [ ] Separate use of Slice.re to allow disabling. i.e. using Typ only. Could do this by passing a bool through (also allows calculating slices only for specific _regions_ of the code: which could be linked directly to the). Or could create a (let.slice) binding operator which skips slice computation dependent on bool. _Make sure this still maintains the old slice!_
-- [ ] Separate Self.annot into utyp\_to\_info\_map
+- [x] Separate Self.annot into utyp\_to\_info\_map
 
 ## Parsing
 - [ ] Make decision on full use of TypSlice or use of Typ for this stage
-- [ ] Attach slices correctly to types/casts in this stage if using TypSlice.
-- [ ] Type aliases should be slices. Currently converted in Statics.
+- [x] Attach slices correctly to types/casts in this stage if using TypSlice.
+- [ ] Type aliases should be slices. Currently converted in Statics.re.
 
 ## Other
 - [ ] Remove redundancy in uinfo_of_typ and also consider using Typ.t for Info.typ
@@ -48,3 +48,4 @@ As compared to `witnesses` branch:
 ## Bugs
 - [ ] Parentheses not highlighted in slices (likely due to type normliasation?)
 - [ ] Constructor names not highlighted in slices
+- [ ] Type slice substitution drops all slices (as `Var(_)` appears only in Typ. and Typ.subst is used here)

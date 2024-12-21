@@ -256,7 +256,8 @@ let of_typap = (ids: list(Id.t), ctx: Ctx.t, typ_ap: Typ.t, ty: TypSlice.t) => {
   | Some(name) =>
     Just(
       TypSlice.(
-        subst(typ_ap |> t_of_typ_t, name, ty_body)
+        // TODO: t_of_typ_t_sliced could be done in parsing
+        subst(typ_ap |> t_of_typ_t_sliced, name, ty_body)
         |> wrap_incr(slice_of_ids(ids))
       ),
     ) // TODO: Check slices here

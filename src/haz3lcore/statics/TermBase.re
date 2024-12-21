@@ -1153,7 +1153,6 @@ and TypSlice: {
     term |> typ_term_of_term |> rewrap;
   };
 
-  // TODO: use map_term?
   let subst = (r: t, x: TPat.t, s: t): t => {
     let subst_typ_term = (ty: Typ.term): Typ.term =>
       Typ.subst(r |> typ_of, x, ty |> IdTagged.fresh) |> IdTagged.term_of;
