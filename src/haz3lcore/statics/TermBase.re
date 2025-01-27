@@ -58,7 +58,7 @@ type any_t =
   | Exp(exp_t)
   | Pat(pat_t)
   | Typ(typ_t) // Guaranteed not a slice
-  | TypSlice(typslice_t) // Might be a slice
+  | TypSlice(slice_t) // Might be a slice
   | TPat(tpat_t)
   | Rul(rul_t)
   | Any(unit)
@@ -67,7 +67,7 @@ and exp_term =
   | EmptyHole
   | MultiHole(list(any_t))
   | DynamicErrorHole(exp_t, InvalidOperationError.t)
-  | FailedCast(exp_t, typslice_t, typslice_t)
+  | FailedCast(exp_t, slice_t, slice_t)
   | Deferral(deferral_position_t)
   | Undefined
   | Bool(bool)
@@ -106,7 +106,7 @@ and exp_term =
   /* INVARIANT: in dynamic expressions, casts must be between
      two consistent types. Both types should be normalized in
      dynamics for the cast calculus to work right. */
-  | Cast(exp_t, typslice_t, typslice_t)
+  | Cast(exp_t, slice_t, slice_t)
 and exp_t = IdTagged.t(exp_term)
 and pat_term =
   | Invalid(string)
@@ -124,7 +124,7 @@ and pat_term =
   | Tuple(list(pat_t))
   | Parens(pat_t)
   | Ap(pat_t, pat_t)
-  | Cast(pat_t, typslice_t, typslice_t)
+  | Cast(pat_t, slice_t, slice_t)
 and pat_t = IdTagged.t(pat_term)
 and typ_term =
   | Unknown(type_provenance)
@@ -142,37 +142,38 @@ and typ_term =
   | Rec(tpat_t, typ_t)
   | Forall(tpat_t, typ_t)
 and typ_t = IdTagged.t(typ_term)
-// Applies only to the type constructor
-and slice_incr = {
+and slice_code = {
   ctx_used: list(var_cls),
   term_ids: list(Id.t),
 } // TODO: make ctx_used a map
-// Applies to all subterms (the entire type)
-and slice_global = slice_incr
-and slice_typ_term =
-  | List(typslice_t)
-  | Arrow(typslice_t, typslice_t)
-  | Sum(ConstructorMap.t(typslice_t))
-  | Prod(list(typslice_t))
-  | Parens(typslice_t)
-  | Ap(typslice_t, typslice_t)
-  | Rec(tpat_t, typslice_t)
-  | Forall(tpat_t, typslice_t)
+and slice_typ =
+  | Unknown(type_provenance)
+  | Int
+  | Float
+  | Bool
+  | String
+  | Var(string)
+  | List(slice_t)
+  | Arrow(slice_t, slice_t)
+  | Sum(ConstructorMap.t(slice_t))
+  | Prod(list(slice_t))
+  | Parens(slice_t)
+  | Ap(slice_t, slice_t)
+  | Rec(tpat_t, slice_t)
+  | Forall(tpat_t, slice_t)
 and slice_typ_t =
-  | IdTagged(slice_typ_term)
-and typslice_typ_term =
-  | Typ(typ_term)
-  | Slice(slice_typ_term)
-and slice_incr_term = (typslice_typ_term, slice_incr)
-and typslice_incr_term = [ | `Typ(typ_term) | `SliceIncr(slice_incr_term)] // May be coerced to a typslice_term
-and typslice_incr_t = IdTagged.t(typslice_incr_term)
-and slice_global_term = (typslice_incr_term, slice_global)
-and typslice_term = [
-  | `Typ(typ_term)
-  | `SliceIncr(slice_incr_term)
-  | `SliceGlobal(slice_global_term)
+  | IdTagged(slice_term)
+and slice_typ_term = [ | `Typ(slice_typ)] // May be coerced to a slice_incr_term or slice_term
+and slice_incr_term = [
+  | `Typ(slice_typ)
+  | `Incr(slice_typ_term, slice_code)
+] // May be coerced to a slice_term
+and slice_term = [
+  | `Typ(slice_typ)
+  | `Incr(slice_typ_term, slice_code)
+  | `Global(slice_incr_term, slice_code)
 ]
-and typslice_t = IdTagged.t(typslice_term)
+and slice_t = IdTagged.t(slice_term)
 and tpat_term =
   | Invalid(string)
   | EmptyHole
@@ -920,7 +921,6 @@ and Typ: {
 
   /* Type Equality: This coincides with alpha equivalence for normalized types.
      Other types may be equivalent but this will not detect so if they are not normalized. */
-
   let rec eq_internal = (n: int, t1: t, t2: t) => {
     switch (IdTagged.term_of(t1), IdTagged.term_of(t2)) {
     | (Parens(t1), _) => eq_internal(n, t1, t2)
@@ -969,31 +969,28 @@ and Typ: {
 }
 and TypSlice: {
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type term = typslice_term;
+  type term = slice_term;
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type t = typslice_t;
+  type t = slice_t;
   [@deriving (show({with_path: false}), sexp, yojson)]
   type ctx_var = var_cls;
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type slc_typ_term = slice_typ_term;
+  type typ = slice_typ;
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type typslc_typ_term = typslice_typ_term;
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type typ_term = typslice_typ_term;
+  type typ_term = slice_typ_term;
   [@deriving (sexp, yojson)]
-  type slc_incr = slice_incr;
-  [@deriving (sexp, yojson)]
-  type slc_global = slice_global;
+  type code = slice_code;
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type slc_incr_term = slice_incr_term;
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type incr_term = typslice_incr_term; // May be coerced to a typslice_term
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type incr_t = typslice_incr_t;
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type slc_global_term = slice_global_term;
+  type incr_term = slice_incr_term;
+  //[@deriving (show({with_path: false}), sexp, yojson)]
+  //type incr_t = slice_incr_t;
 
   type sum_map = ConstructorMap.t(t);
+
+  let wrap_global: (code, term) => term;
+  let wrap_incr: (code, term) => term;
+  let wrap_global_t: (code, t) => t;
+  let wrap_incr_t: (code, t) => t;
 
   let map_term:
     (
@@ -1010,38 +1007,40 @@ and TypSlice: {
 
   let typ_of: t => Typ.t;
   let typ_term_of_term: term => Typ.term;
-  let typ_term_of_slice_typ_term: slc_typ_term => Typ.term;
 
   let subst: (t, TPat.t, t) => t;
 
   let fast_equal: (t, t) => bool;
 } = {
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type term = typslice_term;
+  type term = slice_term;
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type t = typslice_t;
+  type t = slice_t;
   [@deriving (show({with_path: false}), sexp, yojson)]
   type ctx_var = var_cls;
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type slc_typ_term = slice_typ_term;
+  type typ = slice_typ;
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type typslc_typ_term = typslice_typ_term;
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type typ_term = typslice_typ_term;
+  type typ_term = slice_typ_term;
   [@deriving (sexp, yojson)]
-  type slc_incr = slice_incr;
-  [@deriving (sexp, yojson)]
-  type slc_global = slice_global;
+  type code =
+    slice_code = {
+      ctx_used: list(var_cls),
+      term_ids: list(Id.t),
+    };
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type slc_incr_term = slice_incr_term;
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type incr_term = typslice_incr_term; // May be coerced to a typslice_term
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type incr_t = typslice_incr_t;
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type slc_global_term = slice_global_term;
+  type incr_term = slice_incr_term;
 
   type sum_map = ConstructorMap.t(t);
+
+  let union_code =
+      (
+        {ctx_used, term_ids}: code,
+        {ctx_used: ctx_used', term_ids: term_ids'}: code,
+      ) => {
+    ctx_used: ctx_used @ ctx_used',
+    term_ids: term_ids @ term_ids',
+  };
 
   let map_term =
       (
@@ -1054,16 +1053,6 @@ and TypSlice: {
         ~f_any=continue,
         x,
       ) => {
-    let typ_map_term =
-      Typ.map_term(
-        ~f_exp,
-        ~f_pat,
-        ~f_typ,
-        ~f_typslice,
-        ~f_tpat,
-        ~f_rul,
-        ~f_any,
-      );
     let typslice_map_term =
       TypSlice.map_term(
         ~f_exp,
@@ -1086,8 +1075,14 @@ and TypSlice: {
       );
     let rec_call = (s: t): t => {
       let (term, rewrap) = IdTagged.unwrap(s);
-      let rec_call_incr_typ = (s: slc_typ_term): slc_typ_term =>
-        switch (s) {
+      let rec_call_typ = (ty: typ): typ =>
+        switch (ty) {
+        | Unknown(_)
+        | Int
+        | Float
+        | Bool
+        | String
+        | Var(_) => ty
         | List(s) => List(typslice_map_term(s))
         | Arrow(s1, s2) =>
           Arrow(typslice_map_term(s1), typslice_map_term(s2))
@@ -1099,24 +1094,18 @@ and TypSlice: {
         | Forall(pat, s) =>
           Forall(tpat_map_term(pat), typslice_map_term(s))
         };
-      let rec_call_incr_term = (term: typslice_incr_term): typslice_incr_term =>
+      let rec_call_typ_term = (`Typ(ty): typ_term): typ_term =>
+        `Typ(rec_call_typ(ty));
+      let rec_call_incr_term = (term: incr_term): incr_term =>
         switch (term) {
-        | `Typ(ty) =>
-          `Typ(typ_map_term(ty |> IdTagged.fresh) |> IdTagged.term_of)
-        | `SliceIncr(Typ(ty), slice_incr) =>
-          `SliceIncr((
-            Typ(typ_map_term(ty |> IdTagged.fresh) |> IdTagged.term_of),
-            slice_incr,
-          ))
-        | `SliceIncr(Slice(s), slice_incr) =>
-          `SliceIncr((Slice(rec_call_incr_typ(s)), slice_incr))
+        | `Typ(_) as s => (rec_call_typ_term(s) :> incr_term)
+        | `Incr(s, slice_incr) => `Incr((rec_call_typ_term(s), slice_incr))
         };
       (
         switch (term) {
-        | `Typ(_) as s
-        | `SliceIncr(_) as s => (rec_call_incr_term(s) :> term)
-        | `SliceGlobal(s, slice_global) =>
-          `SliceGlobal((rec_call_incr_term(s), slice_global))
+        | (`Typ(_) | `Incr(_)) as s => (rec_call_incr_term(s) :> term)
+        | `Global(s, slice_global) =>
+          `Global((rec_call_incr_term(s), slice_global))
         }
       )
       |> rewrap;
@@ -1124,8 +1113,14 @@ and TypSlice: {
     x |> f_typslice(rec_call);
   };
 
-  let rec typ_term_of_slice_typ_term = (s: slc_typ_term): Typ.term =>
+  let rec typ_term_of_typ = (s: typ): Typ.term =>
     switch (s) {
+    | Unknown(p) => Unknown(p)
+    | Int => Int
+    | Float => Float
+    | Bool => Bool
+    | String => String
+    | Var(v) => Var(v)
     | List(s) => List(typ_of(s))
     | Arrow(s1, s2) => Arrow(typ_of(s1), typ_of(s2))
     | Sum(m) => Sum(ConstructorMap.map_vals(typ_of, m))
@@ -1135,13 +1130,18 @@ and TypSlice: {
     | Rec(pat, s) => Rec(pat, typ_of(s))
     | Forall(pat, s) => Forall(pat, typ_of(s))
     }
+  and typ_term_of_typ_term = (`Typ(ty): typ_term): Typ.term =>
+    typ_term_of_typ(ty)
+  and typ_term_of_incr_term = (term: incr_term): Typ.term => {
+    switch (term) {
+    | `Typ(_) as s
+    | `Incr(s, _) => typ_term_of_typ_term(s)
+    };
+  }
   and typ_term_of_term = (term: term): Typ.term => {
     switch (term) {
-    | `Typ(ty)
-    | `SliceIncr(Typ(ty), _) => ty
-    | `SliceIncr(Slice(s), _) => typ_term_of_slice_typ_term(s)
-
-    | `SliceGlobal(s', _) => typ_term_of_term((s' :> term))
+    | (`Typ(_) | `Incr(_)) as s
+    | `Global(s, _) => typ_term_of_incr_term(s)
     };
   }
   and typ_of = (s: t) => {
@@ -1149,55 +1149,80 @@ and TypSlice: {
     term |> typ_term_of_term |> rewrap;
   };
 
-  let subst = (r: t, x: TPat.t, s: t): t => {
-    let subst_typ_term = (ty: Typ.term): Typ.term =>
-      Typ.subst(r |> typ_of, x, ty |> IdTagged.fresh) |> IdTagged.term_of;
-    let rec subst = (s: t): t => {
-      let (typslice, rewrap_typslice) = IdTagged.unwrap(s);
-      typslice |> subst_term |> rewrap_typslice;
-    }
-    and subst_term = (s: term): term => {
+  let wrap_incr = (code: code, s: term): term => {
+    let wrap_incr_term = (s: incr_term): incr_term => {
       switch (s) {
-      | `SliceGlobal(s, slice_global) =>
-        `SliceGlobal((subst_incr_term(s), slice_global))
-      | `Typ(_) as s
-      | `SliceIncr(_) as s => (subst_incr_term(s) :> term)
-      };
-    }
-    and subst_incr_term = (s: incr_term): incr_term => {
-      switch (s) {
-      | `Typ(ty) => `Typ(subst_typ_term(ty))
-      | `SliceIncr(Typ(ty), slice_incr) =>
-        `SliceIncr((Typ(subst_typ_term(ty)), slice_incr))
-      | `SliceIncr(Slice(s), slice_incr) =>
-        `SliceIncr((
-          Slice(
-            switch (TPat.tyvar_of_utpat(x)) {
-            | Some(str) =>
-              switch (s) {
-              | Arrow(s1, s2) => Arrow(subst(s1), subst(s2))
-              | Prod(ss) => Prod(List.map(subst, ss))
-              | Sum(sm) => Sum(ConstructorMap.map(Option.map(subst), sm))
-              | Forall(tp2, s)
-                  when TPat.tyvar_of_utpat(x) == TPat.tyvar_of_utpat(tp2) =>
-                Forall(tp2, s)
-              | Forall(tp2, s) => Forall(tp2, subst(s))
-              | Rec(tp2, s)
-                  when TPat.tyvar_of_utpat(x) == TPat.tyvar_of_utpat(tp2) =>
-                Rec(tp2, s)
-              | Rec(tp2, s) => Rec(tp2, subst(s))
-              | List(s) => List(subst(s))
-              | Parens(s) => Parens(subst(s))
-              | Ap(s1, s2) => Ap(subst(s1), subst(s2))
-              }
-            | None => s
-            },
-          ),
-          slice_incr,
-        ))
+      | `Typ(_) as s => `Incr((s, code))
+      | `Incr(s, code') => `Incr((s, union_code(code, code')))
       };
     };
-    subst(s);
+    switch (s) {
+    | (`Typ(_) | `Incr(_)) as s => (wrap_incr_term(s) :> term)
+    | `Global(s, code') =>
+      `Global((wrap_incr_term(s), union_code(code, code')))
+    };
+  };
+
+  let wrap_global = (code: code, s: term): term => {
+    switch (s) {
+    | (`Typ(_) | `Incr(_)) as s => `Global((s, code))
+    | `Global(s, code') => `Global((s, union_code(code, code')))
+    };
+  };
+
+  let wrap_incr_t = (code: code, s: t): t => {
+    let (s, rewrap) = IdTagged.unwrap(s);
+    wrap_incr(code, s) |> rewrap;
+  };
+
+  let wrap_global_t = (code: code, s: t): t => {
+    let (s, rewrap) = IdTagged.unwrap(s);
+    wrap_global(code, s) |> rewrap;
+  };
+
+  let rec subst = (r: t, x: TPat.t, s: t): t => {
+    switch (TPat.tyvar_of_utpat(x)) {
+    | Some(str) =>
+      let (s, rewrap_s) = IdTagged.unwrap(s);
+      let subst_typ_term = (`Typ(ty): typ_term): t =>
+        switch (ty) {
+        | (Int | Float | Bool | String | Unknown(_)) as ty =>
+          `Typ(ty) |> rewrap_s
+        | Arrow(s1, s2) =>
+          `Typ(Arrow(subst(r, x, s1), subst(r, x, s2))) |> rewrap_s
+        | Prod(ss) => `Typ(Prod(List.map(subst(r, x), ss))) |> rewrap_s
+        | Sum(sm) =>
+          `Typ(Sum(ConstructorMap.map(Option.map(subst(r, x)), sm)))
+          |> rewrap_s
+        | Forall(tp2, s)
+            when TPat.tyvar_of_utpat(x) == TPat.tyvar_of_utpat(tp2) =>
+          `Typ(Forall(tp2, s)) |> rewrap_s
+        | Forall(tp2, s) => `Typ(Forall(tp2, subst(r, x, s))) |> rewrap_s
+        | Rec(tp2, s)
+            when TPat.tyvar_of_utpat(x) == TPat.tyvar_of_utpat(tp2) =>
+          `Typ(Rec(tp2, s)) |> rewrap_s
+        | Rec(tp2, s) => `Typ(Rec(tp2, subst(r, x, s))) |> rewrap_s
+        | List(s) => `Typ(List(subst(r, x, s))) |> rewrap_s
+        | Var(v) => str == v ? r : `Typ(Var(v)) |> rewrap_s
+        | Parens(s) => `Typ(Parens(subst(r, x, s))) |> rewrap_s
+        | Ap(s1, s2) =>
+          `Typ(Ap(subst(r, x, s1), subst(r, x, s2))) |> rewrap_s
+        };
+      let subst_incr_term = (term: incr_term) => {
+        switch (term) {
+        | `Typ(_) as s => subst_typ_term(s)
+        | `Incr(s, code) => subst_typ_term(s) |> wrap_incr_t(code)
+        };
+      };
+      let subst_term = (term: term) => {
+        switch (term) {
+        | (`Typ(_) | `Incr(_)) as s => subst_incr_term(s)
+        | `Global(s, code) => subst_incr_term(s) |> wrap_global_t(code)
+        };
+      };
+      subst_term(s);
+    | None => s
+    };
   };
 
   /*
@@ -1206,7 +1231,7 @@ and TypSlice: {
      Type Equality: Coincides with alpha equivalence for normalized types.
      Other types may be equivalent but this will not detect so if they are not normalized.
    */
-  let fast_equal = (s1, s2) => Typ.fast_equal(s1 |> typ_of, s2 |> typ_of);
+  let fast_equal = (s1, s2) => Typ.fast_equal(s1 |> typ_of, s2 |> typ_of); // TODO: Implement this directly for efficiency reasons
 }
 and TPat: {
   [@deriving (show({with_path: false}), sexp, yojson)]
