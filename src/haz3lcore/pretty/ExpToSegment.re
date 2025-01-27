@@ -936,7 +936,7 @@ let rec parenthesize = (~show_filters: bool, exp: Exp.t): Exp.t => {
       parenthesize(e) |> paren_assoc_at(Precedence.cast),
       parenthesize_typ(t1 |> TypSlice.typ_of)
       |> paren_typ_at(Precedence.cast)
-      |> TypSlice.t_of_typ_t, // TODO: Keep slices!?
+      |> TypSlice.t_of_typ_t,
       parenthesize_typ(t2 |> TypSlice.typ_of)
       |> paren_typ_at(Precedence.cast)
       |> TypSlice.t_of_typ_t,
@@ -1067,10 +1067,10 @@ and parenthesize_pat = (~show_filters: bool, pat: Pat.t): Pat.t => {
     Cast(
       parenthesize_pat(p) |> paren_pat_assoc_at(Precedence.cast),
       parenthesize_typ(t1 |> TypSlice.typ_of)
-      |> paren_typ_at(Precedence.cast)
-      |> TypSlice.t_of_typ_t, // TODO: Keep slices!?
+      |> paren_typ_at(Precedence.max)  // Hack[Matt]: always add parens to get the arrows right
+      |> TypSlice.t_of_typ_t,
       parenthesize_typ(t2 |> TypSlice.typ_of)
-      |> paren_typ_at(Precedence.cast)
+      |> paren_typ_at(Precedence.max)
       |> TypSlice.t_of_typ_t,
     )
     |> rewrap
