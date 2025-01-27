@@ -46,9 +46,13 @@ As compared to `witnesses` branch:
 - [ ] Improve performance: Likely issues due to overuse of TypSlice.typ_of? Hopefully not due to TypSlice.wrap_global or wrap_incr.....
 
 ## Bugs
-- [ ] Parentheses not highlighted in slices (likely due to type normliasation?)
+### High Priority
+- [ ] Types in stepper share ids which messes with selecting them/cursor movement
+- [ ] Cast slicing in stepper does not highlight in editor
+
+## Low Priority
+- [ ] Deferrals: See failed test
+- [X] Parentheses not highlighted in slices (likely due to type normliasation?)
 - [ ] Constructor names not highlighted in slices
 - [ ] Type slice substitution drops all slices (as `Var(_)` appears only in Typ. and Typ.subst is used here)
-- [ ] Cast slice stack overflows see: `let f : forall A -> A -> A = typfun B -> fun x -> x in f@<Int>(2)`
-- [ ] Cast slicing in stepper only highlights per line.
-- [ ] Various bugs with displaying slices/holes in stepper & cursor movement in stepper
+- [X] Cast slice stack overflows see: `let f : forall A -> A -> A = typfun B -> fun x -> x in f@<Int>(2)`
