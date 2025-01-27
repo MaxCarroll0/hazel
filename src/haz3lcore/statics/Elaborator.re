@@ -6,11 +6,6 @@ open Util;
 
 exception MissingTypeInfo;
 
-module Elaboration = {
-  [@deriving (show({with_path: false}), sexp, yojson)]
-  type t = {d: DHExp.t};
-};
-
 module ElaborationResult = {
   [@deriving sexp]
   type t =
@@ -48,7 +43,7 @@ let fresh_pat_cast = (p: DHPat.t, t1: TypSlice.t, t2: TypSlice.t): DHPat.t => {
 };
 
 let elaborated_type =
-    (m: Statics.Map.t, uexp: UExp.t): (TypSlice.t, Ctx.t, 'a) => {
+    (m: Statics.Map.t, uexp: Exp.t): (TypSlice.t, Ctx.t, 'a) => {
   let (mode, self_ty, ctx, co_ctx) =
     switch (Id.Map.find_opt(Exp.rep_id(uexp), m)) {
     | Some(Info.InfoExp({mode, ty, ctx, co_ctx, _})) => (
@@ -76,9 +71,9 @@ let elaborated_type =
 };
 
 let elaborated_pat_type =
-    (m: Statics.Map.t, upat: UPat.t): (TypSlice.t, Ctx.t) => {
+    (m: Statics.Map.t, upat: Pat.t): (TypSlice.t, Ctx.t) => {
   let (mode, self_ty, ctx, prev_synswitch) =
-    switch (Id.Map.find_opt(UPat.rep_id(upat), m)) {
+    switch (Id.Map.find_opt(Pat.rep_id(upat), m)) {
     | Some(Info.InfoPat({mode, ty, ctx, prev_synswitch, _})) => (
         mode,
         ty,
@@ -107,10 +102,10 @@ let elaborated_pat_type =
 };
 
 let rec elaborate_pattern =
-        (m: Statics.Map.t, upat: UPat.t): (DHPat.t, TypSlice.t) => {
+        (m: Statics.Map.t, upat: Pat.t): (DHPat.t, TypSlice.t) => {
   let (elaborated_type, ctx) = elaborated_pat_type(m, upat);
   let cast_from = (ty, exp) => fresh_pat_cast(exp, ty, elaborated_type);
-  let (term, rewrap) = UPat.unwrap(upat);
+  let (term, rewrap) = Pat.unwrap(upat);
   let dpat =
     switch (term) {
     | Int(_) => upat |> cast_from(`Typ(Int) |> TypSlice.temp)
@@ -232,10 +227,10 @@ let rec elaborate_pattern =
    [Matt] A lot of these fresh_cast calls are redundant, however if you
    want to remove one, I'd ask you instead comment it out and leave
    a comment explaining why it's redundant.  */
-let rec elaborate = (m: Statics.Map.t, uexp: UExp.t): (DHExp.t, TypSlice.t) => {
+let rec elaborate = (m: Statics.Map.t, uexp: Exp.t): (DHExp.t, TypSlice.t) => {
   let (elaborated_type, ctx, co_ctx) = elaborated_type(m, uexp);
   let cast_from = (ty, exp) => fresh_cast(exp, ty, elaborated_type);
-  let (term, rewrap) = UExp.unwrap(uexp);
+  let (term, rewrap) = Exp.unwrap(uexp);
   let dhexp =
     switch (term) {
     | Invalid(_)
@@ -386,14 +381,17 @@ let rec elaborate = (m: Statics.Map.t, uexp: UExp.t): (DHExp.t, TypSlice.t) => {
       let (args', tys) = List.map(elaborate(m), args) |> ListUtil.unzip;
       let (tyf1, tyf2) = TypSlice.matched_arrow(ctx, tyf);
       let ty_fargs = TypSlice.matched_prod(ctx, List.length(args), tyf1);
+      let prod_args =
+        switch (ty_fargs) {
+        | [ty] => ty
+        | _ =>
+          Prod(ty_fargs) |> TypSlice.term_of_slc_typ_term |> TypSlice.temp
+        };
       let f'' =
         fresh_cast(
           f',
           tyf,
-          Arrow(
-            Prod(ty_fargs) |> TypSlice.term_of_slc_typ_term |> TypSlice.temp,
-            tyf2,
-          )
+          Arrow(prod_args, tyf2)
           |> TypSlice.term_of_slc_typ_term
           |> TypSlice.temp,
         );
@@ -659,7 +657,7 @@ let rec elaborate = (m: Statics.Map.t, uexp: UExp.t): (DHExp.t, TypSlice.t) => {
 let fix_typ_ids =
   Exp.map_term(~f_typ=(cont, e) => e |> IdTagged.new_ids |> cont);
 
-let uexp_elab = (m: Statics.Map.t, uexp: UExp.t): ElaborationResult.t =>
+let uexp_elab = (m: Statics.Map.t, uexp: Exp.t): ElaborationResult.t =>
   switch (elaborate(m, uexp)) {
   | exception MissingTypeInfo => DoesNotElaborate
   | (d, ty) => Elaborates(d |> fix_typ_ids, ty, Delta.empty)

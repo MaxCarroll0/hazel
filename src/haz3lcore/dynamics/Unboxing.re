@@ -15,6 +15,17 @@ open Util;
     the inner lists may still have casts around them after unboxing.
     */
 
+type unboxed_tfun =
+  | TypFun(TPat.t, Exp.t, option(string))
+  | TFunCast(DHExp.t, TPat.t, TypSlice.t, TPat.t, TypSlice.t);
+
+type unboxed_fun =
+  | Constructor(string)
+  | FunEnv(Pat.t, Exp.t, ClosureEnvironment.t)
+  | FunCast(DHExp.t, TypSlice.t, TypSlice.t, TypSlice.t, TypSlice.t)
+  | BuiltinFun(string)
+  | DeferredAp(DHExp.t, list(DHExp.t));
+
 type unbox_request('a) =
   | Int: unbox_request(int)
   | Float: unbox_request(float)
@@ -24,7 +35,9 @@ type unbox_request('a) =
   | List: unbox_request(list(DHExp.t))
   | Cons: unbox_request((DHExp.t, DHExp.t))
   | SumNoArg(string): unbox_request(unit)
-  | SumWithArg(string): unbox_request(DHExp.t);
+  | SumWithArg(string): unbox_request(DHExp.t)
+  | TypFun: unbox_request(unboxed_tfun)
+  | Fun: unbox_request(unboxed_fun);
 
 type unboxed('a) =
   | DoesNotMatch
@@ -76,6 +89,48 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
         unprod(s) |> List.map(TypSlice.wrap_global(slice_global))
       };
     };
+
+    let unarrow = (s: TypSlice.t) => {
+      let unarrow =
+        TypSlice.apply(
+          fun
+          | Arrow(ty1, ty2) =>
+            (ty1, ty2) |> TupleUtil.map2(TypSlice.t_of_typ_t)
+          | _ => failwith("Not an arrow"),
+          fun
+          | Arrow(s1, s2) => (s1, s2)
+          | _ => failwith("Not an arrow"),
+        );
+      let s = TypSlice.term_of(s);
+      switch (s) {
+      | `Typ(_)
+      | `SliceIncr(_) => unarrow(s) // Drop incremental slices
+      | `SliceGlobal(_, slice_global) =>
+        unarrow(s) |> TupleUtil.map2(TypSlice.wrap_global(slice_global))
+      };
+    };
+    // get forall term
+    let unforall = (s: TypSlice.t) => {
+      // TODO: Move these into TypSlice.re?
+      let unforall =
+        TypSlice.apply(
+          fun
+          | Forall(tpat, ty) => (tpat, ty |> TypSlice.t_of_typ_t)
+          | _ => failwith("Not a forall"),
+          fun
+          | Forall(tpat, s) => (tpat, s)
+          | _ => failwith("Not a forall"),
+        );
+      let s = TypSlice.term_of(s);
+      switch (s) {
+      | `Typ(_)
+      | `SliceIncr(_) => unforall(s) // Drop incremental slices
+      | `SliceGlobal(_, slice_global) =>
+        unforall(s)
+        |> (((x, y)) => (x, y |> TypSlice.wrap_global(slice_global)))
+      };
+    };
+
     let get_sum =
       TypSlice.apply(
         fun
@@ -189,6 +244,25 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
       };
     // There should be some sort of failure here when the cast doesn't go through.
 
+    /* Function-like things can look like the following when values */
+    | (Fun, Constructor(name, _)) => Matches(Constructor(name)) // Perhaps we should check if the constructor actually is a function?
+    | (Fun, Fun(dp, d3, Some(env'), _)) => Matches(FunEnv(dp, d3, env'))
+    | (Fun, Cast(d3', s1, s2))
+        when TypSlice.is_arrow(s1) && TypSlice.is_arrow(s2) =>
+      let ((s1, s1'), (s2, s2')) = (unarrow(s1), unarrow(s2));
+      Matches(FunCast(d3', s1, s2, s1', s2'));
+    | (Fun, BuiltinFun(name)) => Matches(BuiltinFun(name))
+    | (Fun, DeferredAp(d1, ds)) => Matches(DeferredAp(d1, ds))
+
+    /* TypFun-like things can look like the following when values */
+    | (TypFun, TypFun(utpat, tfbody, name)) =>
+      Matches(TypFun(utpat, tfbody, name))
+    // Note: We might be able to handle this cast like other casts
+    | (TypFun, Cast(d'', s1, s2))
+        when TypSlice.is_forall(s1) && TypSlice.is_forall(s2) =>
+      let ((tp1, s1'), (tp2, s2')) = (unforall(s1), unforall(s2));
+      Matches(TFunCast(d'', tp1, s1', tp2, s2'));
+
     /* Any cast from unknown is indet */
     | (_, Cast(_, s1, _)) when TypSlice.is_unknown(s1) => IndetMatch
 
@@ -223,6 +297,8 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
       | SumNoArg(_)
       | SumWithArg(_) =>
         raise(EvaluatorError.Exception(InvalidBoxedSumConstructor(expr)))
+      | Fun => raise(EvaluatorError.Exception(InvalidBoxedFun(expr)))
+      | TypFun => raise(EvaluatorError.Exception(InvalidBoxedTypFun(expr)))
       }
 
     /* Forms that are not yet or will never be a value */

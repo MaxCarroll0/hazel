@@ -147,7 +147,6 @@ let rec any_to_info_map =
       utyp_to_info_map(~ctx, ~ancestors, ty, m) |> snd,
     )
   | Rul(_)
-  | Nul ()
   | Any () => (CoCtx.empty, m)
   }
 and multi = (~ctx, ~ancestors, m, tms) =>
@@ -165,7 +164,7 @@ and uexp_to_info_map =
       ~mode=Mode.Syn,
       ~is_in_filter=false,
       ~ancestors,
-      {ids, copied: _, term} as uexp: UExp.t,
+      {ids, copied: _, term} as uexp: Exp.t,
       m: Map.t,
     )
     : (Info.exp, Map.t) => {
@@ -181,14 +180,14 @@ and uexp_to_info_map =
     (info, add_info(ids, InfoExp(info), m));
   };
   let add = (~self, ~co_ctx, m) => add'(~self=Common(self), ~co_ctx, m);
-  let ancestors = [UExp.rep_id(uexp)] @ ancestors;
+  let ancestors = [Exp.rep_id(uexp)] @ ancestors;
   let uexp_to_info_map =
       (
         ~ctx,
         ~mode=Mode.Syn,
         ~is_in_filter=is_in_filter,
         ~ancestors=ancestors,
-        uexp: UExp.t,
+        uexp: Exp.t,
         m: Map.t,
       ) => {
     uexp_to_info_map(~ctx, ~mode, ~is_in_filter, ~ancestors, uexp, m);
@@ -228,7 +227,7 @@ and uexp_to_info_map =
   | Float(_) => atomic(Float |> Self.of_base(ids))
   | String(_) => atomic(String |> Self.of_base(ids))
   | ListLit(es) =>
-    let e_ids = List.map(UExp.rep_id, es);
+    let e_ids = List.map(Exp.rep_id, es);
     let modes = Mode.of_list_lit(ids, ctx, List.length(es), mode);
     let (es, m) = map_m_go(m, modes, es);
     let tys = List.map(Info.exp_ty, es);
@@ -254,7 +253,7 @@ and uexp_to_info_map =
     );
   | ListConcat(e1, e2) =>
     let mode = Mode.of_list_concat(ids, ctx, mode);
-    let c_ids = List.map(UExp.rep_id, [e1, e2]);
+    let c_ids = List.map(Exp.rep_id, [e1, e2]);
     let (e1, m) = go(~mode, e1, m);
     let (e2, m) = go(~mode, e2, m);
     add(
@@ -265,7 +264,7 @@ and uexp_to_info_map =
   | Var(name) =>
     add'(
       ~self=Self.of_exp_var(ids, ctx, name),
-      ~co_ctx=CoCtx.singleton(name, UExp.rep_id(uexp), Mode.ty_of(mode)),
+      ~co_ctx=CoCtx.singleton(name, Exp.rep_id(uexp), Mode.ty_of(mode)),
       m,
     )
   | DynamicErrorHole(e, _)
@@ -273,7 +272,7 @@ and uexp_to_info_map =
     let (e, m) = go(~mode=Mode.of_parens(ids, mode), e, m);
     add(~self=e.ty |> Self.of_parens(ids), ~co_ctx=e.co_ctx, m);
   | UnOp(Meta(Unquote), e) when is_in_filter =>
-    let e: UExp.t = {
+    let e: Exp.t = {
       ids: e.ids,
       copied: false,
       term:
@@ -343,7 +342,7 @@ and uexp_to_info_map =
     );
   | Constructor(ctr, _) => atomic(Self.of_ctr(ids, ctx, ctr))
   | Ap(_, fn, arg) =>
-    let fn_mode = Mode.of_ap(ctx, mode, UExp.ctr_name(fn));
+    let fn_mode = Mode.of_ap(ctx, mode, Exp.ctr_name(fn));
     let (fn, m) = go(~mode=fn_mode, fn, m);
     let (ty_in, ty_out) = TypSlice.matched_arrow(ctx, fn.ty);
     let (arg, m) = go(~mode=ty_in |> Mode.of_ap_arg(ids), arg, m);
@@ -363,7 +362,7 @@ and uexp_to_info_map =
     add(~self, ~co_ctx=fn.co_ctx, m);
   | DeferredAp(fn, args) =>
     // TODO: Slicing
-    let fn_mode = Mode.of_ap(ctx, mode, UExp.ctr_name(fn));
+    let fn_mode = Mode.of_ap(ctx, mode, Exp.ctr_name(fn));
     let (fn, m) = go(~mode=fn_mode, fn, m);
     let (ty_in, ty_out) = TypSlice.matched_arrow(ctx, fn.ty);
     let num_args = List.length(args);
@@ -506,7 +505,7 @@ and uexp_to_info_map =
       m,
     );
   | If(e0, e1, e2) =>
-    let branch_ids = List.map(UExp.rep_id, [e1, e2]);
+    let branch_ids = List.map(Exp.rep_id, [e1, e2]);
     let (cond, m) = go(~mode=Ana(`Typ(Bool) |> TypSlice.temp), e0, m);
     let (cons, m) = go(~mode, e1, m);
     let (alt, m) = go(~mode, e2, m);
@@ -518,7 +517,7 @@ and uexp_to_info_map =
   | Match(scrut, rules) =>
     let (scrut, m) = go(~mode=Syn, scrut, m);
     let (ps, es) = List.split(rules);
-    let branch_ids = List.map(UExp.rep_id, es);
+    let branch_ids = List.map(Exp.rep_id, es);
     let (ps', _) =
       map_m(
         go_pat(
@@ -558,7 +557,7 @@ and uexp_to_info_map =
     let (self, m) =
       switch (constraint_ty) {
       | Some(constraint_ty) =>
-        let pats_to_info_map = (ps: list(UPat.t), m) => {
+        let pats_to_info_map = (ps: list(Pat.t), m) => {
           /* Add co-ctxs to patterns */
           List.fold_left(
             ((m, acc_constraint), (p, co_ctx)) => {
@@ -729,7 +728,7 @@ and upat_to_info_map =
       ~co_ctx,
       ~ancestors: Info.ancestors,
       ~mode: Mode.t=Mode.Syn,
-      {ids, term, _} as upat: UPat.t,
+      {ids, term, _} as upat: Pat.t,
       m: Map.t,
     )
     : (Info.pat, Map.t) => {
@@ -755,7 +754,7 @@ and upat_to_info_map =
     (info, add_info(ids, InfoPat(info), m));
   };
   let atomic = (self, constraint_) => add(~self, ~ctx, ~constraint_, m);
-  let ancestors = [UPat.rep_id(upat)] @ ancestors;
+  let ancestors = [Pat.rep_id(upat)] @ ancestors;
   let go = upat_to_info_map(~is_synswitch, ~ancestors, ~co_ctx);
   let unknown =
     // TODO: Check how slices interact with SynSwitch
@@ -795,7 +794,7 @@ and upat_to_info_map =
   | String(string) =>
     atomic(String |> Self.of_base(ids), Constraint.String(string))
   | ListLit(ps) =>
-    let ids = List.map(UPat.rep_id, ps);
+    let ids = List.map(Pat.rep_id, ps);
     let modes = Mode.of_list_lit(ids, ctx, List.length(ps), mode);
     let (ctx, tys, cons, m) = ctx_fold(ctx, m, ps, modes);
     let rec cons_fold_list = cs =>
@@ -832,7 +831,7 @@ and upat_to_info_map =
         mode,
         Common(Just(`Typ(Unknown(Internal)) |> TypSlice.temp)),
       );
-    let entry = Ctx.VarEntry({name, id: UPat.rep_id(upat), typ: ctx_typ});
+    let entry = Ctx.VarEntry({name, id: Pat.rep_id(upat), typ: ctx_typ});
     add(
       ~self=Just(unknown),
       ~ctx=Ctx.extend(ctx, entry),
@@ -866,7 +865,7 @@ and upat_to_info_map =
     let self = Self.of_ctr(ids, ctx, ctr);
     atomic(self, Constraint.of_ctr(ctx, mode, ctr, self));
   | Ap(fn, arg) =>
-    let ctr = UPat.ctr_name(fn);
+    let ctr = Pat.ctr_name(fn);
     let fn_mode = Mode.of_ap(ctx, mode, ctr);
     let (fn, m) = go(~ctx, ~mode=fn_mode, fn, m);
     let (ty_in, ty_out) = TypSlice.matched_arrow(ctx, fn.ty);

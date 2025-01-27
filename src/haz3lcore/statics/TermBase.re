@@ -61,7 +61,6 @@ type any_t =
   | TypSlice(typslice_t) // Might be a slice
   | TPat(tpat_t)
   | Rul(rul_t)
-  | Nul(unit)
   | Any(unit)
 and exp_term =
   | Invalid(string)
@@ -316,7 +315,6 @@ module rec Any: {
             x,
           ),
         )
-      | Nul () => Nul()
       | Any () => Any()
       };
     x |> f_any(rec_call);
@@ -330,7 +328,6 @@ module rec Any: {
     | (TypSlice(x), TypSlice(y)) => TypSlice.fast_equal(x, y)
     | (TPat(x), TPat(y)) => TPat.fast_equal(x, y)
     | (Rul(x), Rul(y)) => Rul.fast_equal(x, y)
-    | (Nul (), Nul ()) => true
     | (Any (), Any ()) => true
     | (Exp(_), _)
     | (Pat(_), _)
@@ -338,7 +335,6 @@ module rec Any: {
     | (TypSlice(_), _)
     | (TPat(_), _)
     | (Rul(_), _)
-    | (Nul (), _)
     | (Any (), _) => false
     };
 }

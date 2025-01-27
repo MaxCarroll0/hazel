@@ -8,7 +8,7 @@ let evaluation_test = (msg, expected, unevaluated) =>
     msg,
     expected,
     ProgramResult.Result.unbox(
-      snd(Evaluator.evaluate'(Builtins.env_init, {d: unevaluated})),
+      snd(Evaluator.evaluate'(Builtins.env_init, unevaluated)),
     ),
   );
 
@@ -56,59 +56,49 @@ let tet_ap_of_hole_deferral = () =>
     Ap(
       Forward,
       Cast(
-        Cast(
-          EmptyHole |> Exp.fresh,
-          `Typ(Unknown(Internal)) |> TypSlice.fresh,
-          `Typ(
-            Arrow(
-              Unknown(Internal) |> Typ.fresh,
-              Unknown(Internal) |> Typ.fresh,
-            ),
-          )
-          |> TypSlice.fresh,
-        )
-        |> Exp.fresh,
+        EmptyHole |> Exp.fresh,
+        `Typ(Unknown(Internal)) |> TypSlice.fresh,
         `Typ(
           Arrow(
             Unknown(Internal) |> Typ.fresh,
-            Unknown(Internal) |> Typ.fresh,
-          ),
-        )
-        |> TypSlice.fresh,
-        `Typ(
-          Arrow(
-            Prod([
-              Unknown(Internal) |> Typ.fresh,
-              Unknown(Internal) |> Typ.fresh,
-              Unknown(Internal) |> Typ.fresh,
-            ])
-            |> Typ.fresh,
             Unknown(Internal) |> Typ.fresh,
           ),
         )
         |> TypSlice.fresh,
       )
       |> Exp.fresh,
-      Tuple([
-        Cast(
-          Float(1.) |> Exp.fresh,
-          `Typ(Float) |> TypSlice.fresh,
-          `Typ(Unknown(Internal)) |> TypSlice.fresh,
-        )
+      Cast(
+        Tuple([
+          Cast(
+            Float(1.) |> Exp.fresh,
+            `Typ(Float) |> TypSlice.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+          )
+          |> Exp.fresh,
+          Cast(
+            Bool(true) |> Exp.fresh,
+            `Typ(Bool) |> TypSlice.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+          )
+          |> Exp.fresh,
+          Cast(
+            Int(3) |> Exp.fresh,
+            `Typ(Int) |> TypSlice.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+          )
+          |> Exp.fresh,
+        ])
         |> Exp.fresh,
-        Cast(
-          Bool(true) |> Exp.fresh,
-          `Typ(Bool) |> TypSlice.fresh,
-          `Typ(Unknown(Internal)) |> TypSlice.fresh,
+        `Typ(
+          Prod([
+            Unknown(Internal) |> Typ.fresh,
+            Unknown(Internal) |> Typ.fresh,
+            Unknown(Internal) |> Typ.fresh,
+          ]),
         )
-        |> Exp.fresh,
-        Cast(
-          Int(3) |> Exp.fresh,
-          `Typ(Int) |> TypSlice.fresh,
-          `Typ(Unknown(Internal)) |> TypSlice.fresh,
-        )
-        |> Exp.fresh,
-      ])
+        |> TypSlice.fresh,
+        `Typ(Unknown(Internal)) |> TypSlice.fresh,
+      )
       |> Exp.fresh,
     )
     |> Exp.fresh,

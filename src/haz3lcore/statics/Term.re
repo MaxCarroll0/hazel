@@ -791,7 +791,7 @@ module Rul = {
 
   let rep_id = (~any_ids, tm) =>
     switch (ids(~any_ids, tm)) {
-    | [] => raise(Invalid_argument("UExp.rep_id"))
+    | [] => raise(Invalid_argument("Exp.rep_id"))
     | [id, ..._] => id
     };
 };
@@ -821,7 +821,6 @@ module Any = {
     | TypSlice(tm) => tm.ids
     | TPat(tm) => tm.ids
     | Rul(tm) => Rul.ids(~any_ids=ids, tm)
-    | Nul ()
     | Any () => [];
 
   // Terms may consist of multiple tiles, eg the commas in an n-tuple,
@@ -843,6 +842,5 @@ module Any = {
     | TypSlice(tm) => TypSlice.rep_id(tm)
     | TPat(tm) => TPat.rep_id(tm)
     | Rul(tm) => Rul.rep_id(~any_ids=ids, tm)
-    | Nul ()
     | Any () => raise(Invalid_argument("Term.rep_id"));
 };
