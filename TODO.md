@@ -50,9 +50,11 @@ As compared to `witnesses` branch:
 - [ ] Types in stepper share ids which messes with selecting them/cursor movement
 - [ ] Cast slicing in stepper does not highlight in editor
 
+## Middle Priority
+- [ ] Constructor names not highlighted in slices
+
 ## Low Priority
 - [ ] Deferrals: See failed test
 - [X] Parentheses not highlighted in slices (likely due to type normliasation?)
-- [ ] Constructor names not highlighted in slices
-- [ ] Type slice substitution drops all slices (as `Var(_)` appears only in Typ. and Typ.subst is used here)
+- [ ] Type application not highlighted in slice, e.g: let f : forall A -> A -> A = typfun B -> fun x -> x in f@<Int>**(** 2 **)**. This is because (probably): type slice substitution drops all slices (as `Var(_)` appears only in Typ. and Typ.subst is used here)
 - [X] Cast slice stack overflows see: `let f : forall A -> A -> A = typfun B -> fun x -> x in f@<Int>(2)`

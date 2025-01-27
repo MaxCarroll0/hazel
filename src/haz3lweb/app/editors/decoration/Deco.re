@@ -684,7 +684,7 @@ module Deco =
         let {ctx_used, term_ids}: TypSlice.slc_incr =
           TypSlice.full_slice(Info.pat_ty(pat) |> TypSlice.term_of);
         // TODO: ctx_used
-        div_c("slice", List.map(error_view, term_ids));
+        div_c("slice", List.map(slice_view, term_ids));
       | _ => div_empty
       }
     | None => div_empty
