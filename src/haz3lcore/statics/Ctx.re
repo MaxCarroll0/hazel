@@ -2,14 +2,14 @@ open Util;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type kind =
-  | Singleton(TermBase.typslice_t)
+  | Singleton(TermBase.slice_t)
   | Abstract;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type var_entry = {
   name: Var.t,
   id: Id.t,
-  typ: TermBase.typslice_t,
+  typ: TermBase.slice_t,
 };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -101,7 +101,7 @@ let lookup_alias = (ctx: t, name: string): option(TermBase.TypSlice.t) =>
   | Some(Abstract) => None
   | None =>
     Some(
-      `Typ(Unknown(Hole(Invalid(name))): TermBase.Typ.term)
+      `Typ(Unknown(Hole(Invalid(name))): TermBase.slice_typ)
       |> IdTagged.fresh,
     )
   };
@@ -125,21 +125,25 @@ let add_ctrs =
           id,
           typ:
             switch (typ) {
-            | None => `Typ(Var(name): TermBase.typ_term) |> IdTagged.fresh
+            | None => `Typ(Var(name): TermBase.slice_typ) |> IdTagged.fresh
             | Some(typ) =>
-              `SliceIncr((
-                Slice(
-                  Arrow(
-                    typ,
-                    `SliceGlobal((
-                      `Typ(Var(name): TermBase.typ_term),
-                      {ctx_used: [], term_ids: name_ids}: TermBase.slice_global,
-                    ))
-                    |> IdTagged.fresh: TermBase.typslice_t,
+              (
+                `Incr((
+                  `Typ(
+                    Arrow(
+                      typ,
+                      (
+                        `Global((
+                          `Typ(Var(name)): TermBase.slice_incr_term,
+                          {ctx_used: [], term_ids: name_ids},
+                        )): TermBase.slice_term
+                      )
+                      |> IdTagged.fresh,
+                    ),
                   ),
-                ): TermBase.typslice_typ_term,
-                {ctx_used: [], term_ids: [id]}: TermBase.slice_incr,
-              ))
+                  {ctx_used: [], term_ids: [id]},
+                )): TermBase.slice_term
+              )
               |> IdTagged.fresh
             },
         }),

@@ -13,14 +13,9 @@ type cls = (cls_slc, cls_typ);
 
 include TermBase.TypSlice;
 
-[@deriving (show({with_path: false}), sexp, yojson)]
-type slc_typ_t = IdTagged.t(slc_typ_term);
-[@deriving (show({with_path: false}), sexp, yojson)]
-type typslc_typ_t = IdTagged.t(typslc_typ_term);
-
 let term_of: t => term = IdTagged.term_of;
 let unwrap: t => (term, term => t) = IdTagged.unwrap;
-let typ_term_of = s => s |> typ_of |> Typ.term_of;
+
 let fresh: term => t = IdTagged.fresh;
 /* fresh assigns a random id, whereas temp assigns Id.invalid, which
    is a lot faster, and since we so often make types and throw them away
@@ -51,149 +46,133 @@ let (replace_temp, replace_temp_exp) = {
   );
 };
 
-let empty_slice_incr: slc_incr = {ctx_used: [], term_ids: []};
-let empty_slice_global = empty_slice_incr;
+let empty_code: code = {ctx_used: [], term_ids: []};
 
-let union_slice_incr: (slc_incr, slc_incr) => slc_incr =
-  ({ctx_used: ctx1, term_ids: c1}, {ctx_used: ctx2, term_ids: c2}) => {
-    ctx_used: ctx1 @ ctx2,
-    term_ids: c1 @ c2,
-  };
-let union_slice_global: (slc_global, slc_global) => slc_global =
-  ({ctx_used: ctx1, term_ids: c1}, {ctx_used: ctx2, term_ids: c2}) => {
-    ctx_used: ctx1 @ ctx2,
-    term_ids: c1 @ c2,
-  };
-
-let slice_of_ids = (term_ids): slc_incr => {ctx_used: [], term_ids};
-let slice_of_ctx = (ctx_used: list(ctx_var)): slc_incr => {
+let slice_of_ids = (term_ids): code => {ctx_used: [], term_ids};
+let slice_of_ctx = (ctx_used: list(ctx_var)): code => {
   ctx_used,
   term_ids: [],
 };
-let slice_of_ctx_ids = (ctx_used, term_ids): slc_incr => {
-  ctx_used,
-  term_ids,
-};
+let slice_of_ctx_ids = (ctx_used, term_ids): code => {ctx_used, term_ids};
 
-let get_incr_slice: term => option(slc_incr) =
+let union_code: (code, code) => code =
+  ({ctx_used: ctx1, term_ids: c1}, {ctx_used: ctx2, term_ids: c2}) => {
+    ctx_used: ctx1 @ ctx2,
+    term_ids: c1 @ c2,
+  };
+
+let get_incr_slice: term => option(code) =
   fun
   | `Typ(_)
-  | `SliceGlobal(_) => None
-  | `SliceIncr(_, slice_incr) => Some(slice_incr);
-let get_global_slice: term => option(slc_incr) =
+  | `Global(_) => None
+  | `Incr(_, code) => Some(code);
+let get_global_slice: term => option(code) =
   fun
   | `Typ(_)
-  | `SliceIncr(_) => None
-  | `SliceGlobal(_, slice_global) => Some(slice_global);
+  | `Incr(_) => None
+  | `Global(_, code) => Some(code);
 let get_incr_slice_or_empty = s =>
-  s |> get_incr_slice |> Option.value(~default=empty_slice_incr);
+  s |> get_incr_slice |> Option.value(~default=empty_code);
 let get_global_slice_or_empty = s =>
-  s |> get_global_slice |> Option.value(~default=empty_slice_global);
+  s |> get_global_slice |> Option.value(~default=empty_code);
 
-// wraps a t inside a `SliceGlobal: unioning the global slices if required
-let wrap_global = (slice_global: slc_global, s: t): t => {
-  let (term, rewrap) = s |> IdTagged.unwrap;
-  switch (term) {
-  | `SliceGlobal(s', slice_global') =>
-    (
-      `SliceGlobal((s', union_slice_global(slice_global, slice_global'))): term
-    )
-    |> rewrap
-  | `SliceIncr(_) as s'
-  | `Typ(_) as s' => (`SliceGlobal((s', slice_global)): term) |> rewrap
+// wraps a code slice inside a `Global: unioning the global slices if required
+let wrap_global = wrap_global;
+// wraps a code slice inside an incremental slice (unioning if required)
+let wrap_incr = wrap_incr;
+
+// Fold over the code segments. TODO: helpers that separate folding over global/incremental slices
+let rec fold =
+        (
+          f: ('acc, code) => 'acc,
+          u: ('acc, 'acc) => 'acc,
+          init: 'acc,
+          s: term,
+        )
+        : 'acc => {
+  switch (s) {
+  | `Typ(ty) =>
+    switch (ty) {
+    | Unknown(_)
+    | Int
+    | Float
+    | Bool
+    | String
+    | Var(_)
+    | Sum(_) => init
+    | List(s)
+    | Parens(s)
+    | Rec(_, s)
+    | Forall(_, s) => term_of(s) |> fold(f, u, init)
+    | Arrow(s1, s2)
+    | Ap(s1, s2) =>
+      u(fold(f, u, init, term_of(s1)), fold(f, u, init, term_of(s2)))
+    | Prod(ss) =>
+      ss
+      |> List.fold_left(
+           (acc, s) => u(fold(f, u, init, term_of(s)), acc),
+           init,
+         )
+    }
+  | `Incr(s, code) => f(fold(f, u, init, (s :> term)), code)
+  | `Global(s, code) => f(fold(f, u, init, (s :> term)), code)
   };
 };
 
-let rec wrap_incr = (slice_incr: slc_incr, s: t): t => {
-  let wrap_incr = (slice_incr, incr_term: incr_term): incr_term =>
-    switch (incr_term) {
-    | `SliceIncr(s', slice_incr') =>
-      `SliceIncr((s', union_slice_incr(slice_incr, slice_incr')))
-    | `Typ(s') => `SliceIncr((Typ(s'), slice_incr))
-    };
-  let (term, rewrap) = s |> IdTagged.unwrap;
-  switch (term) {
-  | `SliceGlobal(s', slice_global) =>
-    `SliceGlobal((wrap_incr(slice_incr, s'), slice_global)) |> rewrap
-  | `SliceIncr(_) as s'
-  | `Typ(_) as s' => (wrap_incr(slice_incr, s') :> term) |> rewrap
-  };
-};
-
-let map = (f_typ, f_slc, s: term): term => {
-  let map_incr = (f_typ, f_slc, s: incr_term): incr_term =>
+// Applies f : typ => 'a' onto the Type part of a slice: discards existing slices
+let apply = (f, s: term): 'a => {
+  let apply_typ = (`Typ(ty): typ_term) => f(ty);
+  let apply_incr = (s: incr_term) =>
     switch (s) {
-    | `Typ(ty) => `Typ(f_typ(ty))
-    | `SliceIncr(Typ(ty), slice_incr) =>
-      `SliceIncr((Typ(f_typ(ty)), slice_incr))
-    | `SliceIncr(Slice(s), slice_incr) =>
-      `SliceIncr((Slice(f_slc(s)), slice_incr))
+    | `Typ(_) as s
+    | `Incr(s, _) => apply_typ(s)
     };
   switch (s) {
   | `Typ(_) as s
-  | `SliceIncr(_) as s => (map_incr(f_typ, f_slc, s) :> term)
-  | `SliceGlobal(s, slice_global) =>
-    `SliceGlobal((map_incr(f_typ, f_slc, s), slice_global))
-  }; // util
-};
-
-// Apply two functions typ -> t and slc -> t. But merge the wrapped slices into the output of f_slc
-// drop_incr: Drop the wrapped slice if it is an incremental slice.
-let rec map_merge =
-        (~drop_incr=false, ~retain_ids=false, f_typ, f_slc, s: t): t => {
-  let (term, rewrap) = IdTagged.unwrap(s);
-  let rewrap = retain_ids ? x => x |> term_of |> rewrap : (x => x);
-  switch (term) {
-  | `Typ(ty) => f_typ(ty) |> rewrap
-  | `SliceIncr(Typ(ty), slice_incr) =>
-    f_typ(ty) |> wrap_incr(slice_incr) |> rewrap
-  | `SliceIncr(Slice(s'), slice_incr) =>
-    f_slc(s') |> wrap_incr(slice_incr) |> rewrap
-  | `SliceGlobal(s', slice_global) =>
-    (s' :> term)
-    |> temp
-    |> map_merge(~drop_incr, ~retain_ids, f_typ, f_slc)
-    |> wrap_global(slice_global)
-    |> rewrap
+  | `Incr(_) as s
+  | `Global(s, _) => apply_incr(s)
   };
 };
+let apply_t: (typ => term, t) => t = f => IdTagged.apply(apply(f));
 
-let map_t = (f_typ, f_slc, s: term): t => {
-  let map_t_incr =
-      (
-        f_typ: Typ.term => Typ.t,
-        f_slc: slc_typ_term => slc_typ_t,
-        s: incr_term,
-      )
-      : incr_t =>
+// Applies f : typ => typ onto the type part of a slice: preserving existing slices
+let apply_typ = (f, s: term): term => {
+  let apply_typ_term = (`Typ(ty): typ_term) => `Typ(f(ty));
+  let apply_incr_term = (s: incr_term) =>
     switch (s) {
-    | `Typ(ty) =>
-      let (ty', rewrap) = ty |> f_typ |> IdTagged.unwrap;
-      `Typ(ty') |> rewrap;
-    | `SliceIncr(Typ(ty), slice_incr) =>
-      let (ty', rewrap) = ty |> f_typ |> IdTagged.unwrap;
-      (`SliceIncr((Typ(ty'), slice_incr)): incr_term) |> rewrap;
-    | `SliceIncr(Slice(s), slice_incr) =>
-      let (s', rewrap) = s |> f_slc |> IdTagged.unwrap;
-      (`SliceIncr((Slice(s'), slice_incr)): incr_term) |> rewrap;
+    | `Typ(_) as s => apply_typ_term(s)
+    | `Incr(s, code) => `Incr((apply_typ_term(s), code))
     };
-
   switch (s) {
   | `Typ(_) as s
-  | `SliceIncr(_) as s => (map_t_incr(f_typ, f_slc, s) :> t)
-  | `SliceGlobal(s, slice_global) =>
-    let (s', rewrap) = s |> map_t_incr(f_typ, f_slc) |> IdTagged.unwrap;
-    `SliceGlobal((s', slice_global)) |> rewrap;
-  }; // util
-};
-
-let rec apply = (f_typ, f_slc, s: term) =>
-  switch (s) {
-  | `Typ(ty)
-  | `SliceIncr(Typ(ty), _) => f_typ(ty)
-  | `SliceIncr(Slice(s), _) => f_slc(s)
-  | `SliceGlobal(s, _) => apply(f_typ, f_slc, (s :> term))
+  | `Incr(_) as s => apply_incr_term(s)
+  | `Global(s, code) => `Global((apply_incr_term(s), code))
   };
+};
+let apply_typ_t: (typ => typ, t) => t = f => IdTagged.apply(apply_typ(f));
+
+let slice_typ_of_term = apply(x => x);
+let slice_typ_of = IdTagged.apply(slice_typ_of_term);
+
+// Produces a slice of the same structure as the type, matching slices where the structure is identical
+let match_slices = failwith("TODO");
+
+// Apply a function f : typ => term, merging with the slices on the typ
+let rec apply_merge = (f, s: term): term => {
+  let apply_typ_term = (`Typ(ty): typ_term): term => f(ty);
+  let apply_incr_term = (s: incr_term): term =>
+    switch (s) {
+    | `Typ(_) as s => s |> apply_typ_term
+    | `Incr(s, code) => s |> apply_typ_term |> wrap_incr(code)
+    };
+  switch (s) {
+  | `Typ(_) as s
+  | `Incr(_) as s => s |> apply_incr_term
+  | `Global(s, code) => s |> apply_incr_term |> wrap_global(code)
+  };
+};
+let apply_merge_t: (typ => term, t) => t =
+  f => IdTagged.apply(apply_merge(f));
 
 let hole = (tms: list(TermBase.Any.t)): TermBase.Typ.term =>
   switch (tms) {
@@ -204,8 +183,8 @@ let hole = (tms: list(TermBase.Any.t)): TermBase.Typ.term =>
 let cls_slc_of_term: term => cls_slc =
   fun
   | `Typ(_) => Typ
-  | `SliceIncr(_) => SliceIncr
-  | `SliceGlobal(_) => SliceGlobal;
+  | `Incr(_) => SliceIncr
+  | `Global(_) => SliceGlobal;
 
 let cls_typ_of_term: term => cls_typ =
   s => s |> typ_term_of_term |> Typ.cls_of_term;
@@ -216,8 +195,8 @@ let cls_slc_of_term: term => cls_slc =
   s =>
     switch (s) {
     | `Typ(_) => Typ
-    | `SliceIncr(_) => SliceIncr
-    | `SliceGlobal(_) => SliceGlobal
+    | `Incr(_) => SliceIncr
+    | `Global(_) => SliceGlobal
     };
 
 let show_cls_slc: cls_slc => string =
@@ -233,42 +212,10 @@ let show_cls = ((cls_slc, cls_typ): cls) =>
   show_cls_slc(cls_slc) ++ "(" ++ show_cls_typ(cls_typ) ++ ")";
 
 //TODO: remove duplicates
-let rec full_slice: term => slc_global =
-  fun
-  | `Typ(_) => empty_slice_global
-  | `SliceIncr(Typ(_), slice_incr) => slice_incr
-  | `SliceIncr(Slice(s), slice_incr) =>
-    union_slice_global(
-      slice_incr,
-      switch (s) {
-      | List(s)
-      | Parens(s)
-      | Rec(_, s)
-      | Forall(_, s) => full_slice(s |> term_of)
-      | Arrow(s1, s2)
-      | Ap(s1, s2) =>
-        union_slice_global(
-          full_slice(s1 |> term_of),
-          full_slice(s2 |> term_of),
-        )
-      | Prod(ss) =>
-        List.fold_left(
-          (acc, s) => union_slice_global(full_slice(s |> term_of), acc),
-          empty_slice_global,
-          ss,
-        )
-      | Sum(m) =>
-        ConstructorMap.fold_vals(
-          (acc, s) => union_slice_global(full_slice(s |> term_of), acc),
-          empty_slice_global,
-          m,
-        )
-      },
-    )
-  | `SliceGlobal(s, slice_global) =>
-    union_slice_global(slice_global, full_slice((s :> term)));
+let rec full_slice: term => code = fold(union_code, union_code, empty_code);
 
 // These pattern matching functions can be optimised by direct pattern matching vs use of typ_of
+// TODO: Implement directly for efficiency purposes
 let is_unknown = (~ignore_parens=?, s: t) =>
   s |> typ_of |> Typ.is_unknown(~ignore_parens?);
 let is_arrow = (~ignore_parens=?, s: t) =>
@@ -299,31 +246,12 @@ let rec free_vars = s => s |> typ_of |> Typ.free_vars;
 let var_count = Typ.var_count;
 let fresh_var = Typ.fresh_var;
 
-let unroll_incr = (s: incr_t): t => {
-  let (term, rewrap) = IdTagged.unwrap(s);
-  switch (term) {
-  | `Typ(ty) =>
-    let (ty', rewrap') = Typ.unroll(ty |> rewrap) |> IdTagged.unwrap;
-    `Typ(ty') |> rewrap';
-  | `SliceIncr(Typ(ty), _) =>
-    let (ty', rewrap') = Typ.unroll(ty |> rewrap) |> IdTagged.unwrap;
-    `Typ(ty') |> rewrap';
-  | `SliceIncr(Slice(s'), _) =>
-    switch (s') {
-    | Rec(tpat, s_body) => subst((s :> t), tpat, s_body)
-    | _ => (s :> t)
-    }
-  };
-};
-
-let unroll = (s: t): t => {
-  let (term, rewrap) = s |> IdTagged.unwrap;
-  switch (term) {
-  | `Typ(_) as s
-  | `SliceIncr(_) as s => unroll_incr(s |> rewrap)
-  | `SliceGlobal(s, _) => unroll_incr(s |> rewrap)
-  };
-};
+let unroll = 
+  apply_merge_t(ty => {
+  switch (ty) {
+  | Rec(tp, s) => subst(`Typ(ty), tp, s) |> term_of
+  | _ => ty
+  }})
 
 /*
    TypSlice equality: Extending type equality to slices.
@@ -365,6 +293,60 @@ let rec t_of_typ_t_sliced = ({ids, _} as ty: Typ.t): t => {
       `SliceIncr((Slice(Parens(t_of_typ_t_sliced(t))), slice_of_ids(ids)))
     | Arrow(t1, t2) =>
       `SliceIncr((
+        Slice(Arrow(t_of_typ_t_sliced(t1), t_of_typ_t_sliced(t2))),
+        slice_of_ids(ids),
+      ))
+    | Ap(t1, t2) =>
+      `SliceIncr((
+        Slice(Ap(t_of_typ_t_sliced(t1), t_of_typ_t_sliced(t2))),
+        slice_of_ids(ids),
+      ))
+    | Sum(m) =>
+      `SliceIncr((
+        Slice(Sum(m |> ConstructorMap.map_vals(t_of_typ_t_sliced))),
+        slice_of_ids(ids),
+      ))
+    | Prod(ts) =>
+      `SliceIncr((
+        Slice(Prod(List.map(t_of_typ_t_sliced, ts))),
+        slice_of_ids(ids),
+      ))
+    | Rec(tpat, t) =>
+      `SliceIncr((
+        Slice(Rec(tpat, t_of_typ_t_sliced(t))),
+        slice_of_ids(ids),
+      ))
+    | Forall(tpat, t) =>
+      `SliceIncr((
+        Slice(Forall(tpat, t_of_typ_t_sliced(t))),
+        slice_of_ids(ids),
+      ))
+    }
+  )
+  |> rewrap;
+};
+
+// Same as above but making global slices
+let rec t_of_typ_t_sliced_global = ({ids, _} as ty: Typ.t): t => {
+  let (ty, rewrap) = ty |> IdTagged.unwrap;
+  (
+    switch (ty) {
+    | Unknown(_) => (`Typ(ty): term) // Don't slice holes
+    | Int => `SliceGlobal((`Typ(Int), slice_of_ids(ids)))
+    | Bool => `SliceGlobal((`Typ(Bool), slice_of_ids(ids)))
+    | Float => `SliceGlobal((`Typ(Float), slice_of_ids(ids)))
+    | String => `SliceGlobal((`Typ(String), slice_of_ids(ids)))
+    | Var(name) => `SliceGlobal((`Typ(Var(name)), slice_of_ids(ids)))
+    // Note: ctx slice not relevant in the above (types used in local scope)
+    | List(t) =>
+      `SliceGlobal((Slice(List(t_of_typ_t_sliced(t))), slice_of_ids(ids)))
+    | Parens(t) =>
+      `SliceGlobal((
+        Slice(Parens(t_of_typ_t_sliced(t))),
+        slice_of_ids(ids),
+      ))
+    | Arrow(t1, t2) =>
+      `SliceGlobal((
         Slice(Arrow(t_of_typ_t_sliced(t1), t_of_typ_t_sliced(t2))),
         slice_of_ids(ids),
       ))

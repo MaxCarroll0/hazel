@@ -375,7 +375,7 @@ and pat_term: unsorted => (Pat.term, list(Id.t)) = {
       ret(
         Cast(
           p,
-          ty |> TypSlice.t_of_typ_t_sliced,
+          ty |> TypSlice.t_of_typ_t_sliced_global,
           `Typ(Unknown(Internal)) |> TypSlice.fresh // TODO: a slice might be useful here
         ),
       )

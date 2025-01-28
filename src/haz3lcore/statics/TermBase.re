@@ -1007,6 +1007,8 @@ and TypSlice: {
 
   let typ_of: t => Typ.t;
   let typ_term_of_term: term => Typ.term;
+  let of_typ: Typ.t => t;
+  let term_of_typ_term: Typ.term => term;
 
   let subst: (t, TPat.t, t) => t;
 
@@ -1132,6 +1134,7 @@ and TypSlice: {
     }
   and typ_term_of_typ_term = (`Typ(ty): typ_term): Typ.term =>
     typ_term_of_typ(ty)
+
   and typ_term_of_incr_term = (term: incr_term): Typ.term => {
     switch (term) {
     | `Typ(_) as s
@@ -1148,6 +1151,10 @@ and TypSlice: {
     let (term, rewrap) = IdTagged.unwrap(s);
     term |> typ_term_of_term |> rewrap;
   };
+
+  let term_of_typ_term = (s: Typ.term): term =>
+    failwith("TODO: of_typ_term");
+  let of_typ: Typ.t => t = IdTagged.apply(term_of_typ_term);
 
   let wrap_incr = (code: code, s: term): term => {
     let wrap_incr_term = (s: incr_term): incr_term => {
