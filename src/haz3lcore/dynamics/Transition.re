@@ -72,7 +72,8 @@ type step_kind =
   | CompleteFilter
   | Cast
   | RemoveTypeAlias
-  | RemoveParens;
+  | RemoveParens
+  | HoleInstantiation(MetaVar.t);
 let evaluate_extend_env =
     (new_bindings: Environment.t, to_extend: ClosureEnvironment.t)
     : ClosureEnvironment.t => {
@@ -759,6 +760,7 @@ let should_hide_step_kind = (~settings: CoreSettings.Evaluation.t) =>
   | Conditional(_)
   | RemoveTypeAlias
   | InvalidStep => false
+  | HoleInstantiation(_) // Classify hole instantations as lookups
   | VarLookup => !settings.show_lookup_steps
   | CastTypAp
   | CastAp
@@ -809,4 +811,5 @@ let stepper_justification: step_kind => string =
   | FunClosure => "function closure"
   | RemoveTypeAlias => "define type"
   | RemoveParens => "remove parentheses"
-  | UnOp(Meta(Unquote)) => failwith("INVALID STEP");
+  | UnOp(Meta(Unquote)) => failwith("INVALID STEP")
+  | HoleInstantiation(m) => "instantiate hole " ++ MetaVar.show(m);
