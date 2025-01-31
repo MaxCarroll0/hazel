@@ -170,6 +170,44 @@ let tet_ap_of_hole_deferral = () =>
     |> Exp.fresh,
   );
 
+let test_multi_arg_builtin_cast = () =>
+  evaluation_test(
+    "string_compare((\"Hello\", \"World\"):(?, ?))",
+    Int(-1) |> Exp.fresh,
+    Ap(
+      Forward,
+      BuiltinFun("string_compare") |> Exp.fresh,
+      Cast(
+        Tuple([
+          Cast(
+            String("Hello") |> Exp.fresh,
+            `Typ(String) |> TypSlice.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+          )
+          |> Exp.fresh,
+          Cast(
+            String("World") |> Exp.fresh,
+            `Typ(String) |> TypSlice.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+          )
+          |> Exp.fresh,
+        ])
+        |> Exp.fresh,
+        `Typ(
+          Prod([
+            Unknown(Internal) |> Typ.fresh,
+            Unknown(Internal) |> Typ.fresh,
+          ]),
+        )
+        |> TypSlice.fresh,
+        `Typ(Prod([String |> Typ.fresh, String |> Typ.fresh]))
+        |> TypSlice.fresh,
+      )
+      |> Exp.fresh,
+    )
+    |> Exp.fresh,
+  );
+
 let tests = (
   "Evaluator",
   [
@@ -178,5 +216,10 @@ let tests = (
     test_case("Function application", `Quick, test_function_application),
     test_case("Function deferral", `Quick, test_function_deferral),
     test_case("Deferral applied to hole", `Quick, tet_ap_of_hole_deferral),
+    test_case(
+      "Multi-arg builtin with cast",
+      `Quick,
+      test_multi_arg_builtin_cast,
+    ),
   ],
 );

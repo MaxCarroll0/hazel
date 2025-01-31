@@ -115,18 +115,23 @@ let of_exp_var = (ids: list(Id.t), ctx: Ctx.t, name: Var.t): exp =>
    lookup failure doesn't necessarily means its
    free; it may be given a type analytically */
 // The syn slice should include ids of the ctr
-let of_ctr = (ids, ctx: Ctx.t, name: Constructor.t): t =>
-  IsConstructor({
-    name,
-    syn_ty:
-      switch (Ctx.lookup_ctr(ctx, name)) {
-      | None => None
-      | Some({typ, _}) =>
-        Some(
-          typ |> TypSlice.(wrap_global(slice_of_ctx_ids([Ctr(name)], ids))),
-        )
-      },
-  });
+let of_ctr = (ids, ctx: Ctx.t, name: Constructor.t, ty: Typ.t): t =>
+  switch (ty) {
+  | {term: Unknown(Internal), _} =>
+    IsConstructor({
+      name,
+      syn_ty:
+        switch (Ctx.lookup_ctr(ctx, name)) {
+        | None => None
+        | Some({typ, _}) =>
+          Some(
+            typ
+            |> TypSlice.(wrap_global(slice_of_ctx_ids([Ctr(name)], ids))),
+          )
+        },
+    })
+  | _ => IsConstructor({name, syn_ty: Some(ty |> TypSlice.t_of_typ_t)}) // TODO: Consider how to deal with slices here
+  };
 
 let of_deferred_ap =
     (args, ty_ins: list(TypSlice.t), ty_out: TypSlice.t): exp => {
