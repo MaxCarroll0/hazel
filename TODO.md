@@ -47,7 +47,7 @@ As compared to `witnesses` branch:
 
 ## Bugs
 ### High Priority
-- [ ] Types in stepper share ids which messes with selecting them/cursor movement
+- [X] Types in stepper share ids which messes with selecting them/cursor movement
 - [ ] Cast slicing in stepper does not highlight in editor
 
 ## Middle Priority
