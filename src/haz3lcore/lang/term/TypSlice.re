@@ -195,6 +195,18 @@ let rec apply = (f_typ, f_slc, s: term) =>
   | `SliceGlobal(s, _) => apply(f_typ, f_slc, (s :> term))
   };
 
+let rec apply_t = (f_typ, f_slc, s: t) => {
+  let (term, rewrap) = IdTagged.unwrap(s);
+  let (_, rewrap') = IdTagged.unwrap(s);
+  let (_, rewrap'') = IdTagged.unwrap(s);
+  switch (term) {
+  | `Typ(ty)
+  | `SliceIncr(Typ(ty), _) => f_typ(ty |> rewrap)
+  | `SliceIncr(Slice(s), _) => f_slc(s |> rewrap')
+  | `SliceGlobal(s, _) => apply_t(f_typ, f_slc, (s :> term) |> rewrap'')
+  };
+};
+
 let hole = (tms: list(TermBase.Any.t)): TermBase.Typ.term =>
   switch (tms) {
   | [] => Unknown(Hole(EmptyHole))
