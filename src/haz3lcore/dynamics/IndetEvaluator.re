@@ -85,7 +85,8 @@ let evaluate' = (env, d: DHExp.t) => {
   let result =
     switch (result) {
     | (Final, x) => BoxedValue(x |> DHExp.repair_ids)
-    | (Uneval, x) => Indet(x |> DHExp.repair_ids)
+    | (Uneval, x) =>
+      raise(EvaluatorError.Exception(UnableToInstantiateIndet(x))) // Should not happen
     };
   (state^, result);
 };

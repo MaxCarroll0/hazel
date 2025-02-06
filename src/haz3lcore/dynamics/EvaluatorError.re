@@ -17,6 +17,7 @@ type t =
   | InvalidBoxedTuple(DHExp.t)
   | InvalidBuiltin(string)
   | BadBuiltinAp(string, list(DHExp.t))
-  | InvalidProjection(int);
+  | InvalidProjection(int)
+  | UnableToInstantiateIndet(DHExp.t);
 
 exception Exception(t);
