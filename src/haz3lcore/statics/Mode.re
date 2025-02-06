@@ -54,17 +54,17 @@ let of_parens = (ids, mode: t): t =>
   | Ana(ty) => Ana(ty |> TypSlice.(wrap_incr(slice_of_ids(ids))))
   };
 
-let of_arrow = (ids: list(Id.t), ctx: Ctx.t, mode: t): (t, t) =>
-  switch (mode) {
-  | Syn
-  | SynFun
-  | SynTypFun => (Syn, Syn)
-  | Ana(ty) =>
-    ty
-    |> TypSlice.matched_arrow(ctx)
+// ty is Some if the expression is an annotated lambda
+let of_arrow = (ids, ctx: Ctx.t, mode: t, ty: option(TypSlice.t)): (t, t) =>
+  switch (mode, ty) {
+  | (Syn | SynFun | SynTypFun, None) => (Syn, Syn)
+  | (Syn | SynFun | SynTypFun, Some(ty)) => (Ana(ty), Syn)
+  | (Ana(ty), None) => ty |> TypSlice.matched_arrow(ctx) |> TupleUtil.map2(ana)
+  | (Ana(ty), Some(ty')) =>
+    let (t1, t2) = ty |> TypSlice.matched_arrow(ctx);
+    (TypSlice.join(~fix=true, ctx, t1, ty') |> Option.value(~default=ty'), t2)
     |> TupleUtil.map2(t =>
-         Ana(TypSlice.wrap_global(TypSlice.slice_of_ids(ids), t))
-       )
+         Ana(TypSlice.wrap_global(TypSlice.slice_of_ids(ids), t)));
   };
 
 let of_forall = (ctx: Ctx.t, name_opt: option(string), mode: t): t =>

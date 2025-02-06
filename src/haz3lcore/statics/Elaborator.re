@@ -294,10 +294,10 @@ let rec elaborate = (m: Statics.Map.t, uexp: Exp.t): (DHExp.t, TypSlice.t) => {
         };
       let t = t |> TypSlice.normalize(ctx) |> TypSlice.all_ids_temp;
       Constructor(c, t |> TypSlice.typ_of) |> rewrap |> cast_from(t);
-    | Fun(p, e, env, n) =>
+    | Fun(p, e, _, n) =>
       let (p', typ) = elaborate_pattern(m, p);
       let (e', tye) = elaborate(m, e);
-      Fun(p', e', env, n)
+      Fun(p', e', Some(typ), n)
       |> rewrap
       |> cast_from(
            Arrow(typ, tye) |> TypSlice.term_of_slc_typ_term |> TypSlice.temp,
@@ -330,7 +330,7 @@ let rec elaborate = (m: Statics.Map.t, uexp: Exp.t): (DHExp.t, TypSlice.t) => {
         (name, exp) => {
           let (term, rewrap) = DHExp.unwrap(exp);
           switch (term) {
-          | Fun(p, e, ctx, _) => Fun(p, e, ctx, name) |> rewrap
+          | Fun(p, e, t, _) => Fun(p, e, t, name) |> rewrap
           | TypFun(tpat, e, _) => TypFun(tpat, e, name) |> rewrap
           | _ => exp
           };
