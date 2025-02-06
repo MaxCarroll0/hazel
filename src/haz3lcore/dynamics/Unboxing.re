@@ -250,7 +250,7 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
       Matches(FunEnv(dp, d3, env'))
     | (Fun, Cast(d3', s1, s2))
         when TypSlice.is_arrow(s1) && TypSlice.is_arrow(s2) =>
-      let ((s1, s1'), (s2, s2')) = (unarrow(s1), unarrow(s2));
+      let ((s1, s2), (s1', s2')) = (unarrow(s1), unarrow(s2));
       Matches(FunCast(d3', s1, s2, s1', s2'));
     | (Fun, BuiltinFun(name)) => Matches(BuiltinFun(name))
     | (Fun, DeferredAp(d1, ds)) => Matches(DeferredAp(d1, ds))
