@@ -4,7 +4,7 @@ open ProgramResult.Result;
 
 open Trampoline;
 
-module EvaluatorEVMode: {
+module IndetEvaluatorEVMode: {
   type status =
     | Final
     | Uneval;
@@ -55,21 +55,24 @@ module EvaluatorEVMode: {
       Trampoline.return((Final, expr));
     | Step({expr, state_update, is_value: false, _}) =>
       state_update();
+      print_endline("Continue: " ++ Exp.show(expr));
       Trampoline.return((Uneval, expr));
     | Constructor
-    | Value
-    | Indet(_) => Trampoline.return((Final, c))
+    | Value => Trampoline.return((Final, c))
+    | Indet(d) =>
+      print_endline("Do holes instantiation: " ++ Exp.show(d));
+      Trampoline.return((Final, c));
     };
   };
 };
 
-module Eval = Transition(EvaluatorEVMode);
+module IndetEval = Transition(IndetEvaluatorEVMode);
 
 let rec evaluate = (state, env, d) => {
   open Trampoline.Syntax;
-  let.trampoline u = Eval.transition(evaluate, state, env, d);
+  let.trampoline u = IndetEval.transition(evaluate, state, env, d);
   switch (u) {
-  | (Final, x) => (EvaluatorEVMode.Final, x) |> Trampoline.return
+  | (Final, x) => (IndetEvaluatorEVMode.Final, x) |> Trampoline.return
   | (Uneval, x) => Trampoline.Next(() => evaluate(state, env, x))
   };
 };

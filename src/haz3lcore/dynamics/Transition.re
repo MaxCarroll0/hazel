@@ -72,8 +72,7 @@ type step_kind =
   | CompleteFilter
   | Cast
   | RemoveTypeAlias
-  | RemoveParens
-  | HoleInstantiation(MetaVar.t);
+  | RemoveParens;
 let evaluate_extend_env =
     (new_bindings: Environment.t, to_extend: ClosureEnvironment.t)
     : ClosureEnvironment.t => {
@@ -91,13 +90,13 @@ type rule =
       is_value: bool,
     })
   | Constructor
-  | Indet
+  | Indet(DHExp.t)
   | Value;
 
 let (let-unbox) = ((request, v), f) =>
   switch (Unboxing.unbox(request, v)) {
   | IndetMatch
-  | DoesNotMatch => Indet
+  | DoesNotMatch => Indet(v)
   | Matches(n) => f(n)
   };
 
@@ -137,7 +136,7 @@ module Transition = (EV: EV_MODE) => {
   let (let.match) = ((env, match_result: PatternMatch.match_result), r) =>
     switch (match_result) {
     | IndetMatch
-    | DoesNotMatch => Indet
+    | DoesNotMatch => Indet(Exp.hole([]) |> Exp.fresh) // TODO: Work out this
     | Matches(env') => r(evaluate_extend_env(env', env))
     };
 
@@ -168,7 +167,7 @@ module Transition = (EV: EV_MODE) => {
           kind: VarLookup,
           is_value,
         });
-      | None => Indet
+      | None => Indet(d)
       };
     | Seq(d1, d2) =>
       let. _ = otherwise(env, d1 => Seq(d1, d2) |> rewrap)
@@ -361,7 +360,7 @@ module Transition = (EV: EV_MODE) => {
         switch (builtin(d2')) {
         | Some(expr) =>
           Step({expr, state_update, kind: BuiltinAp(ident), is_value: false})
-        | None => Indet
+        | None => Indet(d)
         };
       | DeferredAp(d3, d4s) =>
         let n_args =
@@ -403,7 +402,7 @@ module Transition = (EV: EV_MODE) => {
       };
     | Deferral(_) =>
       let. _ = otherwise(env, d);
-      Indet;
+      Indet(d);
     | Bool(_)
     | Int(_)
     | Float(_)
@@ -428,7 +427,7 @@ module Transition = (EV: EV_MODE) => {
       });
     | UnOp(Meta(Unquote), _) =>
       let. _ = otherwise(env, d);
-      Indet;
+      Indet(d);
     | UnOp(Int(Minus), d1) =>
       let. _ = otherwise(env, d1 => UnOp(Int(Minus), d1) |> rewrap)
       and. d1' =
@@ -683,7 +682,7 @@ module Transition = (EV: EV_MODE) => {
           kind: CaseApply,
           is_value: false,
         })
-      | None => Indet
+      | None => Indet(d)
       };
     | Closure(env', d) =>
       let. _ = otherwise(env, d => Closure(env', d) |> rewrap)
@@ -698,12 +697,12 @@ module Transition = (EV: EV_MODE) => {
       //     (d1, ds) => MultiHole(d1, ds) |> wrap_ctx,
       //     ds,
       //   );
-      Indet;
+      Indet(d);
     | EmptyHole
     | Invalid(_)
     | DynamicErrorHole(_) =>
       let. _ = otherwise(env, d);
-      Indet;
+      Indet(d);
     | Cast(d, t1, t2) =>
       let. _ = otherwise(env, d => Cast(d, t1, t2) |> rewrap)
       and. d' =
@@ -712,18 +711,18 @@ module Transition = (EV: EV_MODE) => {
       | Some(d) => Step({expr: d, state_update, kind: Cast, is_value: false})
       | None => Constructor
       };
-    | FailedCast(d1, t1, t2) =>
-      let. _ = otherwise(env, d1 => FailedCast(d1, t1, t2) |> rewrap)
+    | FailedCast(d, t1, t2) =>
+      let. _ = otherwise(env, d => FailedCast(d, t1, t2) |> rewrap)
       and. _ =
         req_final(
           req(state, env),
-          d1 => FailedCast(d1, t1, t2) |> wrap_ctx,
-          d1,
+          d => FailedCast(d, t1, t2) |> wrap_ctx,
+          d,
         );
-      Indet;
+      Indet(d);
     | Undefined =>
       let. _ = otherwise(env, d);
-      Indet;
+      Indet(d);
     | Parens(d) =>
       let. _ = otherwise(env, d);
       Step({expr: d, state_update, kind: RemoveParens, is_value: false});
@@ -760,7 +759,6 @@ let should_hide_step_kind = (~settings: CoreSettings.Evaluation.t) =>
   | Conditional(_)
   | RemoveTypeAlias
   | InvalidStep => false
-  | HoleInstantiation(_) // Classify hole instantations as lookups
   | VarLookup => !settings.show_lookup_steps
   | CastTypAp
   | CastAp
@@ -811,5 +809,4 @@ let stepper_justification: step_kind => string =
   | FunClosure => "function closure"
   | RemoveTypeAlias => "define type"
   | RemoveParens => "remove parentheses"
-  | UnOp(Meta(Unquote)) => failwith("INVALID STEP")
-  | HoleInstantiation(m) => "instantiate hole " ++ MetaVar.show(m);
+  | UnOp(Meta(Unquote)) => failwith("INVALID STEP");
