@@ -621,7 +621,7 @@ module Deco =
       Node.div([])
     };
 
-  // TODO: Slices for cursor inspector view.
+  // TODO: Slices from cursor inspector view by clicking type.
   let slice = (c: Cursor.cursor('a)) => {
     let info = c.info;
     switch (info) {
@@ -683,8 +683,30 @@ module Deco =
       | InfoPat(pat) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
           TypSlice.full_slice(Info.pat_ty(pat) |> TypSlice.term_of);
-        // TODO: ctx_used
-        div_c("slice", List.map(slice_view, term_ids));
+
+        let ctx_used_ids =
+          ctx_used
+          |> List.fold_left(
+               (acc: list(Id.t)): (TypSlice.ctx_var => list(Id.t)) =>
+                 fun
+                 | Var(name) =>
+                   (
+                     Ctx.lookup_var(pat.ctx, name)
+                     |> Option.map(v => [Ctx.get_id(VarEntry(v))])
+                     |> Option.value(~default=[])
+                   )
+                   @ acc
+                 | Ctr(name) =>
+                   (
+                     Ctx.lookup_ctr(pat.ctx, name)
+                     |> Option.map(v => [Ctx.get_id(VarEntry(v))])
+                     |> Option.value(~default=[])
+                   )
+                   @ acc
+                 | _ => failwith("TODO: view ctx_used"),
+               [],
+             );
+        div_c("slice", List.map(slice_view, term_ids @ ctx_used_ids));
       | _ => div_empty
       }
     | None => div_empty

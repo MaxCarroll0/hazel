@@ -54,9 +54,10 @@ let nibs = (~index=?, mold: t): Nibs.t =>
     let (l, r) = mold.nibs;
     let in_ = mold.in_;
     let l =
-      i == 0 ? l : Nib.{shape: Shape.concave(), sort: List.nth(in_, i - 1)};
+      i == 0 || i > List.length(in_)
+        ? l : Nib.{shape: Shape.concave(), sort: List.nth(in_, i - 1)};
     let r =
-      i == List.length(in_)
+      i >= List.length(in_)
         ? r : Nib.{shape: Shape.concave(), sort: List.nth(in_, i)};
     (l, r);
   };
