@@ -1043,6 +1043,31 @@ and TypSlice: {
 
   type sum_map = ConstructorMap.t(t);
 
+  let rec typ_term_of_slice_typ_term = (s: slc_typ_term): Typ.term =>
+    switch (s) {
+    | List(s) => List(typ_of(s))
+    | Arrow(s1, s2) => Arrow(typ_of(s1), typ_of(s2))
+    | Sum(m) => Sum(ConstructorMap.map_vals(typ_of, m))
+    | Prod(ss) => Prod(List.map(typ_of, ss))
+    | Parens(s) => Parens(typ_of(s))
+    | Ap(s1, s2) => Ap(typ_of(s1), typ_of(s2))
+    | Rec(pat, s) => Rec(pat, typ_of(s))
+    | Forall(pat, s) => Forall(pat, typ_of(s))
+    }
+  and typ_term_of_term = (term: term): Typ.term => {
+    switch (term) {
+    | `Typ(ty)
+    | `SliceIncr(Typ(ty), _) => ty
+    | `SliceIncr(Slice(s), _) => typ_term_of_slice_typ_term(s)
+
+    | `SliceGlobal(s', _) => typ_term_of_term((s' :> term))
+    };
+  }
+  and typ_of = (s: t) => {
+    let (term, rewrap) = IdTagged.unwrap(s);
+    term |> typ_term_of_term |> rewrap;
+  };
+
   let map_term =
       (
         ~f_exp=continue,
@@ -1086,6 +1111,7 @@ and TypSlice: {
       );
     let rec_call = (s: t): t => {
       let (term, rewrap) = IdTagged.unwrap(s);
+      let (_, rewrap') = IdTagged.unwrap(s);
       let rec_call_incr_typ = (s: slc_typ_term): slc_typ_term =>
         switch (s) {
         | List(s) => List(typslice_map_term(s))
@@ -1099,54 +1125,26 @@ and TypSlice: {
         | Forall(pat, s) =>
           Forall(tpat_map_term(pat), typslice_map_term(s))
         };
-      let rec_call_incr_term = (term: typslice_incr_term): typslice_incr_term =>
+      let rec_call_incr_term = (term: typslice_incr_term): typslice_incr_t =>
         switch (term) {
         | `Typ(ty) =>
-          `Typ(typ_map_term(ty |> IdTagged.fresh) |> IdTagged.term_of)
+          let (ty, rewrap'') = typ_map_term(ty |> rewrap) |> IdTagged.unwrap;
+          `Typ(ty) |> rewrap'';
         | `SliceIncr(Typ(ty), slice_incr) =>
-          `SliceIncr((
-            Typ(typ_map_term(ty |> IdTagged.fresh) |> IdTagged.term_of),
-            slice_incr,
-          ))
+          let (ty, rewrap'') = typ_map_term(ty |> rewrap) |> IdTagged.unwrap;
+          (`SliceIncr((Typ(ty), slice_incr)): typslice_incr_term) |> rewrap'';
         | `SliceIncr(Slice(s), slice_incr) =>
-          `SliceIncr((Slice(rec_call_incr_typ(s)), slice_incr))
+          `SliceIncr((Slice(rec_call_incr_typ(s)), slice_incr)) |> rewrap'
         };
-      (
-        switch (term) {
-        | `Typ(_) as s
-        | `SliceIncr(_) as s => (rec_call_incr_term(s) :> term)
-        | `SliceGlobal(s, slice_global) =>
-          `SliceGlobal((rec_call_incr_term(s), slice_global))
-        }
-      )
-      |> rewrap;
+      switch (term) {
+      | `Typ(_) as s
+      | `SliceIncr(_) as s => (rec_call_incr_term(s) :> t)
+      | `SliceGlobal(s, slice_global) =>
+        let (s, rewrap'') = rec_call_incr_term(s) |> IdTagged.unwrap;
+        `SliceGlobal((s, slice_global)) |> rewrap'';
+      };
     };
     x |> f_typslice(rec_call);
-  };
-
-  let rec typ_term_of_slice_typ_term = (s: slc_typ_term): Typ.term =>
-    switch (s) {
-    | List(s) => List(typ_of(s))
-    | Arrow(s1, s2) => Arrow(typ_of(s1), typ_of(s2))
-    | Sum(m) => Sum(ConstructorMap.map_vals(typ_of, m))
-    | Prod(ss) => Prod(List.map(typ_of, ss))
-    | Parens(s) => Parens(typ_of(s))
-    | Ap(s1, s2) => Ap(typ_of(s1), typ_of(s2))
-    | Rec(pat, s) => Rec(pat, typ_of(s))
-    | Forall(pat, s) => Forall(pat, typ_of(s))
-    }
-  and typ_term_of_term = (term: term): Typ.term => {
-    switch (term) {
-    | `Typ(ty)
-    | `SliceIncr(Typ(ty), _) => ty
-    | `SliceIncr(Slice(s), _) => typ_term_of_slice_typ_term(s)
-
-    | `SliceGlobal(s', _) => typ_term_of_term((s' :> term))
-    };
-  }
-  and typ_of = (s: t) => {
-    let (term, rewrap) = IdTagged.unwrap(s);
-    term |> typ_term_of_term |> rewrap;
   };
 
   let subst = (r: t, x: TPat.t, s: t): t => {
