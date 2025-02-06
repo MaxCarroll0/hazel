@@ -139,11 +139,15 @@ and typ_term =
 and typ_t = IdTagged.t(typ_term)
 // Applies only to the type constructor
 and slice_incr = {
+  [@show.opaque]
   ctx_used: list(var_cls),
+  [@show.opaque]
   term_ids: list(Id.t),
-} // TODO: make ctx_used a map
-// Applies to all subterms (the entire type)
-and slice_global = slice_incr
+}
+// TODO: make ctx_used a map
+and slice_global =
+  // Applies to all subterms (the entire type)
+  slice_incr
 and slice_typ_term =
   | List(typslice_t)
   | Arrow(typslice_t, typslice_t)

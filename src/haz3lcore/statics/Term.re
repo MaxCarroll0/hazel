@@ -573,15 +573,37 @@ module Exp = {
       };
     };
 
-  let (replace_all_ids, replace_all_ids_typ) = {
+  let (replace_all_ids, replace_all_ids_typ, replace_all_ids_typslice) = {
     let f:
       'a.
       (IdTagged.t('a) => IdTagged.t('a), IdTagged.t('a)) => IdTagged.t('a)
      =
       (continue, exp) => {...exp, ids: [Id.mk()]} |> continue;
     (
-      map_term(~f_exp=f, ~f_pat=f, ~f_typ=f, ~f_tpat=f, ~f_rul=f),
-      Typ.map_term(~f_exp=f, ~f_pat=f, ~f_typ=f, ~f_tpat=f, ~f_rul=f),
+      map_term(
+        ~f_exp=f,
+        ~f_pat=f,
+        ~f_typ=f,
+        ~f_typslice=f,
+        ~f_tpat=f,
+        ~f_rul=f,
+      ),
+      Typ.map_term(
+        ~f_exp=f,
+        ~f_pat=f,
+        ~f_typ=f,
+        ~f_typslice=f,
+        ~f_tpat=f,
+        ~f_rul=f,
+      ),
+      TypSlice.map_term(
+        ~f_exp=f,
+        ~f_pat=f,
+        ~f_typ=f,
+        ~f_typslice=f,
+        ~f_tpat=f,
+        ~f_rul=f,
+      ),
     );
   };
 

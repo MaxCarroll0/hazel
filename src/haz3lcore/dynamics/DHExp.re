@@ -31,6 +31,13 @@ let repair_ids =
         } else {
           continue(typ);
         },
+    ~f_typslice=
+      (continue, typ) =>
+        if (TypSlice.rep_id(typ) == Id.invalid) {
+          replace_all_ids_typslice(typ);
+        } else {
+          continue(typ);
+        },
     _,
   );
 
@@ -47,6 +54,13 @@ let repair_ids_typ =
       (continue, typ) =>
         if (typ.copied) {
           replace_all_ids_typ(typ);
+        } else {
+          continue(typ);
+        },
+    ~f_typslice=
+      (continue, typ) =>
+        if (typ.copied) {
+          replace_all_ids_typslice(typ);
         } else {
           continue(typ);
         },
@@ -118,6 +132,8 @@ let ty_subst = (s: Typ.t, tpat: TPat.t, exp: t): t => {
   | Some(x) =>
     Exp.map_term(
       ~f_typ=(_, typ) => Typ.subst(s, tpat, typ),
+      ~f_typslice=
+        (_, typ) => TypSlice.subst(s |> TypSlice.t_of_typ_t, tpat, typ),
       ~f_exp=
         (continue, exp) =>
           switch (term_of(exp)) {
