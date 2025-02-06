@@ -215,7 +215,7 @@ module Update = {
         |> (
           settings.evaluation.show_casts ? x => x : Haz3lcore.DHExp.strip_casts
         )
-        |> Typ.replace_temp_exp;
+        |> TypSlice.replace_temp_exp;
       let editor = CodeWithStatics.Model.mk_from_exp(~settings, next_expr);
       let next_steps = calc_next_steps(settings, next_expr, next_state);
       (
@@ -327,7 +327,7 @@ module Update = {
                   settings.evaluation.show_casts
                     ? x => x : Haz3lcore.DHExp.strip_casts
                 )
-                |> Typ.replace_temp_exp;
+                |> TypSlice.replace_temp_exp;
               let editor = CodeWithStatics.Model.mk_from_exp(~settings, elab);
               let next_steps =
                 calc_next_steps(settings, elab, EvaluatorState.init);

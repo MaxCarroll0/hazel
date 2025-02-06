@@ -158,7 +158,7 @@ and typ_of_dhexp = (ctx: Ctx.t, m: Statics.Map.t, dh: DHExp.t): option(Typ.t) =>
     let* ty_p =
       switch (ty) {
       | None => dhpat_synthesize(dhp, ctx)
-      | Some(t) => Some(t)
+      | Some(t) => Some(t |> TypSlice.typ_of)
       };
 
     let* ctx = dhpat_extend_ctx(dhp, ty_p, ctx);

@@ -76,7 +76,7 @@ and exp_term =
   | String(string)
   | ListLit(list(exp_t))
   | Constructor(string, typ_t) // Typ.t field is only meaningful in dynamic expressions
-  | Fun(pat_t, exp_t, option(typ_t), option(Var.t)) // typ_t field is only used to display types in results
+  | Fun(pat_t, exp_t, option(typslice_t), option(Var.t)) // typ_t field is only used to display types in results
   | TypFun(tpat_t, exp_t, option(Var.t))
   | Tuple(list(exp_t))
   | Var(Var.t)
@@ -470,7 +470,7 @@ and Exp: {
           Fun(
             pat_map_term(p),
             exp_map_term(e),
-            Option.map(typ_map_term, t),
+            Option.map(typslice_map_term, t),
             f,
           )
         | TypFun(tp, e, f) => TypFun(tpat_map_term(tp), exp_map_term(e), f)
@@ -544,7 +544,7 @@ and Exp: {
     | (Fun(p1, e1, t1, _), Fun(p2, e2, t2, _)) =>
       Pat.fast_equal(p1, p2)
       && fast_equal(e1, e2)
-      && Option.equal(Typ.fast_equal, t1, t2)
+      && Option.equal(TypSlice.fast_equal, t1, t2)
     | (TypFun(tp1, e1, _), TypFun(tp2, e2, _)) =>
       TPat.fast_equal(tp1, tp2) && fast_equal(e1, e2)
     | (Tuple(xs), Tuple(ys)) =>

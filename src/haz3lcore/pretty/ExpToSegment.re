@@ -276,15 +276,23 @@ let rec parenthesize = (~show_filters: bool, exp: Exp.t): Exp.t => {
   | Cast(e, t1, t2) =>
     Cast(
       parenthesize(e) |> paren_assoc_at(Precedence.cast),
-      parenthesize_typ(t1) |> paren_typ_at(Precedence.cast),
-      parenthesize_typ(t2) |> paren_typ_at(Precedence.cast),
+      parenthesize_typ(t1 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t, // Note: removes slices, should be fine as this is used only for printing(?)
+      parenthesize_typ(t2 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t,
     )
     |> rewrap
   | FailedCast(e, t1, t2) =>
     FailedCast(
       parenthesize(e) |> paren_at(Precedence.cast),
-      parenthesize_typ(t1) |> paren_typ_at(Precedence.cast),
-      parenthesize_typ(t2) |> paren_typ_at(Precedence.cast),
+      parenthesize_typ(t1 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t,
+      parenthesize_typ(t2 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.cast)
+      |> TypSlice.t_of_typ_t,
     )
     |> rewrap
   | Test(e) => Test(parenthesize(e) |> paren_at(Precedence.min)) |> rewrap
@@ -400,8 +408,12 @@ and parenthesize_pat = (~show_filters: bool, pat: Pat.t): Pat.t => {
   | Cast(p, t1, t2) =>
     Cast(
       parenthesize_pat(p) |> paren_pat_assoc_at(Precedence.cast),
-      parenthesize_typ(t1) |> paren_typ_at(Precedence.max), // Hack[Matt]: always add parens to get the arrows right
-      parenthesize_typ(t2) |> paren_typ_at(Precedence.max),
+      parenthesize_typ(t1 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.max)
+      |> TypSlice.t_of_typ_t, // Hack[Matt]: always add parens to get the arrows right
+      parenthesize_typ(t2 |> TypSlice.typ_of)
+      |> paren_typ_at(Precedence.max)
+      |> TypSlice.t_of_typ_t,
     )
     |> rewrap
   };
@@ -521,6 +533,11 @@ and parenthesize_any = (~show_filters: bool, any: Any.t): Any.t =>
   | Exp(e) => Exp(parenthesize(~show_filters, e))
   | Pat(p) => Pat(parenthesize_pat(~show_filters, p))
   | Typ(t) => Typ(parenthesize_typ(~show_filters, t))
+  | TypSlice(t) =>
+    TypSlice(
+      parenthesize_typ(~show_filters, t |> TypSlice.typ_of)
+      |> TypSlice.t_of_typ_t,
+    ) // Note: removes slices, should be fine as is only used for printing(?)
   | TPat(tp) => TPat(parenthesize_tpat(~show_filters, tp))
   | Rul(r) => Rul(parenthesize_rul(~show_filters, r))
   | Any(_) => any
@@ -760,7 +777,7 @@ let rec exp_to_pretty = (~settings: Settings.t, exp: Exp.t): pretty => {
       switch (t) {
       | None => p
       | Some(t) =>
-        let t = t |> Typ.replace_temp;
+        let t = t |> TypSlice.replace_temp;
         Pat.fresh(Cast(p, t, t))
         |> parenthesize_pat(~show_filters=settings.show_filters);
       };

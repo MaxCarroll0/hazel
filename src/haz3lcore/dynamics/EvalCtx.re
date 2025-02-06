@@ -8,7 +8,7 @@ type term =
   | Seq2(DHExp.t, t)
   | Let1(Pat.t, t, DHExp.t)
   | Let2(Pat.t, DHExp.t, t)
-  | Fun(Pat.t, t, option(Typ.t), option(Var.t))
+  | Fun(Pat.t, t, option(TypSlice.t), option(Var.t))
   | FixF(Pat.t, t, option(ClosureEnvironment.t))
   | TypAp(t, Typ.t)
   | Ap1(Operators.ap_direction, t, DHExp.t)

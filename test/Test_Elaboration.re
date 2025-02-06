@@ -96,7 +96,7 @@ module PlainTests = {
       Var("x") |> Pat.fresh,
       BinOp(Int(Plus), Int(4) |> Exp.fresh, Int(5) |> Exp.fresh)
       |> Exp.fresh,
-      Some(Unknown(Hole(EmptyHole)) |> Typ.fresh),
+      Some(Unknown(Hole(EmptyHole)) |> Typ.fresh |> TypSlice.t_of_typ_t),
       None,
     )
     |> Exp.fresh;
@@ -182,7 +182,7 @@ module PlainTests = {
         Var("x") |> Pat.fresh,
         BinOp(Int(Plus), Int(1) |> Exp.fresh, Var("x") |> Exp.fresh)
         |> Exp.fresh,
-        Some(Int |> Typ.fresh),
+        Some(`Typ(Int) |> TypSlice.fresh),
         Some("f"),
       )
       |> Exp.fresh,
