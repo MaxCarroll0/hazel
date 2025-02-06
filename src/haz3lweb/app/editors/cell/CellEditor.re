@@ -167,6 +167,7 @@ module View = {
           | _ => None
           };
         },
+        ~cursor?,
         ~result_kind?,
         ~locked,
         model.result,

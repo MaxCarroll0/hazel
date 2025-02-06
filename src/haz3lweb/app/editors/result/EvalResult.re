@@ -421,6 +421,7 @@ module View = {
 
   let footer =
       (
+        ~cursor: option(Cursor.cursor('a)),
         ~globals: Globals.t,
         ~signal,
         ~inject,
@@ -451,6 +452,7 @@ module View = {
           | Some(Stepper(s)) => Some(s)
           | _ => None
           },
+        ~cursor?,
         ~signal=
           fun
           | HideStepper => inject(ToggleStepper)
@@ -508,6 +510,7 @@ module View = {
         ~signal: event => Ui_effect.t(unit),
         ~inject: Update.t => Ui_effect.t(unit),
         ~selected: option(Selection.t),
+        ~cursor: option(Cursor.cursor('a))=?,
         ~result_kind=EvalResults,
         ~locked: bool,
         model: Model.t,
@@ -516,7 +519,15 @@ module View = {
     // Normal case:
     | EvalResults when globals.settings.core.dynamics =>
       let result =
-        footer(~globals, ~signal, ~inject, ~result=model, ~selected, ~locked);
+        footer(
+          ~globals,
+          ~signal,
+          ~inject,
+          ~result=model,
+          ~selected,
+          ~cursor,
+          ~locked,
+        );
       let test_overlay = (editor: Haz3lcore.Editor.t) =>
         switch (Model.test_results(model)) {
         | Some(result) => [

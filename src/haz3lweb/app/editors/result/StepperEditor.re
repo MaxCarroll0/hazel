@@ -64,6 +64,7 @@ module View = {
         ~signal: event => 'a,
         ~overlays=[],
         ~selected,
+        ~cursor=Cursor.empty,
         model: Model.t,
       ) => {
     let overlays = {
@@ -75,7 +76,8 @@ module View = {
         });
       overlays
       @ Deco.taken_steps(model.taken_steps)
-      @ Deco.next_steps(model.next_steps, ~inject=x => signal(TakeStep(x)));
+      @ Deco.next_steps(model.next_steps, ~inject=x => signal(TakeStep(x)))
+      @ [Deco.slice(cursor)];
     };
     CodeSelectable.View.view(
       ~signal=

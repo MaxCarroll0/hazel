@@ -422,6 +422,7 @@ module View = {
         ~signal: event => Ui_effect.t(unit),
         ~inject: Update.t => Ui_effect.t(unit),
         ~selection: option(Selection.t),
+        ~cursor: option(Cursor.cursor('a))=?,
         ~read_only: bool,
         stepper: Model.t,
       ) => {
@@ -483,6 +484,7 @@ module View = {
                               (),
                             ),
                           ),
+                     ~cursor?,
                      ~inject=
                        (x: StepperEditor.Update.t) =>
                          inject(StepperEditor(i + 1, x)),
@@ -549,6 +551,7 @@ module View = {
                          (),
                        ),
                      ),
+                ~cursor?,
                 ~inject=
                   (x: StepperEditor.Update.t) =>
                     inject(StepperEditor(current_n, x)),
