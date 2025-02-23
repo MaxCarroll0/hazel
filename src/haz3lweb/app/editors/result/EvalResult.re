@@ -26,6 +26,13 @@ module Model = {
         cached_settings: Calc.saved(Haz3lcore.CoreSettings.t),
         editor: Calc.saved((Haz3lcore.Exp.t, CodeSelectable.Model.t)),
       })
+    | IndetEval({
+        elab: Haz3lcore.Exp.t,
+        results: Calc.t(Haz3lcore.ProgramResult.t(list(Haz3lcore.Exp.t))),
+        current: int,
+        cached_settings: Calc.saved(Haz3lcore.CoreSettings.t),
+        editor: Calc.saved((Haz3lcore.Exp.t, CodeSelectable.Model.t)),
+      })
     | Stepper(StepperView.Model.t);
 
   [@deriving (show({with_path: false}), sexp, yojson)]
@@ -56,6 +63,7 @@ module Model = {
         |> Haz3lcore.EvaluatorState.get_tests
         |> Haz3lcore.TestResults.mk_results,
       )
+    | IndetEval(_)
     | Evaluation(_)
     | NoElab => None
     };
@@ -78,6 +86,7 @@ module Model = {
         |> Haz3lcore.EvaluatorState.get_tests
         |> Haz3lcore.TestResults.mk_results,
       )
+    | IndetEval(_)
     | Evaluation(_)
     | NoElab => model.previous_tests
     };
@@ -98,7 +107,9 @@ module Update = {
     | ToggleStepper
     | StepperAction(StepperView.Update.t)
     | EvalEditorAction(CodeSelectable.Update.t)
-    | UpdateResult(Haz3lcore.ProgramResult.t(Haz3lcore.ProgramResult.inner));
+    | UpdateResult(Haz3lcore.ProgramResult.t(Haz3lcore.ProgramResult.inner))
+    | NextIndet(Haz3lcore.ProgramResult.t(Haz3lcore.ProgramResult.inner))
+    | PrevIndet(Haz3lcore.ProgramResult.t(Haz3lcore.ProgramResult.inner));
 
   // Update is meant to make minimal changes to the model, and calculate will do the rest.
   let update = (~settings, action, model: Model.t): Updated.t(Model.t) =>
@@ -164,6 +175,14 @@ module Update = {
       |> (x => {...x, previous_tests: Model.test_results(x)})
       |> Updated.return
     | (UpdateResult(_), _) => model |> Updated.return_quiet
+    | (NextIndet(_), {result: IndetEval(eval), _}) =>
+      {...model, result: IndetEval({...eval, current: eval.current + 1})}
+      |> Updated.return
+    | (NextIndet(_), _) => model |> Updated.return
+    | (PrevIndet(_), {result: IndetEval(eval), _}) =>
+      {...model, result: IndetEval({...eval, current: eval.current - 1})}
+      |> Updated.return
+    | (PrevIndet(_), _) => model |> Updated.return
     };
 
   let calculate =
@@ -187,7 +206,7 @@ module Update = {
           result: Evaluation({elab, result, cached_settings, editor}),
         }
       // If elab has changed, recalculate
-      | (Evaluation, _) when settings.dynamics =>
+      | (Evaluation, Evaluation(_)) when settings.dynamics =>
         switch (queue_worker) {
         | None => {
             ...model,
@@ -196,11 +215,12 @@ module Update = {
                 elab,
                 result: {
                   switch (WorkerServer.work(elab)) {
-                  | Ok((r, state)) =>
+                  | Det(Ok((r, s))) =>
                     let exp = Haz3lcore.ProgramResult.Result.unbox(r);
-                    NewValue(Haz3lcore.ProgramResult.ResultOk((exp, state)));
-                  | Error(e) =>
+                    NewValue(Haz3lcore.ProgramResult.ResultOk((exp, s)));
+                  | Det(Error(e)) =>
                     NewValue(Haz3lcore.ProgramResult.ResultFail(e))
+                  | _ => failwith("Impossible")
                   };
                 },
                 cached_settings: Pending,
@@ -216,6 +236,42 @@ module Update = {
               Evaluation({
                 elab,
                 result: NewValue(Haz3lcore.ProgramResult.ResultPending),
+                cached_settings: Pending,
+                editor: Pending,
+              }),
+          };
+        }
+      | (Evaluation, IndetEval({current, _})) when settings.dynamics =>
+        switch (queue_worker) {
+        | None => {
+            ...model,
+            result:
+              IndetEval({
+                elab,
+                current,
+                results: {
+                  switch (WorkerServer.work_indet(elab, current)) {
+                  | Indet(Ok(rs)) =>
+                    NewValue(Haz3lcore.ProgramResult.ResultOk(rs))
+                  | Indet(Error(e)) =>
+                    NewValue(Haz3lcore.ProgramResult.ResultFail(e))
+                  | _ => failwith("Impossible")
+                  };
+                },
+                cached_settings: Pending,
+                editor: Pending,
+              }),
+          }
+
+        | Some(queue_worker) =>
+          queue_worker(elab);
+          {
+            ...model,
+            result:
+              IndetEval({
+                elab,
+                current,
+                results: NewValue(Haz3lcore.ProgramResult.ResultPending),
                 cached_settings: Pending,
                 editor: Pending,
               }),
@@ -280,6 +336,57 @@ module Update = {
             editor: Calc.get_value(editor),
           }),
       };
+    | IndetEval({elab, current, results, cached_settings, editor}) =>
+      open Calc.Syntax;
+      let cached_settings = Calc.set(~eq=(==), settings, cached_settings);
+      let editor =
+        editor
+        |> Calc.map_saved(x => Calc.Calculated(x))
+        |> {
+          let.calc settings = cached_settings
+          and.calc results = results;
+          switch (results) {
+          | ResultOk(rs) =>
+            List.nth_opt(rs, current)
+            |> Option.map(exp =>
+                 exp
+                 |> (
+                   settings.evaluation.show_casts
+                     ? (x => x) : Haz3lcore.DHExp.strip_casts
+                 )
+                 |> CodeSelectable.Model.mk_from_exp(~settings)
+                 |> (x => Calc.Calculated((exp, x)))
+               )
+            |> Option.value(~default=Pending: Calc.saved('a))
+          | ResultFail(_) => Pending
+          | ResultPending => Pending
+          | Off(_) => Pending
+          };
+        };
+      let editor =
+        editor
+        |> Calc.get_value
+        |> Calc.map_saved(((exp, editor)) =>
+             CodeSelectable.Update.calculate(
+               ~settings,
+               ~stitch=_ => exp,
+               ~is_edited,
+               editor,
+             )
+             |> (x => (exp, x))
+           )
+        |> (x => Calc.OldValue(x));
+      {
+        ...model,
+        result:
+          IndetEval({
+            elab,
+            current,
+            results: Calc.make_old(results),
+            cached_settings: Calc.save(cached_settings),
+            editor: Calc.get_value(editor),
+          }),
+      };
     | _ => model
     };
   };
@@ -304,6 +411,7 @@ module Selection = {
       Update.StepperAction(ci);
     | (_, Evaluation(_)) => empty
     | (_, Stepper(_)) => empty
+    | (_, IndetEval(_)) => empty
     };
 
   let handle_key_event =
@@ -322,6 +430,7 @@ module Selection = {
       |> Option.map(x => Update.StepperAction(x))
     | (_, Evaluation(_)) => None
     | (_, Stepper(_)) => None
+    | (_, IndetEval(_)) => None
     };
 };
 
@@ -441,6 +550,23 @@ module View = {
           ~locked,
           elab,
           result |> Calc.get_value,
+          editor,
+        ),
+      ]
+    | IndetEval({elab, current, results, editor, _}) => [
+        live_eval(
+          ~globals,
+          ~signal,
+          ~inject,
+          ~selected=selected == Some(Evaluation()),
+          ~locked,
+          elab,
+          results
+          |> Calc.get_value
+          |> Haz3lcore.ProgramResult.map(rs =>
+               List.nth(rs, current mod List.length(rs))
+               |> (exp => (exp, Haz3lcore.EvaluatorState.init))
+             ),
           editor,
         ),
       ]

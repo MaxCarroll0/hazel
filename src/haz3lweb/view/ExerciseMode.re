@@ -161,13 +161,19 @@ module Update = {
     WorkerClient.request(
       worker_request^,
       ~handler=
-        List.iter(((pos, result)) => {
+        List.iter(((pos, result: WorkerServer.Response.value)) => {
           let pos' = Exercise.pos_of_key(pos);
           let result':
             Haz3lcore.ProgramResult.t(Haz3lcore.ProgramResult.inner) =
             switch (result) {
-            | Ok((r, s)) => ResultOk({result: r, state: s})
-            | Error(e) => ResultFail(e)
+            | Det(Ok((r, s))) => ResultOk({result: r, state: s})
+            | Indet(Ok(rs)) =>
+              ResultOk({
+                result: BoxedValue(List.hd(rs)),
+                state: EvaluatorState.init,
+              }) // TODO...
+            | Det(Error(e))
+            | Indet(Error(e)) => ResultFail(e)
             };
           schedule_action(
             Editor(pos', ResultAction(UpdateResult(result'))),

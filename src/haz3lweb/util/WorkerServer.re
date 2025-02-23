@@ -16,10 +16,14 @@ module Request = {
 module Response = {
   [@deriving (show, sexp, yojson)]
   type value =
-    Result.t(
-      (Haz3lcore.ProgramResult.Result.t, Haz3lcore.EvaluatorState.t),
-      Haz3lcore.ProgramResult.error,
-    );
+    | Det(
+        Result.t(
+          (Haz3lcore.ProgramResult.Result.t, Haz3lcore.EvaluatorState.t),
+          Haz3lcore.ProgramResult.error,
+        ),
+      )
+    | Indet(Result.t(list(Haz3lcore.Exp.t), Haz3lcore.ProgramResult.error));
+
   [@deriving (show, sexp, yojson)]
   type t = list((string, value));
 
@@ -28,6 +32,23 @@ module Response = {
 };
 
 let work = (res: Request.value): Response.value =>
+  switch (Haz3lcore.Evaluator.evaluate'(Haz3lcore.Builtins.env_init, res)) {
+  | exception (Haz3lcore.EvaluatorError.Exception(reason)) =>
+    print_endline(
+      "EvaluatorError:" ++ Haz3lcore.EvaluatorError.show(reason),
+    );
+    Det(Error(Haz3lcore.ProgramResult.EvaulatorError(reason)));
+  | exception exn =>
+    print_endline("EXN:" ++ Printexc.to_string(exn));
+    Det(
+      Error(
+        Haz3lcore.ProgramResult.UnknownException(Printexc.to_string(exn)),
+      ),
+    );
+  | (state, result) => Det(Ok((result, state)))
+  };
+
+let work_indet = (res: Request.value, n): Response.value =>
   switch (
     Haz3lcore.IndetEvaluator.evaluate'(Haz3lcore.Builtins.env_init, res)
   ) {
@@ -35,22 +56,22 @@ let work = (res: Request.value): Response.value =>
     print_endline(
       "EvaluatorError:" ++ Haz3lcore.EvaluatorError.show(reason),
     );
-    Error(Haz3lcore.ProgramResult.EvaulatorError(reason));
+    Indet(Error(Haz3lcore.ProgramResult.EvaulatorError(reason)));
   | exception exn =>
     print_endline("EXN:" ++ Printexc.to_string(exn));
-    Error(
-      Haz3lcore.ProgramResult.UnknownException(Printexc.to_string(exn)),
+    Indet(
+      Error(
+        Haz3lcore.ProgramResult.UnknownException(Printexc.to_string(exn)),
+      ),
     );
   //| (state, result) => Ok((result, state))
   | results =>
-    Ok((
-      BoxedValue(
-        results
-        |> Haz3lcore.Futures.finals(Haz3lcore.Builtins.env_init)
-        |> Haz3lcore.Futures.first,
+    Indet(
+      Ok(
+        /*|> Haz3lcore.Futures.failed_casts*/
+        Util.Sequence.take(results, n) |> Util.Sequence.to_list,
       ),
-      Haz3lcore.EvaluatorState.init,
-    ))
+    )
   };
 
 let on_request = (req: string): unit =>

@@ -168,9 +168,16 @@ module Update = {
                 ResultAction(
                   UpdateResult(
                     switch (r |> List.hd |> snd) {
-                    | Ok((r, s)) =>
+                    | Det(Ok((r, s))) =>
                       Haz3lcore.ProgramResult.ResultOk({result: r, state: s})
-                    | Error(e) => Haz3lcore.ProgramResult.ResultFail(e)
+                    | Indet(Ok(rs)) =>
+                      Haz3lcore.ProgramResult.ResultOk({
+                        result: BoxedValue(List.hd(rs)),
+                        state: EvaluatorState.init,
+                      }) // TODO...
+                    | Det(Error(e))
+                    | Indet(Error(e)) =>
+                      Haz3lcore.ProgramResult.ResultFail(e)
                     },
                   ),
                 ),
