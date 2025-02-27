@@ -401,32 +401,33 @@ and uexp_to_info_map =
       go_pat(~is_synswitch=true, ~co_ctx=CoCtx.empty, ~mode=Syn, p, m);
     let (def, p_ana_ctx, m, ty_p_ana) =
       if (!is_recursive(ctx, p, def, p_syn.ty)) {
-        let (def, m) = go(~mode=Ana(p_syn.ty), def, m);
+        let (def, m) = go(~mode=Mode.of_let(ids, p_syn.ty), def, m);
         let ty_p_ana = def.ty;
         let (p_ana', _) =
           go_pat(
             ~is_synswitch=false,
             ~co_ctx=CoCtx.empty,
-            ~mode=Ana(ty_p_ana),
+            ~mode=Mode.of_let(ids, ty_p_ana),
             p,
             m,
           );
         (def, p_ana'.ctx, m, ty_p_ana);
       } else {
         let (def_base, _) =
-          go'(~ctx=p_syn.ctx, ~mode=Ana(p_syn.ty), def, m);
+          go'(~ctx=p_syn.ctx, ~mode=Mode.of_let(ids, p_syn.ty), def, m);
         let ty_p_ana = def_base.ty;
         /* Analyze pattern to incorporate def type into ctx */
         let (p_ana', _) =
           go_pat(
             ~is_synswitch=false,
             ~co_ctx=CoCtx.empty,
-            ~mode=Ana(ty_p_ana),
+            ~mode=Mode.of_let(ids, ty_p_ana),
             p,
             m,
           );
         let def_ctx = p_ana'.ctx;
-        let (def_base2, _) = go'(~ctx=def_ctx, ~mode=Ana(p_syn.ty), def, m);
+        let (def_base2, _) =
+          go'(~ctx=def_ctx, ~mode=Mode.of_let(ids, p_syn.ty), def, m);
         let ana_ty_fn = ((ty_fn1, ty_fn2), ty_p) => {
           TypSlice.typ_of(ty_p)
           |> Typ.term_of == Unknown(SynSwitch)

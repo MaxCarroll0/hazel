@@ -51,7 +51,7 @@ let of_parens = (ids, mode: t): t =>
   | Syn
   | SynFun
   | SynTypFun => mode
-  | Ana(ty) => Ana(ty |> TypSlice.(wrap_incr(slice_of_ids(ids))))
+  | Ana(ty) => Ana(ty |> TypSlice.(wrap_global(slice_of_ids(ids))))
   };
 
 // ty is Some if the expression is an annotated lambda
@@ -68,7 +68,7 @@ let of_arrow = (ids, ctx: Ctx.t, mode: t, ty: option(TypSlice.t)): (t, t) =>
       t2,
     )
     |> TupleUtil.map2(t =>
-         Ana(TypSlice.wrap_incr(TypSlice.slice_of_ids(ids), t))
+         Ana(TypSlice.wrap_global(TypSlice.slice_of_ids(ids), t))
        );
   };
 
@@ -258,3 +258,6 @@ let of_ann = (ids: list(Id.t), ty: TypSlice.t): t => {
 };
 
 let of_ap_arg = of_ann;
+
+let of_let = (ids, ty) =>
+  Ana(ty |> TypSlice.(wrap_global(slice_of_ids(ids))));
