@@ -1,6 +1,6 @@
 (library
  (name util)
- (libraries re str base ptmap sexplib yojson)
+ (libraries re base ptmap sexplib yojson)
  (instrumentation
   (backend bisect_ppx))
  (preprocess

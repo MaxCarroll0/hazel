@@ -31,7 +31,7 @@ let ill_typed =
     [%blob "data/ill-typed/prog0004.hazel"];
     [%blob "data/ill-typed/prog0005.hazel"];
   ]
-(*|> List.map(make_term_parse)*)
+  |> List.map make_term_parse
 
-let well_typed = [ [%blob "data/well-typed/list.hazel"] ]
-(*|> List.map(make_term_parse)*)
+let well_typed =
+  [ [%blob "data/well-typed/list.hazel"] ] 
