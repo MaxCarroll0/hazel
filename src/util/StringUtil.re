@@ -29,8 +29,7 @@ type regexp = Str.regexp;
 
 let regexp: string => regexp = Str.regexp;
 
-let match = (r: regexp, s: string): bool =>
-  Str.string_match(r, s, 0);
+let match = (r: regexp, s: string): bool => Str.string_match(r, s, 0);
 
 let replace = Str.global_replace;
 
