@@ -59,6 +59,11 @@ serve2:
 repl:
 	dune utop src/haz3lcore
 
+eval:
+	dune build @ocaml-index @src/fmt @evaluation/fmt --auto-promote src evaluation --profile dev
+repl:
+	dune utop evaluation
+
 test:
 	dune fmt --auto-promote || true
 	dune build @ocaml-index @src/fmt @test/fmt --auto-promote src test --profile dev

@@ -53,7 +53,8 @@
   ocaml-index
   qcheck
   qcheck-alcotest
-  ppx_deriving_qcheck))
+  ppx_deriving_qcheck
+  ppx_blob))
 
 ; After upgrading to opam 2.2 use with-dev https://opam.ocaml.org/blog/opam-2-2-0/
 
