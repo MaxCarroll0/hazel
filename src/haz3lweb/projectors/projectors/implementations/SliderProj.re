@@ -1,6 +1,7 @@
 open Util;
 open Virtual_dom.Vdom;
 open ProjectorBase;
+open Haz3lcore;
 
 module M: Projector = {
   [@deriving (show({with_path: false}), sexp, yojson)]
@@ -8,24 +9,24 @@ module M: Projector = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type action = unit;
 
-  let float_of = (any: Any.t): option(float) =>
+  let int_of = (any: Any.t): option(int) =>
     switch (any) {
-    | Exp({term: Float(f), _}) => Some(f)
+    | Exp({term: Int(i), _}) => Some(i)
     | _ => None
     };
 
   let init = (any: Term.Any.t) =>
-    switch (float_of(any)) {
+    switch (int_of(any)) {
     | Some(_) => Some()
     | None => None
     };
 
-  let get = (info: info): float =>
+  let get = (info: info): int =>
     switch (
-      info.syntax |> info.utility.seg_to_term |> OptUtil.and_then(float_of)
+      info.syntax |> info.utility.seg_to_term |> OptUtil.and_then(int_of)
     ) {
-    | Some(f) => f
-    | None => failwith("SliderF: Get: not float literal")
+    | Some(i) => i
+    | None => failwith("Slider: Get: not integer literal")
     };
 
   let put = (info: info, v: string): Base.segment =>
@@ -35,14 +36,14 @@ module M: Projector = {
         | Exp(t) =>
           Exp({
             ...t,
-            term: Float(float_of_string(v)),
+            term: Int(int_of_string(v)),
           })
-        | _ => failwith("SliderF: Put: not float literal"),
+        | _ => failwith("Slider: Put: not integer literal"),
         info.syntax,
       )
     ) {
     | Some(s) => s
-    | None => failwith("SliderF: Put: lift failed")
+    | None => failwith("Slider: Put: lift failed")
     };
 
   let focusable = Focusable.non;
@@ -59,9 +60,9 @@ module M: Projector = {
         ~view_seg as _,
       ) =>
     View.mk(
-      Util.Web.range(
+      Web.range(
         ~attrs=[Attr.on_input((_, v) => parent(SetSyntax(put(info, v))))],
-        info |> get |> Printf.sprintf("%.2f"),
+        info |> get |> string_of_int,
       ),
     );
 };

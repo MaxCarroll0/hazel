@@ -1,6 +1,7 @@
 /* This file is a placeholder, ideally an algorithm would be implemented here that allows
    efficient calculation of the best way to add linebreaks etc, but that hasn't been implemented yet, so
    none of these functions do anything yet. (Matt) */
+open Haz3lcore;
 
 type pretty = Segment.t;
 

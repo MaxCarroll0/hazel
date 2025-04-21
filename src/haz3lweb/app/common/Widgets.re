@@ -1,6 +1,6 @@
 open Virtual_dom.Vdom;
 open Node;
-open Util.Web;
+open Web;
 
 let button = (~tooltip="", icon, action) =>
   div(

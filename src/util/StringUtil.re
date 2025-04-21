@@ -25,20 +25,20 @@ let repeat = (n, s) => String.concat("", List.init(n, _ => s));
 let abbreviate = (max_len, s) =>
   String.length(s) > max_len ? String.sub(s, 0, max_len) ++ "..." : s;
 
-type regexp = Js_of_ocaml.Regexp.regexp;
+type regexp = Str.regexp;
 
-let regexp: string => regexp = Js_of_ocaml.Regexp.regexp;
+let regexp: string => regexp = Str.regexp;
 
 let match = (r: regexp, s: string): bool =>
-  Js_of_ocaml.Regexp.string_match(r, s, 0) |> Option.is_some;
+  Str.string_match(r, s, 0);
 
-let replace = Js_of_ocaml.Regexp.global_replace;
+let replace = Str.global_replace;
 
-let split = Js_of_ocaml.Regexp.split;
+let split = Str.split;
 
 let plain_split: (string, string) => list(string) =
   (str, sep) => {
-    split(Js_of_ocaml.Regexp.regexp_string(sep), str);
+    split(Str.regexp_string(sep), str);
   };
 
 let to_lines = String.split_on_char('\n');

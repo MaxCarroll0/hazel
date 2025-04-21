@@ -1,6 +1,7 @@
 open Alcotest;
 open Haz3lcore;
 open Base;
+open Haz3lweb;
 
 // Id ignoring equality for tiles
 let rec equal_segment = (a: segment, b: segment) => {

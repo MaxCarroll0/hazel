@@ -138,3 +138,18 @@ module Shape = {
       };
   };
 };
+
+/* Projectors currently are all convex */
+let shapes = (_: t('a)): Nibs.shapes => Nib.Shape.(Convex, Convex);
+
+let dynamics_of = (kind: Kind.t): bool =>
+  switch (kind) {
+  | Fold
+  | Info
+  | Slider
+  | SliderF
+  | Checkbox
+  | TextArea
+  | Card => false
+  | Probe => true
+  };

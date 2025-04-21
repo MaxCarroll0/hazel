@@ -3,6 +3,7 @@ open ProjectorBase;
 open Virtual_dom.Vdom;
 open Node;
 open Js_of_ocaml;
+open Haz3lcore;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type closure = Dynamics.Probe.Closure.t;

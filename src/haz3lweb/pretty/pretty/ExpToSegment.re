@@ -1,5 +1,6 @@
 open Util;
 open PrettySegment;
+open Haz3lcore;
 open Base;
 
 module Settings = {

@@ -3,6 +3,7 @@
 
 /* Gather utility functions/values to be sspaed to the projector.
  * See ProjectorBase.utility definition for more information */
+open Haz3lcore;
 let utility: ProjectorBase.utility = {
   let seg_to_term = MakeTerm.for_projection;
   let term_to_seg =

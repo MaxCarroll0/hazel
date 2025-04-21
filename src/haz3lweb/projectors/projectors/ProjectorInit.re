@@ -1,4 +1,5 @@
 open ProjectorBase;
+open Haz3lcore;
 
 /* After adding a new projector module, add it here so that
  * it can be instantiated. The first-class module created by

@@ -1,6 +1,7 @@
 open Virtual_dom.Vdom;
 open Node;
 open ProjectorBase;
+open Haz3lcore;
 
 let mode = (info: option(Info.t)): option(Mode.t) =>
   switch (info) {

@@ -1,6 +1,7 @@
 open ProjectorBase;
 open Util;
 open OptUtil.Syntax;
+open Haz3lcore;
 
 /* Projection logic is based on selection and parenthesization.
  * If there is no current selection, we select the currently indicated

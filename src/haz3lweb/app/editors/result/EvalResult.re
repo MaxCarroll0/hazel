@@ -588,7 +588,7 @@ module View = {
         | Some(elab) =>
           let shape_map = ProjectorCore.Shape.Map.empty; // assume no projectors
           elab
-          |> Haz3lcore.ExpToSegment.(
+          |> ExpToSegment.(
                exp_to_segment(
                  ~settings=
                    Settings.of_core(~inline=false, globals.settings.core),

@@ -40,9 +40,10 @@ module CachedSyntax = {
   let init = (~info_map, ~dyn_map, z): t => {
     let segment = Zipper.unselect_and_zip(z);
     let MakeTerm.{term: _, terms, projectors} = MakeTerm.go(segment);
-    let projector_shapes =
-      ProjectorInfo.ShapeMapSemantics.mk(projectors, info_map, dyn_map);
+    let projector_shapes = failwith("Temporary JS dependency removal");
     {
+      //ProjectorInfo.ShapeMapSemantics.mk(projectors, info_map, dyn_map);
+
       old: false,
       segment,
       term_ranges: TermRanges.mk(segment),
@@ -223,7 +224,7 @@ module Update = {
       );
 
     settings.flip_animations && Action.should_animate(a)
-      ? Animation.request([Animation.Actions.move("caret")]) : ();
+      ? failwith("Temporary JS dependency removal") : (); //Animation.request([Animation.Actions.move("caret")]) : ();
 
     // Recombine
     Model.{

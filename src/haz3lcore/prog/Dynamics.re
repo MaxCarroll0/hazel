@@ -91,7 +91,7 @@ module Probe = {
       value,
       env: Env.filter(env, pr.refs),
       call_stack,
-      time: JsUtil.timestamp(),
+      time: 1.0 //JsUtil.timestamp(),
     };
   };
 

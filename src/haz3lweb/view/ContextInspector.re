@@ -1,6 +1,6 @@
 open Virtual_dom.Vdom;
 open Node;
-open Util.Web;
+open Web;
 
 let alias_view = (s: string): Node.t =>
   div(~attrs=[clss(["typ-alias-view"])], [text(s)]);

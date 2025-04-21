@@ -114,9 +114,12 @@ let qcheck_menhir_maketerm_equivalent_test =
         Grammar.map_exp_annotation(_ => IdTagged.IdTag.fresh(), unit_exp);
 
       let segment =
-        ExpToSegment.exp_to_segment(
+        Haz3lweb.ExpToSegment.exp_to_segment(
           ~settings=
-            ExpToSegment.Settings.of_core(~inline=true, CoreSettings.off),
+            Haz3lweb.ExpToSegment.Settings.of_core(
+              ~inline=true,
+              CoreSettings.off,
+            ),
           core_exp,
         );
 
@@ -167,7 +170,7 @@ let qcheck_menhir_serialized_equivalent_test =
       let core_exp =
         Grammar.map_exp_annotation(_ => IdTagged.IdTag.fresh(), unit_exp);
       let segment =
-        ExpToSegment.exp_to_segment(
+        Haz3lweb.ExpToSegment.exp_to_segment(
           ~settings={
             inline: true,
             fold_case_clauses: false,

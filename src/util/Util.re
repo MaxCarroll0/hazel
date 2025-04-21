@@ -1,5 +1,4 @@
 module Aba = Aba;
-module BonsaiUtil = BonsaiUtil;
 module Direction = Direction;
 module Either = Either;
 module IntMap = IntMap;
@@ -15,9 +14,6 @@ module StateMonad = StateMonad;
 module StringUtil = StringUtil;
 module TimeUtil = TimeUtil;
 module TupleUtil = TupleUtil;
-module Web = Web;
-module JsUtil = JsUtil;
-module Key = Key;
 module Os = Os;
 module Point = Point;
 module Calc = Calc;

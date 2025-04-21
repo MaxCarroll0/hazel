@@ -1,6 +1,6 @@
 open Virtual_dom.Vdom;
 open Node;
-open Util.Web;
+open Web;
 
 let view = (~globals, kind: Haz3lcore.Ctx.kind): Node.t =>
   switch (kind) {

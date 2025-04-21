@@ -15,7 +15,6 @@ let right =
   | Right
   | Both => true
   | _ => false;
-
 let flip =
   fun
   | Left => Right

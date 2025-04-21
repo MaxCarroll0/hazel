@@ -121,14 +121,14 @@ let go_z =
     | Some(z) => Ok(z)
     }
   | Buffer(Clear) => Ok(buffer_clear(z))
-  | Project(a) =>
-    ProjectorPerform.go(
-      Move.jump_to_id_indicated,
-      Move.jump_to_side_of_id,
-      Select.current_term(~defs_exclude_bodies=false, ~case_rules=false),
-      a,
-      z,
-    )
+  | Project(a) => failwith("Temporary JS dependency removal")
+  //ProjectorPerform.go(
+  //  Move.jump_to_id_indicated,
+  //  Move.jump_to_side_of_id,
+  //  Select.current_term(~defs_exclude_bodies=false, ~case_rules=false),
+  //  a,
+  //  z,
+  //)
   | Move(d) =>
     Move.go(d, z) |> Result.of_option(~error=Action.Failure.Cant_move)
   | Jump(jump_target) =>

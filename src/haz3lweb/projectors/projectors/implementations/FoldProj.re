@@ -2,6 +2,7 @@ open Util;
 open ProjectorBase;
 open Virtual_dom.Vdom;
 open Node;
+open Haz3lcore;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t = {

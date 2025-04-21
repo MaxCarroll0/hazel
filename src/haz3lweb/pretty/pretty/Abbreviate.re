@@ -8,6 +8,7 @@
  * This approach ends up duplicating way too much info
  * with ExpToSeg. This should probably be rewritten to
  * use that somehow. */
+open Haz3lcore;
 
 let flat_ellipses = "…"; //"⋱"; // "┄"
 let flat_ellipses_term = () =>

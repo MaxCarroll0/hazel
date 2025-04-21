@@ -46,7 +46,7 @@ let instructor_shortcuts: list(t) = [
 ];
 
 // List of shortcuts configured to show up in the command palette and have hotkey support
-let shortcuts = (sys: Util.Key.sys): list(t) =>
+let shortcuts = (sys: Key.sys): list(t) =>
   [
     mk_shortcut(
       ~mdIcon="undo",
@@ -289,7 +289,7 @@ let options = (schedule_action: Page.Update.t => unit) => {
   Array.of_list(
     List.map(
       from_shortcut(schedule_action),
-      shortcuts(Util.Os.is_mac^ ? Util.Key.Mac : PC),
+      shortcuts(Util.Os.is_mac^ ? Key.Mac : PC),
     ),
   );
 };

@@ -51,7 +51,7 @@ let to_held: bool => held = b => b ? Down : Up;
 
 let mk = (dir, evt): t => {
   key: key_of(dir, evt),
-  sys: Os.is_mac^ ? Mac : PC,
+  sys: Util.Os.is_mac^ ? Mac : PC,
   shift: to_held(shift_held(evt)),
   meta: to_held(meta_held(evt)),
   ctrl: to_held(ctrl_held(evt)),

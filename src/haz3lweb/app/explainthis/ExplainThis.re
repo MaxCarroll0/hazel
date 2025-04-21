@@ -1,6 +1,6 @@
 open Virtual_dom.Vdom;
 open Node;
-open Util.Web;
+open Web;
 open Haz3lcore;
 
 /* If you are adding docs here for new syntax, see PipelineExp.re

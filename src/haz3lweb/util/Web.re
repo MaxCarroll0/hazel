@@ -6,6 +6,7 @@ module Node = Node;
 open Node;
 open JsUtil;
 open Js_of_ocaml;
+open Util;
 
 let clss = Attr.classes;
 

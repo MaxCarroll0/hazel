@@ -1,6 +1,7 @@
 open Util;
 open ProjectorBase;
 open Virtual_dom.Vdom;
+open Haz3lcore;
 
 module M: Projector = {
   [@deriving (show({with_path: false}), sexp, yojson)]

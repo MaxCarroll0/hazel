@@ -1,5 +1,6 @@
 open Util;
 open Virtual_dom.Vdom;
+open Haz3lcore;
 
 /* This descibes the API for projectors: GUIs which
  * can replace part of the program syntax and perform
@@ -201,7 +202,3 @@ module Cook = (C: Projector) : Cooked => {
   let update = (m, i, a) =>
     C.update(m |> deserialize_m, i, a |> deserialize_a) |> serialize_m;
 };
-
-/* Projectors currently are all convex */
-let shapes = (_: ProjectorCore.t(syntax)): Nibs.shapes =>
-  Nib.Shape.(Convex, Convex);

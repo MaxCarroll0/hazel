@@ -1,6 +1,6 @@
 open Virtual_dom.Vdom;
 open Node;
-open Util.Web;
+open Web;
 
 module TestStatus = Haz3lcore.TestStatus;
 module TestMap = Haz3lcore.TestMap;
