@@ -13,8 +13,17 @@ let term_size (e : 'a Grammar.any_t) =
   in
   !id_count
 
+let rec remove y = function
+  | [] -> []
+  | x :: xs when Id.equal x y -> xs
+  | x :: xs -> x :: xs
+
+let rec remove_duplicates = function
+  | [] -> []
+  | x :: xs -> x :: remove_duplicates (remove x xs)
+
 let slice_size (s : TypSlice.t) =
-  (TypSlice.full_slice s.term).term_ids |> List.length
+  (TypSlice.full_slice s.term).term_ids |> remove_duplicates |> List.length
 
 type error_slice_info =
   | NoTypeError
