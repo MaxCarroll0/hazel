@@ -29,8 +29,9 @@ type error_slice_info =
   | NoTypeError
   | BadTrivAp of TypSlice.t (* Analysis slice of the arrow type *)
   | Inconsistent of { syn : TypSlice.t; ana : TypSlice.t }
-  | InconsistentBranches of TypSlice.t list (* Branch synthesis slices *)
-  | InconsistentWithArrow of TypSlice.t (* Arrow slice subpart *)
+  | InconsistentBranches of TypSlice.t list
+(* Branch synthesis slices *)
+(* Expected constructor is also an error with slice, but the slice size is always exactly 1, so pointless analysing *)
 
 type slice_info =
   Id.t * IdTagged.IdTag.t Grammar.any_t * TypSlice.t * error_slice_info
@@ -45,7 +46,16 @@ let common_error_slice_info : Info.error_common -> error_slice_info = function
   | NoType (BadTrivAp ana) -> BadTrivAp ana
   | Inconsistent (Expectation { syn; ana }) -> Inconsistent { syn; ana }
   | Inconsistent (Internal branch_tys) -> InconsistentBranches branch_tys
-  | Inconsistent (WithArrow arrow) -> InconsistentWithArrow arrow
+  (* Arrows can be considered as analysing against ? -> ? with slice being the aplication ?(?) *)
+  | Inconsistent (WithArrow (arrow, slc)) ->
+      Inconsistent
+        {
+          syn = arrow;
+          ana =
+            `Typ
+              (Arrow (Unknown Internal |> Typ.temp, Unknown Internal |> Typ.temp))
+            |> TypSlice.temp |> TypSlice.wrap_global slc;
+        }
 
 let slice_info statics e : slice_info list =
   statics |> Id.Map.to_list
@@ -69,7 +79,7 @@ let slice_info statics e : slice_info list =
                  Pat pat.term,
                  pat.ty,
                  match pat.status with
-                 | NotInHole _ | InHole (ExpectedConstructor | Redundant _) ->
+                 | NotInHole _ | InHole (ExpectedConstructor _ | Redundant _) ->
                      NoTypeError
                  | InHole (Common err) -> common_error_slice_info err )
          | Info.InfoTyp _ | Info.InfoTPat _ | Info.Secondary _ -> None)
