@@ -349,10 +349,8 @@ let aggregate_cast_slice_sizes ss =
 open ResourceLimits
 module DFS = Nondeterminism.DFS
 module SearchDFS = IndetEvaluator.Make (DFS)
-
-(*module IDFS = Nondeterminism.IDFS
-module SearchIDFS = IndetEvaluator.Make(DFS)*)
-
+module IDFS = Nondeterminism.IDFS
+module SearchIDFS = IndetEvaluator.Make (IDFS)
 module BFS = Nondeterminism.BFS
 module SearchBFS = IndetEvaluator.Make (BFS)
 
@@ -370,7 +368,10 @@ let bfs d =
   run_with_limits (fun () ->
       BFS.once (SearchBFS.cast_errors ~env:Builtins.env_init d))
 
-(* let idfs d = run_with_limits (fun () -> IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d)) *)
+let idfs d =
+  run_with_limits (fun () ->
+      IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d))
+
 let bdfs d =
   run_with_limits (fun () ->
       BDFS.once (SearchBDFS.cast_errors ~env:Builtins.env_init d))
@@ -425,6 +426,5 @@ let eval_results search l =
 let dfs_results = eval_results dfs
 let bfs_results = eval_results bfs
 let dfs_results = eval_results dfs
-
-(* let idfs_results = eval_results idfs *)
+let idfs_results = eval_results idfs
 let bdfs_results = eval_results bdfs
