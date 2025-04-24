@@ -22,6 +22,21 @@ let rec remove_duplicates = function
   | [] -> []
   | x :: xs -> x :: remove_duplicates (remove x xs)
 
+let term_ids (e : 'a Grammar.any_t) =
+  let ids = ref [] in
+  let incr_count (type a) cont (e : a IdTagged.t) =
+    ids := e.annotation.ids @ !ids;
+    cont e
+  in
+  let _ =
+    e
+    |> Any.map_term ~f_exp:incr_count ~f_typ:incr_count ~f_pat:incr_count
+         ~f_typslice:incr_count ~f_rul:incr_count
+  in
+  !ids |> remove_duplicates
+
+let rec diff xs = function [] -> xs | y :: ys -> diff (remove y xs) ys
+
 let slice_size (s : TypSlice.t) =
   (TypSlice.full_slice s.term).term_ids |> remove_duplicates |> List.length
 
@@ -57,7 +72,7 @@ let common_error_slice_info : Info.error_common -> error_slice_info = function
             |> TypSlice.temp |> TypSlice.wrap_global slc;
         }
 
-let slice_info statics e : slice_info list =
+let slice_info statics _ : slice_info list =
   statics |> Id.Map.to_list
   |> List.map (fun (id, info) ->
          match info with

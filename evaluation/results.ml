@@ -343,3 +343,88 @@ let aggregate_cast_slice_sizes ss =
         (List.map (fun s -> s.ratio_to_type) ss)
         (List.map (fun s -> s.type_size) ss |> to_floats);
   }
+
+(* Search Procedure Proportions *)
+(* Limiting the running limit to ~60s and 1GB using garbage collector alarms *)
+open ResourceLimits
+module DFS = Nondeterminism.DFS
+module SearchDFS = IndetEvaluator.Make (DFS)
+
+(*module IDFS = Nondeterminism.IDFS
+module SearchIDFS = IndetEvaluator.Make(DFS)*)
+
+module BFS = Nondeterminism.BFS
+module SearchBFS = IndetEvaluator.Make (BFS)
+
+(* Bounded depth increments of 5 *)
+module BDFS =
+  Nondeterminism.Bounded ((val Nondeterminism.const_incr_config ~init:5 ~inc:5))
+
+module SearchBDFS = IndetEvaluator.Make (BDFS)
+
+let dfs d =
+  run_with_limits (fun () ->
+      DFS.once (SearchDFS.cast_errors ~env:Builtins.env_init d))
+
+let bfs d =
+  run_with_limits (fun () ->
+      BFS.once (SearchBFS.cast_errors ~env:Builtins.env_init d))
+
+(* let idfs d = run_with_limits (fun () -> IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d)) *)
+let bdfs d =
+  run_with_limits (fun () ->
+      BDFS.once (SearchBDFS.cast_errors ~env:Builtins.env_init d))
+
+(* Cast size is of the type casted TO, not much reason to inspect the cast from given we have a concrete value to explain it *)
+(* TODO: cast depedence*)
+(* TODO: Code coverage when time outs occur *)
+type search_result =
+  | Witness of {
+      trace_size : int;
+      witness_size : int;
+          (* Sum of sizes of ALL instantiated parts, even if the instantiation is not actually the erroneous part of the witness *)
+      code_coverage : float;
+      cast_size : int;
+      result : Exp.t;
+    }
+  | NoWitness
+  | TimeOut
+  | MemoryExceeded
+
+let eval_results search l =
+  l
+  |> List.map (fun s ->
+         try
+           match search s.elaboration with
+           | None -> NoWitness
+           | Some (state, result) ->
+               Witness
+                 {
+                   trace_size = IndetEvaluatorState.get_trace_length state;
+                   witness_size = IndetEvaluatorState.get_instantiations state;
+                   code_coverage =
+                     Float.of_int
+                       (List.length
+                          (diff
+                             (term_ids (Exp s.elaboration))
+                             [] (* IndetEvaluatorState.get_ids_covered *)))
+                     /. Float.of_int
+                          (List.length (term_ids (Exp s.elaboration)));
+                   cast_size =
+                     (function
+                      | { term = FailedCast (_, _, t); _ } -> slice_size t
+                      | _ -> 0
+                       : Exp.t -> int)
+                       result;
+                   result;
+                 }
+         with
+         | ExceededTimeLimit _ -> TimeOut
+         | ExceededMemoryLimit _ -> MemoryExceeded)
+
+let dfs_results = eval_results dfs
+let bfs_results = eval_results bfs
+let dfs_results = eval_results dfs
+
+(* let idfs_results = eval_results idfs *)
+let bdfs_results = eval_results bdfs
