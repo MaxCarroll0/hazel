@@ -30,6 +30,11 @@ let ill_typed =
     [%blob "data/ill-typed/prog0003.hazel"];
     [%blob "data/ill-typed/prog0004.hazel"];
     [%blob "data/ill-typed/prog0005.hazel"];
+    [%blob "data/ill-typed/prog0001ann.hazel"];
+    [%blob "data/ill-typed/prog0002ann.hazel"];
+    [%blob "data/ill-typed/prog0003ann.hazel"];
+    [%blob "data/ill-typed/prog0004ann.hazel"];
+    [%blob "data/ill-typed/prog0005ann.hazel"];
   ]
   |> List.map make_term_parse
 

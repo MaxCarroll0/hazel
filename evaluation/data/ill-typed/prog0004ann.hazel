@@ -1,0 +1,4 @@
+let sumList : [Int] -> [Int] = fun xs -> case xs 
+  | [] => []
+  | x :: xs' => x + sumList@<a>(xs')
+end in sumList(?)
