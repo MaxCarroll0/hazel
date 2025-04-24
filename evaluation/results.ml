@@ -41,7 +41,6 @@ let slice_info_all = ill_typed @ well_typed |> slice_info
    Proportion of size of term + type. Type size approximates the checking context size *)
 type slice_size = { term_type_size : int; slice_size : int; proportion : float }
 
-(* TODO: Use simplified inconsistency slice joins as the error slice here *)
 let slice_sizes_all l =
   l
   |> List.map (fun (_, term, slice, _) ->
