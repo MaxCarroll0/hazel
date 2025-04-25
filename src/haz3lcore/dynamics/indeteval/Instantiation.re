@@ -23,81 +23,158 @@ module Make =
   let ints = ints_to(0) <|> ints_from(1);
   let int_lits = ints >>| (i => Int(i) |> DHExp.fresh);
   let float_lits = ints >>| (i => Float(Float.of_int(i)) |> DHExp.fresh); // Approximating floats by just enumerating ints
-  let char_lits =
-    List.init(256, i =>
-      i |> Char.chr |> String.make(1) |> (x => String(x) |> DHExp.fresh)
-    )
-    |> List.map(return)
+
+  let chars =
+    List.init(94, i => return(i + 32 |> Char.chr |> String.make(1)))
     |> concat;
-  let string_lits = char_lits; // TODO: all strings, this is a huge state space though...
-  let rec enum_typ: (Typ.term, Environment.t) => t(DHExp.t) =
-    (t, env) =>
-      switch (t) {
-      | Var(_) => failwith("Expeted normalised types during instantiation?")
-      | Label(name) => return(Label(name) |> DHExp.temp)
-      | Unknown(_) => fail
-      | Bool => bool_lits
-      | Int => int_lits
-      | Float => float_lits
-      | String => string_lits
-      | Parens(t) => enum_typ(Typ.term_of(t), env)
-      // NOTE: Arrow instantiation does not currently instantiate different patterns or bindings
-      // The above is not required for finding cast errors, but would be desirable for program generation or logic programming.
-      | Arrow(_, t2) =>
-        enum_typ(Typ.term_of(t2), env)
-        >>| (e => Fun(EmptyHole |> DHPat.fresh, e, None, None) |> DHExp.fresh) // TODO: Check casting logic for potential need for re-elaboration?
-      // Note: must cast tail hole back to list!
-      | List(_) =>
-        return(ListLit([]) |> DHExp.fresh)
-        <|> return(
-              Cons(
+  let rec strings = () =>
+    return("") <|> wrap(chars >>= (c => strings() >>| (s => c ++ s)));
+  let string_lits = strings() >>| (s => String(s) |> DHExp.fresh);
+  let rec enum_typ = (t, env) =>
+    switch (t |> TypSlice.typ_term_of) {
+    | Var(_) => failwith("Expeted normalised types during instantiation?")
+    | Label(name) => return(Label(name) |> DHExp.temp)
+    | Unknown(_) => fail
+    | Bool => bool_lits
+    | Int => int_lits
+    | Float => float_lits
+    | String => string_lits
+    | Parens(_) => enum_typ(TypSlice.unparens(t), env)
+    // NOTE: Arrow instantiation does not currently instantiate different patterns or bindings
+    // This is not required for finding cast errors, but would be desirable for program generation or logic programming.
+    // Note: any cast errors requiring non-constant functions will not be found
+    | Arrow(_, _) =>
+      return(
+        Cast(
+          Fun(Wild |> DHPat.fresh, fresh_hole(), None, None) |> DHExp.fresh,
+          `Typ(
+            Arrow(
+              Unknown(Internal) |> Typ.fresh,
+              Unknown(Internal) |> Typ.fresh,
+            ),
+          )
+          |> TypSlice.fresh,
+          t,
+        )
+        |> DHExp.fresh,
+      )
+    // Note: must cast tail hole back to list!
+    | List(_) =>
+      return(ListLit([]) |> DHExp.fresh)
+      <|> return(
+            Cons(
+              fresh_hole(),
+              Cast(
                 fresh_hole(),
-                Cast(
-                  fresh_hole(),
-                  TypSlice.hole([]) |> TypSlice.fresh,
-                  `Typ(List(Unknown(Internal) |> Typ.fresh))
-                  |> TypSlice.fresh,
-                )
-                |> DHExp.fresh,
+                TypSlice.hole([]) |> TypSlice.fresh,
+                `Typ(List(Unknown(Internal) |> Typ.fresh)) |> TypSlice.fresh,
               )
               |> DHExp.fresh,
             )
-      | Prod(ts) =>
-        ts
-        |> List.map(t => enum_typ(Typ.term_of(t), env))
-        |> (
-          l =>
-            List.fold_right(
-              (t, acc) => {
-                let* t' = t;
-                let* acc' = acc;
-                return([t', ...acc']);
-              },
-              l,
-              return([]),
-            )
-            >>| (l => Tuple(l) |> DHExp.fresh)
+            |> DHExp.fresh,
+          )
+      >>| (
+        e =>
+          Cast(
+            e,
+            `Typ(List(Unknown(Internal) |> Typ.fresh)) |> TypSlice.fresh,
+            t,
+          )
+          |> DHExp.fresh
+      )
+    | Prod(ts) =>
+      return(
+        Cast(
+          Tuple(List.map(_ => fresh_hole(), ts)) |> DHExp.fresh,
+          `Typ(Prod(List.map(_ => Unknown(Internal) |> Typ.fresh, ts)))
+          |> TypSlice.fresh,
+          t,
         )
-      | TupLabel(label, ty) =>
-        let* label = enum_typ(Typ.term_of(label), env);
-        let* body = enum_typ(Typ.term_of(ty), env);
-        return(TupLabel(label, body) |> DHExp.fresh);
-      | Sum(_) => failwith("TODO")
-      | Ap(_)
-      | Forall(_)
-      | Rec(_) => failwith("Extension Task") // Normalised types should mean these aren't even needed much?
-      };
+        |> DHExp.fresh,
+      )
+    | TupLabel(label, ty) =>
+      // TODO: make this produce a ground type!
+      let* label = enum_typ(label |> TypSlice.t_of_typ_t, env);
+      let* body = enum_typ(ty |> TypSlice.t_of_typ_t, env);
+      return(TupLabel(label, body) |> DHExp.fresh);
+    // Note: sum ground instantiations are the variants with unknown argument: i.e.
+    //       type T = A + B(Int) would get A or B(?) with ground type A + B(?)
+    //       These ground types differ with the + ? used in the dynamics/elaboration
+    | Sum(m) =>
+      m
+      |> List.map(
+           fun
+           | ConstructorMap.BadEntry(_) => fail
+           | Variant(ctr, _, None) =>
+             return(
+               Constructor(ctr, Some(t |> TypSlice.typ_of)) |> DHExp.fresh,
+             )
+           | Variant(ctr, _, Some(_)) =>
+             return(
+               Ap(
+                 Forward,
+                 Constructor(ctr, Some(t |> TypSlice.typ_of)) |> DHExp.fresh,
+                 fresh_hole(),
+               )
+               |> DHExp.fresh,
+             ),
+         )
+      |> concat
+      >>| (
+        e =>
+          Cast(
+            e,
+            `Typ(
+              Sum(
+                m
+                |> List.map(
+                     fun
+                     | ConstructorMap.Variant(ctr, ids, Some(_)) =>
+                       ConstructorMap.Variant(
+                         ctr,
+                         ids,
+                         Some(Unknown(Internal) |> Typ.fresh),
+                       )
+                     | v => v,
+                   ),
+              ),
+            )
+            |> TypSlice.fresh,
+            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+          )
+          |> DHExp.fresh
+      )
+    | Forall(tpat, _) =>
+      return(
+        Cast(
+          TypFun(tpat, fresh_hole(), None) |> DHExp.fresh,
+          `Typ(Forall(tpat, Unknown(Internal) |> Typ.fresh))
+          |> TypSlice.fresh,
+          t,
+        )
+        |> DHExp.fresh,
+      )
+    | Rec(_)
+    | Ap(_) => failwith("Expected normalised types during instantiation")
+    };
   // TODO: Check environment for variables which have the given type.
   //<|> (Environment.of_typ(t) |> List.map(x => return(Var(x) |> DHExp.fresh)) |> List.fold(choice, fail))
-  let enum_typ = (t, ctx) =>
-    enum_typ(t |> TypSlice.typ_term_of, ctx)
+  let enum_typ = (t: TypSlice.t, ctx) => {
+    let normalised = TypSlice.normalize(ctx, t);
+    enum_typ(normalised, ctx)
     >>| (
       e =>
-        Cast(e, t, TypSlice.hole([]) |> TypSlice.fresh)
+        Cast(
+          TypSlice.fast_equal(t, normalised)
+            ? e : Cast(e, normalised, t) |> DHExp.fresh,
+          t,
+          TypSlice.hole([]) |> TypSlice.fresh,
+        )
         |> DHExp.fresh
         |> Evaluator.evaluate(~env=Builtins.env_init)
         |> fst
     ); // Evaluate to fixup casts
+  };
 
   // Hole Substitution. Replaces all holes of id: hole_id with an instantiation
   // substitutes d' for holes of hole_id in d
@@ -158,7 +235,7 @@ module Make =
         | None => fail // No hole in redex
         | Hole(_) => fail // No useful type information present
         | HoleCast(id, t) =>
-          enum_typ(t, env) >>| (d' => subst_term(d', id, d))
+          enum_typ(t, Builtins.ctx_init) >>| (d' => subst_term(d', id, d)) // TODO: thread a custom ctx
         | Match(d', branches) =>
           // Nondeterministically wrap scrutinee in casts from match branches
           branches

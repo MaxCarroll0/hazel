@@ -409,7 +409,16 @@ let is_unknown = (~ignore_parens=?, s: t) =>
   s |> typ_of |> Typ.is_unknown(~ignore_parens?);
 let is_arrow = (~ignore_parens=?, s: t) =>
   s |> typ_of |> Typ.is_arrow(~ignore_parens?);
-let is_parens = (s: t) => s |> typ_of |> Typ.is_parens;
+let is_parens = (s: t) =>
+  s.term
+  |> apply(
+       fun
+       | Parens(_) => true
+       | _ => false,
+       fun
+       | Parens(_) => true
+       | _ => false,
+     );
 
 let is_forall = (~ignore_parens=?, s: t) =>
   s |> typ_of |> Typ.is_forall(~ignore_parens?);
@@ -1303,7 +1312,7 @@ let rec normalize = (ctx: Ctx.t, s: t): t => {
   map_merge(typ_normalize, slc_normalize, s);
 };
 
-// Matching functions
+// Matching functions, removes incr slices but keeps global slices
 let rec matched_arrow_strict = (ctx, s: t) => {
   let (_, rewrap) = s |> IdTagged.unwrap;
   switch (term_of(weak_head_normalize(ctx, s))) {
@@ -1313,7 +1322,7 @@ let rec matched_arrow_strict = (ctx, s: t) => {
     |> Option.map(TupleUtil.map2(t_of_typ_t))
   | `SliceIncr(Slice(s'), _) =>
     switch (s') {
-    | Parens(_) => matched_arrow_strict(ctx, unparens(s))
+    | Parens(s) => matched_arrow_strict(ctx, s)
     | Arrow(s1, s2) => Some((s1, s2))
     | _ => None
     }
@@ -1341,7 +1350,7 @@ let rec matched_forall_strict = (ctx, s) => {
     |> Option.map(((tpat, ty)) => (tpat, t_of_typ_t(ty)))
   | `SliceIncr(Slice(s'), _) =>
     switch (s') {
-    | Parens(_) => matched_forall_strict(ctx, unparens(s))
+    | Parens(s) => matched_forall_strict(ctx, unparens(s))
     | Forall(t, ty) => Some((Some(t), ty))
     | _ => None // (None, Unknown(Internal) |> temp)
     }
@@ -1431,7 +1440,7 @@ let rec matched_list_strict = (ctx, s) => {
     Typ.matched_list_strict(ctx, ty |> rewrap) |> Option.map(t_of_typ_t)
   | `SliceIncr(Slice(s'), _) =>
     switch (s') {
-    | Parens(_) => matched_list_strict(ctx, unparens(s))
+    | Parens(s) => matched_list_strict(ctx, s)
     | List(ty) => Some(ty)
     | _ => None
     }
@@ -1455,7 +1464,7 @@ let rec matched_args = (ctx, default_arity, s) => {
     |> List.map(t_of_typ_t)
   | `SliceIncr(Slice(s''), _) =>
     switch (s'') {
-    | Parens(_) => matched_args(ctx, default_arity, unparens(s))
+    | Parens(s) => matched_args(ctx, default_arity, s)
     | Prod([_, ..._] as tys) => tys
     | _ => [s']
     }
@@ -1465,70 +1474,53 @@ let rec matched_args = (ctx, default_arity, s) => {
   };
 };
 
-let rec get_sum_constructors =
-        (ctx: Ctx.t, {term, _} as s: t): option(sum_map) => {
+let rec get_sum_constructors = (ctx: Ctx.t, s: t): option(sum_map) => {
   let rewrap = term' => {
     ...s,
     term: term',
   };
   let s = weak_head_normalize(ctx, s);
-  switch (term) {
-  | `Typ(ty)
-  | `SliceIncr(Typ(ty), _) =>
-    Typ.get_sum_constructors(ctx, ty |> rewrap)
-    |> Option.map(ConstructorMap.map_preserving(t_of_typ_t))
-  | `SliceIncr(Slice(s'), _) =>
-    switch (s') {
-    | Parens(_) => get_sum_constructors(ctx, unparens(s))
-    | Sum(sm) => Some(sm)
-    | Rec(_) =>
-      /* Note: We must unroll here to get right ctr types;
-         otherwise the rec parameter will leak. However, seeing
-         as substitution is too expensive to be used here, we
-         currently making the optimization that, since all
-         recursive types are type alises which use the alias name
-         as the recursive parameter, and type aliases cannot be
-         shadowed, it is safe to simply remove the Rec constructor,
-         provided we haven't escaped the context in which the alias
-         is bound. If either of the above assumptions become invalid,
-         the below code will be incorrect! */
-      let unr = ({term, _}: incr_t) =>
-        switch (term) {
-        | `Typ(Rec({term: Var(x), _}, ty_body))
-        | `SliceIncr(Typ(Rec({term: Var(x), _}, ty_body)), _) =>
-          switch (Ctx.lookup_alias(ctx, x)) {
-          | None => unroll(s)
-          | Some(_) =>
-            let (term, rewrap) = ty_body |> IdTagged.unwrap;
-            `Typ(term) |> rewrap;
-          }
-        | `SliceIncr(Slice(Rec({term: Var(x), _}, s_body)), _) =>
-          switch (Ctx.lookup_alias(ctx, x)) {
-          | None => unroll(s)
-          | Some(_) => s_body
-          }
-        | _ => s
-        };
-      let s =
-        switch (s |> term_of) {
-        | `SliceGlobal(s, _) => unr(s |> rewrap)
-        | `Typ(_) as s
-        | `SliceIncr(_) as s => unr(s |> rewrap)
-        };
-      switch (s |> term_of) {
-      | `Typ(Sum(sm))
-      | `SliceIncr(Typ(Sum(sm)), _)
-      | `SliceGlobal(`Typ(Sum(sm)), _)
-      | `SliceGlobal(`SliceIncr(Typ(Sum(sm)), _), _) =>
-        Some(ConstructorMap.map_preserving(t_of_typ_t, sm))
-      | `SliceIncr(Slice(Sum(sm)), _)
-      | `SliceGlobal(`SliceIncr(Slice(Sum(sm)), _), _) => Some(sm)
-      | #term => None
-      };
-    | _ => None
-    }
-  | _ => None
-  };
+  apply_t(
+    ty =>
+      Typ.get_sum_constructors(ctx, ty)
+      |> Option.map(ConstructorMap.map_preserving(t_of_typ_t)),
+    s =>
+      switch (s.term) {
+      | Parens(s) => get_sum_constructors(ctx, s)
+      | Sum(sm) => Some(sm)
+      | Rec(_) =>
+        /* Note: We must unroll here to get right ctr types;
+           otherwise the rec parameter will leak. However, seeing
+           as substitution is too expensive to be used here, we
+           currently making the optimization that, since all
+           recursive types are type alises which use the alias name
+           as the recursive parameter, and type aliases cannot be
+           shadowed, it is safe to simply remove the Rec constructor,
+           provided we haven't escaped the context in which the alias
+           is bound. If either of the above assumptions become invalid,
+           the below code will be incorrect! */
+        let s =
+          switch (s.term) {
+          | Rec({term: Var(x), _}, s_body) =>
+            switch (Ctx.lookup_alias(ctx, x)) {
+            | None => unroll(s |> IdTagged.apply(term_of_slc_typ_term))
+            | Some(_) => s_body
+            }
+          | _ => s |> IdTagged.apply(term_of_slc_typ_term)
+          };
+        apply(
+          fun
+          | Sum(sm) => Some(sm |> ConstructorMap.map_preserving(t_of_typ_t))
+          | _ => None,
+          fun
+          | Sum(sm) => Some(sm)
+          | _ => None,
+          s.term,
+        );
+      | _ => None
+      },
+    s,
+  );
 };
 
 let is_synswitch = s =>
