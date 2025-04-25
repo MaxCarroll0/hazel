@@ -1,4 +1,4 @@
-let sumList : [? -> ? -> [?]] -> [?] = fun xs -> case xs 
+let sumList : [? -> ? -> [[?]]] -> [Int] = fun xs -> case xs 
   | [] => []
   | x :: xs' => x(sumList)(xs')
 end in sumList(?)
