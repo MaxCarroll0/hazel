@@ -30,16 +30,19 @@ module Make = (S: Search) => {
     | BoxedValue =>
       logic(d, Searching.BoxedValue) >>| inject_state(next_state)
     | Indet =>
-      let next_state_after_instantiation =
-        IndetEvaluatorState.incr_instantiations(1, next_state);
       logic(d, Indet)
       >>| inject_state(next_state)
       <|> wrap(
             d
             |>- Instantiation.instantiate(env)
-            >>| inject_state(next_state_after_instantiation)
+            >>| (
+              ((n, r)) => (
+                IndetEvaluatorState.incr_instantiations(n, next_state),
+                r,
+              )
+            )
             >>= search,
-          );
+          )
     | Step(exp) =>
       let next_state_after_step =
         IndetEvaluatorState.incr_trace(1, next_state);

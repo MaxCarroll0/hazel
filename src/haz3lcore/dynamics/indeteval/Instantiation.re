@@ -4,7 +4,7 @@ open Nondeterminism;
 module Make =
        (S: Search)
        : {
-         let instantiate: (Environment.t, DHExp.t) => S.t(DHExp.t);
+         let instantiate: (Environment.t, DHExp.t) => S.t((int, DHExp.t));
        } => {
   open S;
   open S.Infix;
@@ -13,27 +13,35 @@ module Make =
   let fresh_hole = () => DHExp.hole([]) |> DHExp.fresh;
   let fresh_hole_slice = () => TypSlice.hole([]) |> TypSlice.fresh;
 
+  // Track additional size with fst proj
   let bool_lits =
-    return(Bool(true) |> DHExp.fresh)
-    <|> return(Bool(false) |> DHExp.fresh);
+    return((1, Bool(true) |> DHExp.fresh))
+    <|> return((1, Bool(false) |> DHExp.fresh));
 
   let rec ints_from = n =>
-    return(n) <|> wrap(n |>- (n => ints_from(n + 1)));
-  let rec ints_to = n => return(n) <|> wrap(n |>- (n => ints_to(n - 1)));
+    // 'Size' of int is the int itself
+    return((n + 1, n)) <|> wrap(n |>- (n => ints_from(n + 1)));
+  let rec ints_to = n =>
+    return((- n + 1, n)) <|> wrap(n |>- (n => ints_to(n - 1)));
   let ints = ints_to(0) <|> ints_from(1);
-  let int_lits = ints >>| (i => Int(i) |> DHExp.fresh);
-  let float_lits = ints >>| (i => Float(Float.of_int(i)) |> DHExp.fresh); // Approximating floats by just enumerating ints
-
+  let int_lits = ints >>| (((n, i)) => (n, Int(i) |> DHExp.fresh));
+  let float_lits =
+    ints >>| (((n, i)) => (n, Float(Float.of_int(i)) |> DHExp.fresh)); // Approximating floats by just enumerating ints
   let chars =
-    List.init(94, i => return(i + 32 |> Char.chr |> String.make(1)))
+    List.init(94, i => return((i + 1, i + 32 |> Char.chr |> String.make(1))))
     |> concat;
   let rec strings = () =>
-    return("") <|> wrap(chars >>= (c => strings() >>| (s => c ++ s)));
-  let string_lits = strings() >>| (s => String(s) |> DHExp.fresh);
+    return((1, ""))
+    <|> wrap(
+          chars
+          >>= (((n, c)) => strings() >>| (((n2, s)) => (n + n2, c ++ s))),
+        );
+  let string_lits =
+    strings() >>| (((n, s)) => (n, String(s) |> DHExp.fresh));
   let rec enum_typ = (t, env) =>
     switch (t |> TypSlice.typ_term_of) {
     | Var(_) => failwith("Expeted normalised types during instantiation?")
-    | Label(name) => return(Label(name) |> DHExp.temp)
+    | Label(name) => return((1, Label(name) |> DHExp.temp))
     | Unknown(_) => fail
     | Bool => bool_lits
     | Int => int_lits
@@ -44,7 +52,8 @@ module Make =
     // This is not required for finding cast errors, but would be desirable for program generation or logic programming.
     // Note: any cast errors requiring non-constant functions will not be found
     | Arrow(_, _) =>
-      return(
+      return((
+        1,
         Cast(
           Fun(Wild |> DHPat.fresh, fresh_hole(), None, None) |> DHExp.fresh,
           `Typ(
@@ -57,11 +66,12 @@ module Make =
           t,
         )
         |> DHExp.fresh,
-      )
+      ))
     // Note: must cast tail hole back to list!
     | List(_) =>
-      return(ListLit([]) |> DHExp.fresh)
-      <|> return(
+      return((1, ListLit([]) |> DHExp.fresh))
+      <|> return((
+            1,
             Cons(
               fresh_hole(),
               Cast(
@@ -72,18 +82,21 @@ module Make =
               |> DHExp.fresh,
             )
             |> DHExp.fresh,
-          )
+          ))
       >>| (
-        e =>
+        ((n, e)) => (
+          n,
           Cast(
             e,
             `Typ(List(Unknown(Internal) |> Typ.fresh)) |> TypSlice.fresh,
             t,
           )
-          |> DHExp.fresh
+          |> DHExp.fresh,
+        )
       )
     | Prod(ts) =>
-      return(
+      return((
+        1,
         Cast(
           Tuple(List.map(_ => fresh_hole(), ts)) |> DHExp.fresh,
           `Typ(Prod(List.map(_ => Unknown(Internal) |> Typ.fresh, ts)))
@@ -91,26 +104,29 @@ module Make =
           t,
         )
         |> DHExp.fresh,
-      )
+      ))
     | TupLabel(label, ty) =>
       // TODO: make this produce a ground type!
       let* label = enum_typ(label |> TypSlice.t_of_typ_t, env);
       let* body = enum_typ(ty |> TypSlice.t_of_typ_t, env);
-      return(TupLabel(label, body) |> DHExp.fresh);
+      return((
+        1 + (label |> fst) + (body |> fst),
+        TupLabel(label |> snd, body |> snd) |> DHExp.fresh,
+      ));
     // Note: sum ground instantiations are the variants with unknown argument: i.e.
     //       type T = A + B(Int) would get A or B(?) with ground type A + B(?)
     //       These ground types differ with the + ? used in the dynamics/elaboration
     | Sum(m) =>
       m
-      |> List.map(
+      |> List.filter_map(
            fun
-           | ConstructorMap.BadEntry(_) => fail
+           | ConstructorMap.BadEntry(_) => None
            | Variant(ctr, _, None) =>
-             return(
+             Some(
                Constructor(ctr, Some(t |> TypSlice.typ_of)) |> DHExp.fresh,
              )
            | Variant(ctr, _, Some(_)) =>
-             return(
+             Some(
                Ap(
                  Forward,
                  Constructor(ctr, Some(t |> TypSlice.typ_of)) |> DHExp.fresh,
@@ -119,9 +135,11 @@ module Make =
                |> DHExp.fresh,
              ),
          )
+      |> List.mapi((n, e) => return((n + 1, e)))
       |> concat
       >>| (
-        e =>
+        ((n, e)) => (
+          n,
           Cast(
             e,
             `Typ(
@@ -142,10 +160,12 @@ module Make =
             |> TypSlice.fresh,
             `Typ(Unknown(Internal)) |> TypSlice.fresh,
           )
-          |> DHExp.fresh
+          |> DHExp.fresh,
+        )
       )
     | Forall(tpat, _) =>
-      return(
+      return((
+        1,
         Cast(
           TypFun(tpat, fresh_hole(), None) |> DHExp.fresh,
           `Typ(Forall(tpat, Unknown(Internal) |> Typ.fresh))
@@ -153,7 +173,7 @@ module Make =
           t,
         )
         |> DHExp.fresh,
-      )
+      ))
     | Rec(_)
     | Ap(_) => failwith("Expected normalised types during instantiation")
     };
@@ -163,7 +183,8 @@ module Make =
     let normalised = TypSlice.normalize(ctx, t);
     enum_typ(normalised, ctx)
     >>| (
-      e =>
+      ((n, e)) => (
+        n,
         Cast(
           TypSlice.fast_equal(t, normalised)
             ? e : Cast(e, normalised, t) |> DHExp.fresh,
@@ -172,7 +193,8 @@ module Make =
         )
         |> DHExp.fresh
         |> Evaluator.evaluate(~env=Builtins.env_init)
-        |> fst
+        |> fst,
+      )
     ); // Evaluate to fixup casts
   };
 
@@ -235,7 +257,8 @@ module Make =
         | None => fail // No hole in redex
         | Hole(_) => fail // No useful type information present
         | HoleCast(id, t) =>
-          enum_typ(t, Builtins.ctx_init) >>| (d' => subst_term(d', id, d)) // TODO: thread a custom ctx
+          enum_typ(t, Builtins.ctx_init)
+          >>| (((n, d')) => (n, subst_term(d', id, d))) // TODO: thread a custom ctx
         | Match(d', branches) =>
           // Nondeterministically wrap scrutinee in casts from match branches
           branches
@@ -248,7 +271,8 @@ module Make =
           |> ListUtil.remove_duplicates(TypSlice.fast_equal)
           // Such a scrutinee only occurs when it is of the dynamic type, so cast ? -> t
           |> List.map(t =>
-               return(
+               return((
+                 0,
                  subst_term(
                    Cast(
                      Cast(d', TypSlice.hole([]) |> TypSlice.fresh, t)
@@ -260,7 +284,7 @@ module Make =
                    Exp.rep_id(d'),
                    d,
                  ),
-               )
+               ))
              )
           |> List.fold_left(S.choice, fail)
       )
