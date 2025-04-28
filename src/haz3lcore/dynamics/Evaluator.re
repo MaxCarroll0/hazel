@@ -1,7 +1,4 @@
 open Transition;
-
-open ProgramResult.Result;
-
 open Trampoline;
 
 module EvaluatorEVMode: {
@@ -11,7 +8,7 @@ module EvaluatorEVMode: {
 
   include
     EV_MODE with
-      type state = ref(EvaluatorState.t) and
+      type state = ref(IndetEvaluatorState.t) and
       type result = Trampoline.t((status, DHExp.t));
 } = {
   open Trampoline.Syntax;
@@ -24,9 +21,12 @@ module EvaluatorEVMode: {
   type requirement('a) = Trampoline.t('a);
   type requirements('a, 'b) = Trampoline.t(('a, 'b));
 
-  type state = ref(EvaluatorState.t);
+  type state = ref(IndetEvaluatorState.t);
   let update_test = (state, id, v) =>
-    state := EvaluatorState.add_test(state^, id, v);
+    state := IndetEvaluatorState.add_test(state^, id, v);
+
+  let update_probe = (state, closure: Dynamics.Probe.Closure.t) =>
+    state := IndetEvaluatorState.add_closure(state^, closure);
 
   let req_final = (f, _, x) => {
     let.trampoline x' = Next(() => f(x));
@@ -68,7 +68,15 @@ module Eval = Transition(EvaluatorEVMode);
 
 let rec evaluate = (~in_closure=?, state, env, d) => {
   open Trampoline.Syntax;
-  let.trampoline u = Eval.transition(evaluate, ~in_closure?, state, env, d);
+  let.trampoline u =
+    Eval.transition(
+      evaluate,
+      ~mode=`Environment,
+      ~in_closure?,
+      state,
+      env,
+      d,
+    );
   switch (u) {
   | (Final, x) => (EvaluatorEVMode.Final, x) |> Trampoline.return
   | (Uneval, x) => Trampoline.Next(() => evaluate(state, env, x))
@@ -76,38 +84,23 @@ let rec evaluate = (~in_closure=?, state, env, d) => {
 };
 
 let evaluate' = (env, d: DHExp.t) => {
-  let state = ref(EvaluatorState.init);
-  let env = ClosureEnvironment.of_environment(env);
-  let result = evaluate(state, env, d);
-  let result = Trampoline.run(result);
-  let result =
-    switch (result) {
-    | (Final, x) => BoxedValue(x |> DHExp.repair_ids)
-    | (Uneval, x) => Indet(x |> DHExp.repair_ids)
-    };
-  (state^, result);
-};
-
-let evaluate'' = (env, d: DHExp.t) => {
-  let state = ref(EvaluatorState.init);
+  let state = ref(IndetEvaluatorState.init);
   let env = ClosureEnvironment.of_environment(env);
   let result = evaluate(state, env, d);
   Trampoline.run(result) |> snd;
 };
 
-let evaluate =
-    (~settings: CoreSettings.t, ~env=Builtins.env_init, elab: DHExp.t)
-    : ProgramResult.t(ProgramResult.inner) =>
-  switch () {
-  | _ when !settings.dynamics => Off(elab)
-  | _ =>
-    switch (evaluate'(env, elab)) {
-    | exception (EvaluatorError.Exception(reason)) =>
-      print_endline("EvaluatorError:" ++ EvaluatorError.show(reason));
-      ResultFail(EvaulatorError(reason));
-    | exception exn =>
-      print_endline("EXN:" ++ Printexc.to_string(exn));
-      ResultFail(UnknownException(Printexc.to_string(exn)));
-    | (state, result) => ResultOk({result, state})
-    }
-  };
+let evaluate = (~env, d: DHExp.t) => {
+  let state = ref(IndetEvaluatorState.init);
+  let env = ClosureEnvironment.of_environment(env);
+  let result = evaluate(state, env, d);
+  let result = Trampoline.run(result);
+  let result =
+    switch (result) {
+    | (Final, x) => x |> Exp.replace_all_ids
+    | (Uneval, x) => x |> Exp.replace_all_ids
+    };
+  let result =
+    result |> Exp.substitute_closures(env |> ClosureEnvironment.map_of);
+  (result, state^);
+};

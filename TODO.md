@@ -47,7 +47,9 @@ As compared to `witnesses` branch:
 
 # Slicing
 - [X] Add slices to inserted casts to least specific compound types, i.e. [ ]
-- [ ] HIGH PRIORITY: UI for synthesis slices AND analysis slices AND their joins
+- [ ] HIGH PRIORITY: UI for synthesis slices AND analysis slices AND their joins.
+- [ ] HIGH PRIORITY: Allow turning slicing off.
+- [ ] MIDDLE PRIORITY: Fix slice performance when scrolling.
 
 # SEARCH PROC/INDET EVAL:
 - [ ] Catch only cast errors in direct evaluation line - i.e. having been established by hole instantiation (which also only are instantiated in direct evaluation line)
@@ -94,3 +96,6 @@ end```
 - [X] Parentheses not highlighted in slices (likely due to type normliasation?)
 - [ ] Type application not highlighted in slice, e.g: let f : forall A -> A -> A = typfun B -> fun x -> x in f@<Int>**(** 2 **)**. This is because (probably): type slice substitution drops all slices (as `Var(_)` appears only in Typ. and Typ.subst is used here)
 - [X] Cast slice stack overflows see: `let f : forall A -> A -> A = typfun B -> fun x -> x in f@<Int>(2)`
+- [ ] Forall Type Checking failure (see failed test)
+- [ ] Labeled Tuple Elaboration failures (see tests)
+- [ ] Pattern NoTyp(FreeConstructor) unnecessarily acting (see tests)

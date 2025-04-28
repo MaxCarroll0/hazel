@@ -29,15 +29,26 @@ type join_type =
 type t =
   | Just(TypSlice.t) /* Just a regular type */
   | NoJoin(join_type, list(TypSlice.source)) /* Inconsistent types for e.g match, listlits */
-  | BadToken(Token.t) /* Invalid expression token, treated as hole */
+  | Duplicate(LabeledTuple.label, t) /* Duplicate label, marked as duplicate */
+  | BadToken(Token.t) /* Invalid expression token, continues with undefined behavior */
   | BadTrivAp(TypSlice.t) /* Trivial (nullary) ap on function that doesn't take triv */
+  | BadLabel(Any.t) /* TupLabel label component is not a valid Label*/
+  | InvalidLabel(LabeledTuple.label) /* Invalid label in a labeled tuple */
+  | TupleLabelError({
+      malformed_labels: list(Any.t), // Labels that are not of the right syntactic form
+      duplicate_labels: list(LabeledTuple.label),
+      invalid_labels: list(LabeledTuple.label), // Labels that are present but aren't present in the analyzed type
+      typ: TypSlice.t,
+    }) /* Tuple/TupLabel contains malformed labels, duplicate labels, and/or invalid labels */
   | IsMulti /* Multihole, treated as hole */
   | IsConstructor({
       name: Constructor.t,
       syn_ty: option(TypSlice.t),
-    }); /* Constructors have special ana logic */
+    }) /* Constructors have special ana logic */
+  | WantTuple /* Want a Tuple, found not-tuple */
+  | LabelNotFound(LabeledTuple.label, list(LabeledTuple.label)); /* Currently used by the dot operator for a label not found */
 
-[@deriving (show({with_path: false}), sexp, yojson)]
+[@deriving (show({with_path: false}), sexp, yojson, eq)]
 type error_partial_ap =
   | NoDeferredArgs
   | ArityMismatch({
@@ -73,11 +84,18 @@ let join_of = (j: join_type, ty: TypSlice.t): TypSlice.t =>
 let typ_of: (Ctx.t, t) => option(TypSlice.t) =
   _ctx =>
     fun
-    | Just(typ) => Some(typ)
+    | Just(typ)
+    | Duplicate(_, Just(typ))
+    | TupleLabelError({typ, _}) => Some(typ)
     | IsConstructor({syn_ty, _}) => syn_ty
     | BadToken(_)
     | BadTrivAp(_)
     | IsMulti
+    | Duplicate(_)
+    | WantTuple
+    | LabelNotFound(_)
+    | BadLabel(_)
+    | InvalidLabel(_)
     | NoJoin(_) => None;
 
 let typ_of_exp: (Ctx.t, exp) => option(TypSlice.t) =
@@ -111,34 +129,55 @@ let of_exp_var = (ids: list(Id.t), ctx: Ctx.t, name: Var.t): exp =>
     )
   };
 
-/* The self of a ctr depends on the ctx, but a
-   lookup failure doesn't necessarily means its
-   free; it may be given a type analytically */
-// The syn slice should include ids of the ctr
-let of_ctr = (ids, ctx: Ctx.t, name: Constructor.t, ty: Typ.t): t =>
-  switch (ty) {
-  | {term: Unknown(Internal), _} =>
-    IsConstructor({
-      name,
-      syn_ty:
-        switch (Ctx.lookup_ctr(ctx, name)) {
-        | None => None
-        | Some({typ, _}) =>
-          Some(
-            typ
-            |> TypSlice.(wrap_global(slice_of_ctx_ids([Ctr(name)], ids))),
-          )
-        },
-    })
-  | _ => IsConstructor({name, syn_ty: Some(ty |> TypSlice.t_of_typ_t)}) // TODO: Consider how to deal with slices here
-  };
+let of_ctr =
+    (
+      ids,
+      ctx: Ctx.t,
+      name: Constructor.t,
+      mode: Mode.t,
+      ty: option(TypSlice.t),
+    )
+    : t =>
+  // this has gotten a bit complex, depends on mode
+  IsConstructor({
+    name,
+    syn_ty:
+      switch (ty) {
+      | Some(_) => ty
+      | None =>
+        switch (mode) {
+        | SynFun(_)
+        | Syn =>
+          switch (Ctx.lookup_ctr(ctx, name)) {
+          | None => None
+          | Some({typ, _}) =>
+            Some(typ |> TypSlice.(wrap_incr(slice_of_ids(ids))))
+          }
+        | Ana(ana) when TypSlice.is_unknown(ana, ~ignore_parens=false) =>
+          switch (Ctx.lookup_ctr(ctx, name)) {
+          | None => None
+          | Some({typ, _}) =>
+            Some(typ |> TypSlice.(wrap_incr(slice_of_ids(ids))))
+          }
+        | Ana(_) =>
+          Mode.ctr_ana_typ(ids, ctx, mode, name)
+          |> Option.map(TypSlice.(wrap_incr(slice_of_ids(ids))))
+        | SynTypFun(_) => None
+        }
+      },
+  });
 
 let of_deferred_ap =
     (args, ty_ins: list(TypSlice.t), ty_out: TypSlice.t): exp => {
   let expected = List.length(ty_ins);
   let actual = List.length(args);
   if (expected != actual) {
-    IsBadPartialAp(ArityMismatch({expected, actual}));
+    IsBadPartialAp(
+      ArityMismatch({
+        expected,
+        actual,
+      }),
+    );
   } else if (List.for_all(Exp.is_deferral, args)) {
     IsBadPartialAp(NoDeferredArgs);
   } else {
@@ -160,7 +199,13 @@ let of_deferred_ap =
   };
 };
 
-let add_source = List.map2((id, ty) => TypSlice.{id, ty});
+let add_source =
+  List.map2((id, ty) =>
+    TypSlice.{
+      id,
+      ty,
+    }
+  );
 
 let of_match =
     (ids: list(Id.t), ctx: Ctx.t, tys: list(TypSlice.t), c_ids: list(Id.t))
@@ -296,9 +341,8 @@ let of_typfun = (ids: list(Id.t), tpat, ty) =>
     |> TypSlice.temp,
   );
 
-let of_let = (ids: list(Id.t), is_exhaustive: bool, ty: TypSlice.t) => {
-  let unwrapped_self: exp =
-    Common(Just(TypSlice.(ty |> wrap_incr(slice_of_ids(ids)))));
+let of_let = (is_exhaustive: bool, ty: TypSlice.t) => {
+  let unwrapped_self: exp = Common(Just(TypSlice.(ty)));
   is_exhaustive ? unwrapped_self : InexhaustiveMatch(unwrapped_self);
 };
 
@@ -415,4 +459,34 @@ let of_annot = (~skip_slices=true, ids: list(Id.t), ty: TypSlice.t): t => {
   Just(
     /*create_slices*/ ty |> TypSlice.(wrap_global(slice_of_ids(ids))),
   );
+};
+
+let of_tuple =
+    (ids, ~duplicate_labels, ~malformed_labels, ~invalid_labels, ty_list) => {
+  let ty_list = TypSlice.remove_duplicate_labels(~duplicate_labels, ty_list);
+
+  List.is_empty(malformed_labels)
+  && List.is_empty(duplicate_labels)
+  && List.is_empty(invalid_labels)
+    ? Just(
+        `SliceIncr((Slice(Prod(ty_list)), TypSlice.slice_of_ids(ids)))
+        |> TypSlice.temp,
+      )
+    : TupleLabelError({
+        malformed_labels,
+        duplicate_labels,
+        invalid_labels,
+        typ:
+          `SliceIncr((Slice(Prod(ty_list)), TypSlice.slice_of_ids(ids)))
+          |> TypSlice.temp,
+      });
+};
+
+let of_label = (ids, name, ~duplicates) => {
+  let self =
+    Just(
+      `SliceIncr((Typ(Label(name)), TypSlice.slice_of_ids(ids)))
+      |> TypSlice.temp,
+    );
+  List.exists(l => name == l, duplicates) ? Duplicate(name, self) : self;
 };

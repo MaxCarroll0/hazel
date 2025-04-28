@@ -35,11 +35,26 @@ let extend_tvar = (ctx: t, tvar_entry: tvar_entry): t =>
 
 let extend_alias =
     (ctx: t, name: string, id: Id.t, ty: TermBase.TypSlice.t): t =>
-  extend_tvar(ctx, {name, id, kind: Singleton(ty)});
+  extend_tvar(
+    ctx,
+    {
+      name,
+      id,
+      kind: Singleton(ty),
+    },
+  );
 
 let extend_dummy_tvar = (ctx: t, tvar: TPat.t) =>
   switch (TPat.tyvar_of_utpat(tvar)) {
-  | Some(name) => extend_tvar(ctx, {kind: Abstract, name, id: Id.invalid})
+  | Some(name) =>
+    extend_tvar(
+      ctx,
+      {
+        kind: Abstract,
+        name,
+        id: Id.invalid,
+      },
+    )
   | None => ctx
   };
 
@@ -109,7 +124,7 @@ let lookup_alias = (ctx: t, name: string): option(TermBase.TypSlice.t) =>
 // name_ids are the ids to slice source of name
 let add_ctrs =
     (
-      name_ids: list(Id.t),
+      def_ids: list(Id.t),
       ctx: t,
       name: string,
       id: Id.t,
@@ -118,28 +133,52 @@ let add_ctrs =
     : t =>
   List.filter_map(
     fun
-    | ConstructorMap.Variant(ctr, _, typ) =>
+    | ConstructorMap.Variant(ctr, ctr_ids, typ) =>
       Some(
         ConstructorEntry({
           name: ctr,
           id,
           typ:
             switch (typ) {
-            | None => `Typ(Var(name): TermBase.typ_term) |> IdTagged.fresh
+            | None =>
+              (
+                `SliceGlobal((
+                  `SliceIncr((
+                    Typ(Var(name)),
+                    {
+                      ctx_used: [],
+                      term_ids: [id, ...ctr_ids],
+                    }: TermBase.slice_incr,
+                  )): TermBase.typslice_incr_term,
+                  {
+                    ctx_used: [],
+                    term_ids: def_ids,
+                  },
+                )): TermBase.typslice_term
+              )
+              |> IdTagged.fresh
             | Some(typ) =>
-              `SliceIncr((
-                Slice(
-                  Arrow(
-                    typ,
-                    `SliceGlobal((
-                      `Typ(Var(name): TermBase.typ_term),
-                      {ctx_used: [], term_ids: name_ids}: TermBase.slice_global,
-                    ))
-                    |> IdTagged.fresh: TermBase.typslice_t,
+              (
+                `SliceIncr((
+                  Slice(
+                    Arrow(
+                      typ,
+                      `SliceGlobal((
+                        `Typ(Var(name): TermBase.typ_term),
+                        {
+                          ctx_used: [],
+                          term_ids: def_ids,
+                        }: TermBase.slice_global,
+                      ))
+                      |> IdTagged.fresh,
+                    ),
                   ),
-                ): TermBase.typslice_typ_term,
-                {ctx_used: [], term_ids: [id]}: TermBase.slice_incr,
-              ))
+                  {
+                    ctx_used: [],
+                    term_ids: [id, ...ctr_ids],
+                  },
+                )): TermBase.typslice_term
+              )
               |> IdTagged.fresh
             },
         }),
@@ -196,5 +235,37 @@ let filter_duplicates = (ctx: t): t =>
      )
   |> (((ctx, _, _)) => List.rev(ctx));
 
+let filter_stepper_filter_variables = (ctx: t): t =>
+  ctx
+  |> List.fold_left(
+       (ctx, entry) => {
+         switch (entry) {
+         | VarEntry({name, _})
+         | ConstructorEntry({name, _})
+         | TVarEntry({name, _}) =>
+           if (String.starts_with(~prefix="$", name)) {
+             ctx;
+           } else {
+             [entry, ...ctx];
+           }
+         }
+       },
+       [],
+     )
+  |> List.rev;
+
 let shadows_typ = (ctx: t, name: string): bool =>
   Form.is_base_typ(name) || lookup_tvar(ctx, name) != None;
+
+/* The binding (binding site id and name) of `name` in `ctx` */
+let binding_of = (ctx: t, name: Var.t): Binding.t =>
+  switch (lookup_var(ctx, name)) {
+  | Some({id, _}) => {
+      id,
+      name,
+    }
+  | _ => {
+      id: Id.invalid,
+      name,
+    }
+  };

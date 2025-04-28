@@ -28,14 +28,11 @@ module Result = {
  */
 [@deriving (show({with_path: false}), sexp, yojson)]
 type inner = {
-  result: Result.t,
-  state: EvaluatorState.t,
+  result: Exp.t,
+  state: IndetEvaluatorState.t,
 };
 
-type indet = {
-  results: Futures.t,
-  // TODO: threading states through each future
-};
+type indet = {results: list(DHExp.t)};
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type error =
@@ -50,7 +47,7 @@ type t('a) =
   | ResultFail(error)
   | ResultPending;
 
-let get_dhexp = (r: inner) => Result.unbox(r.result);
+let get_dhexp = (r: inner) => r.result;
 let get_state = (r: inner) => r.state;
 
 let map = (f: 'a => 'b, r: t('a)) =>

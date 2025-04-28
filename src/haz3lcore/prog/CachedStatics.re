@@ -10,13 +10,15 @@ type t = {
 
 let empty: t = {
   term: {
-    ids: [Id.invalid],
-    copied: false,
+    annotation: {
+      ids: [Id.invalid],
+    },
     term: Tuple([]),
   },
   elaborated: {
-    ids: [Id.invalid],
-    copied: false,
+    annotation: {
+      ids: [Id.invalid],
+    },
     term: Tuple([]),
   },
   info_map: Id.Map.empty,
@@ -40,10 +42,15 @@ let init_from_term = (~settings, term): t => {
     | _ =>
       switch (elaborate(info_map, term)) {
       | DoesNotElaborate => dh_err("Elaboration returns None")
-      | Elaborates(d, _, _) => d
+      | Elaborates(d, _) => d
       }
     };
-  {term, elaborated, info_map, error_ids};
+  {
+    term,
+    elaborated,
+    info_map,
+    error_ids,
+  };
 };
 
 let init = (~settings: CoreSettings.t, ~stitch, z: Zipper.t): t => {

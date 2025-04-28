@@ -4,10 +4,19 @@ open Haz3lcore;
    It was originally directly in Keyboard, but that added a handler
    dependency on the model, which is technically against architecture */
 
+module BDFS =
+  Nondeterminism.Bounded(
+    (val Nondeterminism.const_incr_config(~init=5, ~inc=5)),
+  );
+module BFS = Nondeterminism.BFS;
+module DFS = Nondeterminism.DFS;
+module SearchBDFS = IndetEvaluator.Make(BDFS);
+module SearchBFS = IndetEvaluator.Make(Nondeterminism.BFS);
+module SearchDFS = IndetEvaluator.Make(Nondeterminism.DFS);
 let print =
     (~settings: Settings.t, editor: CodeWithStatics.Model.t, key: string)
     : unit => {
-  let {editor: {state: {zipper, _}, _}, statics}: CodeWithStatics.Model.t = editor;
+  let {editor: {state: {zipper, _}, _}, statics, _}: CodeWithStatics.Model.t = editor;
   let term = statics.term;
   let map = statics.info_map;
   let print = print_endline;
@@ -16,12 +25,14 @@ let print =
   | "F2" => zipper |> Zipper.unselect_and_zip |> Segment.show |> print
   | "F3" => term |> Exp.show |> print
   | "F4" => map |> Statics.Map.show |> print
-  | "F5" =>
+  | "F5" when settings.core.dynamics =>
     let env_init = Builtins.env_init;
     statics.elaborated
-    |> Evaluator.evaluate(~settings=settings.core, ~env=env_init)
-    |> ProgramResult.show(ProgramResult.pp_inner)
+    |> Evaluator.evaluate(~env=env_init)
+    |> fst
+    |> DHExp.show
     |> print;
+  | "F5" => print("Dynamics disabled, cannot show evaluation.")
   | "F6" =>
     let index = Indicated.index(zipper);
     switch (index) {
@@ -35,16 +46,47 @@ let print =
     };
   | "F8" => statics.elaborated |> Exp.show |> print
   | "F9" =>
-    let futures =
-      statics.elaborated |> IndetEvaluator.evaluate'(Builtins.env_init);
+    let results =
+      statics.elaborated
+      |> SearchDFS.values(
+           ~env=Builtins.env_init,
+           ~state=IndetEvaluatorState.init,
+         );
     let _ =
-      Util.Sequence.take(futures, 30)
-      |> Util.Sequence.to_list
-      |> List.mapi((i, d) =>
+      results
+      |> DFS.run_n(~solutions=60)
+      |> List.mapi((i, (state, d)) =>
            print(
-             "Instantiation "
+             "---Result: "
              ++ Int.to_string(i)
-             ++ ": "
+             ++ "\nIS ERROR: "
+             ++ (
+               (
+                 try(CastErrorChecker.contains_error(d)) {
+                 | _ => false
+                 }
+               )
+               |> Bool.to_string
+             )
+             ++ "\nIS VALUE: "
+             ++ (
+               OneStepEvaluator.take_step(
+                 IndetEvaluatorState.init,
+                 Builtins.env_init,
+                 d,
+               )
+               |> (
+                 fun
+                 | (BoxedValue, _) => "VALUE"
+                 | (Indet, _) => "INDET"
+                 | (Step(_), _) => "EXPR"
+               )
+             )
+             ++ "\n# of Instantiations: "
+             ++ Int.to_string(IndetEvaluatorState.get_instantiations(state))
+             ++ "\nTrace Length: "
+             ++ Int.to_string(IndetEvaluatorState.get_trace_length(state))
+             ++ "\n"
              ++ Exp.show(d)
              ++ "\n",
            )
@@ -53,16 +95,15 @@ let print =
   | "F12" =>
     let inst =
       statics.elaborated
-      |> Evaluator.evaluate''(Builtins.env_init)
-      |> Instantiator.find(
-           (),
-           Builtins.env_init |> ClosureEnvironment.of_environment,
-         );
+      |> Evaluator.evaluate(~env=Builtins.env_init)
+      |> fst
+      |> RedexHoleType.find(Builtins.env_init);
     (
       switch (inst) {
       | None => "No Hole"
-      | Some((d, None)) => "Hole with no cast"
-      | Some((d, Some(slc))) => "Cast Hole"
+      | Hole(id) => "Hole with no cast"
+      | HoleCast(id, slc) => "Cast Hole"
+      | Match(_) => "Match Hole"
       }
     )
     |> print;

@@ -17,7 +17,7 @@ module Response = {
   [@deriving (show, sexp, yojson)]
   type value =
     Result.t(
-      (Haz3lcore.ProgramResult.Result.t, Haz3lcore.EvaluatorState.t),
+      (Haz3lcore.Exp.t, Haz3lcore.IndetEvaluatorState.t),
       Haz3lcore.ProgramResult.error,
     );
   [@deriving (show, sexp, yojson)]
@@ -27,14 +27,26 @@ module Response = {
   let deserialize = sexp => sexp |> Sexplib.Sexp.of_string |> t_of_sexp;
 };
 
+module BDFS =
+  Haz3lcore.Nondeterminism.Bounded(
+    (val Haz3lcore.Nondeterminism.const_incr_config(~init=100, ~inc=50)),
+  );
+module DFS = Haz3lcore.Nondeterminism.DFS;
+module BFS = Haz3lcore.Nondeterminism.BFS;
+open Haz3lcore.IndetEvaluator.Make(DFS);
 let work = (res: Request.value, search, n): Response.value =>
   switch (
     res
     |> Haz3lcore.(
          search
-           ? SearchProc.evaluate'(Builtins.env_init)
-           : IndetEvaluator.evaluate'(Builtins.env_init)
+           ? cast_errors(
+               ~env=Builtins.env_init,
+               ~state=IndetEvaluatorState.init,
+             )
+           : values(~env=Builtins.env_init, ~state=IndetEvaluatorState.init)
        )
+    |> DFS.run_n(~solutions=n + 1)
+    |> (l => List.nth_opt(l, n))
   ) {
   | exception (Haz3lcore.EvaluatorError.Exception(reason)) =>
     print_endline(
@@ -46,12 +58,9 @@ let work = (res: Request.value, search, n): Response.value =>
     Error(
       Haz3lcore.ProgramResult.UnknownException(Printexc.to_string(exn)),
     );
-  //| (state, result) => Ok((result, state))
-  | results =>
-    Ok((
-      BoxedValue(results |> Haz3lcore.Futures.nth(n)),
-      Haz3lcore.EvaluatorState.init,
-    ))
+  | None =>
+    Error(Haz3lcore.ProgramResult.EvaulatorError(NoMoreInstantiations(res)))
+  | Some((state, result)) => Ok((result, state))
   };
 
 let on_request = (req: string): unit =>
