@@ -565,59 +565,17 @@ let rec join_using =
   };
   let join_typ_rewrap_idbranch = f =>
     join_typ_rewrap(((a, b)) => (f(a), b));
-  let join_typ_rewrap_idincon = f =>
-    join_typ_rewrap(f, TupleUtil.map2(x => x));
 
-  let choose_branch = (branch_used, slice_incr1, slice_incr2) =>
-    left(branch_used)
-      ? slice_incr1 : right(branch_used) ? slice_incr2 : empty_slice_incr;
+  let wrap_branches = (wrap, branch_used, slice_incr1, slice_incr2) =>
+    switch (branch_used) {
+    | Both => (x => x |> wrap(slice_incr1) |> wrap(slice_incr2))
+    | Left => (x => x |> wrap(slice_incr1))
+    | Right => (x => x |> wrap(slice_incr2))
+    | None => (x => x)
+    };
   switch (term1, term2) {
   | (`Typ(ty1), `Typ(ty2)) =>
     join_typ_rewrap_idbranch(ty => ty, TupleUtil.map2(ty => ty), ty1, ty2)
-  // Wrap slices on inconsistent atoms
-  | (
-      `SliceIncr(
-        Typ(
-          (Unknown(_) | Int | Float | Bool | String | Var(_) | Label(_)) as ty1,
-        ),
-        slice_incr,
-      ),
-      `Typ(ty2),
-    ) =>
-    join_typ_rewrap(
-      ((ty, b)) => (left(b) ? wrap_incr(slice_incr, ty) : ty, b),
-      ((ty1, ty2)) => (wrap_incr(slice_incr, ty1), ty2),
-      ty1,
-      ty2,
-    )
-  | (
-      `Typ(ty1),
-      `SliceIncr(
-        Typ(
-          (Unknown(_) | Int | Float | Bool | String | Var(_) | Label(_)) as ty2,
-        ),
-        slice_incr,
-      ),
-    ) =>
-    join_typ_rewrap(
-      ((ty, b)) => (right(b) ? wrap_incr(slice_incr, ty) : ty, b),
-      ((ty1, ty2)) => (ty1, wrap_incr(slice_incr, ty2)),
-      ty1,
-      ty2,
-    )
-  // Otherwise, don't
-  | (`SliceIncr(Typ(ty1), slice_incr), `Typ(ty2)) =>
-    join_typ_rewrap_idincon(
-      ((ty, b)) => (left(b) ? wrap_incr(slice_incr, ty) : ty, b),
-      ty1,
-      ty2,
-    )
-  | (`Typ(ty1), `SliceIncr(Typ(ty2), slice_incr)) =>
-    join_typ_rewrap_idincon(
-      ((ty, b)) => (right(b) ? wrap_incr(slice_incr, ty) : ty, b),
-      ty1,
-      ty2,
-    )
   | (
       `SliceIncr(Slice(s1'), slice_incr1),
       `SliceIncr(Slice(s2'), slice_incr2),
@@ -636,11 +594,10 @@ let rec join_using =
         };
       let+ (s_body, branch_used) = join_using(~resolve, ctx, s1', s2);
       (
-        `SliceIncr((
-          Slice(Rec(tp1, s_body)),
-          choose_branch(branch_used, slice_incr1, slice_incr2),
-        ))
-        |> temp,
+        Rec(tp1, s_body)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(wrap_incr, branch_used, slice_incr1, slice_incr2),
         branch_used,
       );
     | (Rec(_), _) => NoJoin([(s1, s2)])
@@ -653,15 +610,15 @@ let rec join_using =
       let ctx = Ctx.extend_dummy_tvar(ctx, x2);
       let+ (s_body, branch_used) = join_using(~resolve, ctx, ty1', s2);
       (
-        `SliceIncr((
-          Slice(Forall(x2, s_body)),
-          choose_branch(
-            combine_branches_used(branch_used, Right),
-            slice_incr1,
-            slice_incr2,
-          ),
-        ))
-        |> temp,
+        Forall(x2, s_body)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(
+             wrap_incr,
+             combine_branches_used(branch_used, Right),
+             slice_incr1,
+             slice_incr2,
+           ),
         branch_used,
       );
     /* Note for above: there is no danger of free variable capture as
@@ -676,11 +633,10 @@ let rec join_using =
       and+ s2 = join'(s2, s2')
       and! branches_used = ();
       (
-        `SliceIncr((
-          Slice(Arrow(s1, s2)),
-          choose_branch(branches_used, slice_incr1, slice_incr2),
-        ))
-        |> temp,
+        Arrow(s1, s2)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(wrap_incr, branches_used, slice_incr1, slice_incr2),
         branches_used,
       );
     | (Arrow(_), _) => NoJoin([(s1, s2)])
@@ -689,11 +645,10 @@ let rec join_using =
       and+ ty = join'(ty1', ty2')
       and! branch_used = ();
       (
-        `SliceIncr((
-          Slice(TupLabel(lab, ty)),
-          choose_branch(branch_used, slice_incr1, slice_incr2),
-        ))
-        |> temp,
+        TupLabel(lab, ty)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(wrap_incr, branch_used, slice_incr1, slice_incr2),
         branch_used,
       );
     | (TupLabel(_), _) => NoJoin([(s1, s2)])
@@ -721,11 +676,10 @@ let rec join_using =
           let branch_used =
             List.fold_left(combine_branches_used, None, branches_used);
           Join(
-            `SliceIncr((
-              Slice(Prod(tys)),
-              choose_branch(branch_used, slice_incr1, slice_incr2),
-            ))
-            |> temp,
+            Prod(tys)
+            |> term_of_slc_typ_term
+            |> temp
+            |> wrap_branches(wrap_incr, branch_used, slice_incr1, slice_incr2),
             branch_used,
           );
         | Error(ts) => NoJoin(ts)
@@ -743,11 +697,10 @@ let rec join_using =
       ) {
       | Join(sm', branch_used) =>
         Join(
-          `SliceIncr((
-            Slice(Sum(sm')),
-            choose_branch(branch_used, slice_incr1, slice_incr2),
-          ))
-          |> temp,
+          Sum(sm')
+          |> term_of_slc_typ_term
+          |> temp
+          |> wrap_branches(wrap_incr, branch_used, slice_incr1, slice_incr2),
           branch_used,
         )
       | NoJoin(sms) =>
@@ -766,11 +719,10 @@ let rec join_using =
     | (List(s1), List(s2)) =>
       let+ (s, branch_used) = join'(s1, s2);
       (
-        `SliceIncr((
-          Slice(List(s)),
-          choose_branch(branch_used, slice_incr1, slice_incr2),
-        ))
-        |> temp,
+        List(s)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(wrap_incr, branch_used, slice_incr1, slice_incr2),
         branch_used,
       );
     | (List(_), _) => NoJoin([(s1, s2)])
@@ -811,11 +763,10 @@ let rec join_using =
       let+ (s_body, branch_used) =
         join_using(~resolve, ctx, s1', t_of_typ_t(ty2));
       (
-        `SliceIncr((
-          Slice(Rec(tp1, s_body)),
-          choose_branch(branch_used, slice_incr, empty_slice_incr),
-        ))
-        |> temp,
+        Rec(tp1, s_body)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(wrap_incr, branch_used, slice_incr, empty_slice_incr),
         branch_used,
       );
     | (Rec(_), _) => NoJoin([(s1, s2)])
@@ -829,15 +780,15 @@ let rec join_using =
       let+ (s_body, branch_used) =
         join_using(~resolve, ctx, ty1', t_of_typ_t(ty2));
       (
-        `SliceIncr((
-          Slice(Forall(x2, s_body)),
-          choose_branch(
-            combine_branches_used(branch_used, Right),
-            slice_incr,
-            empty_slice_incr,
-          ),
-        ))
-        |> temp,
+        Forall(x2, s_body)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(
+             wrap_incr,
+             combine_branches_used(branch_used, Right),
+             slice_incr,
+             empty_slice_incr,
+           ),
         branch_used,
       );
     /* Note for above: there is no danger of free variable capture as
@@ -852,11 +803,10 @@ let rec join_using =
       and+ s2 = join'(s2, t_of_typ_t(ty2'))
       and! branch_used = ();
       (
-        `SliceIncr((
-          Slice(Arrow(s1, s2)),
-          choose_branch(branch_used, slice_incr, empty_slice_incr),
-        ))
-        |> temp,
+        Arrow(s1, s2)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(wrap_incr, branch_used, slice_incr, empty_slice_incr),
         branch_used,
       );
     | (Arrow(_), _) => NoJoin([(s1, s2)])
@@ -865,11 +815,10 @@ let rec join_using =
       and+ ty = join'(ty1', t_of_typ_t(ty2'))
       and! branch_used = ();
       (
-        `SliceIncr((
-          Slice(TupLabel(lab, ty)),
-          choose_branch(branch_used, slice_incr, empty_slice_incr),
-        ))
-        |> temp,
+        TupLabel(lab, ty)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(wrap_incr, branch_used, slice_incr, empty_slice_incr),
         branch_used,
       );
     | (TupLabel(_), _) => NoJoin([(s1, s2)])
@@ -897,11 +846,15 @@ let rec join_using =
           let branch_used =
             List.fold_left(combine_branches_used, None, branches_used);
           Join(
-            `SliceIncr((
-              Slice(Prod(tys)),
-              choose_branch(branch_used, slice_incr, empty_slice_incr),
-            ))
-            |> temp,
+            Prod(tys)
+            |> term_of_slc_typ_term
+            |> temp
+            |> wrap_branches(
+                 wrap_incr,
+                 branch_used,
+                 slice_incr,
+                 empty_slice_incr,
+               ),
             branch_used,
           );
         | Error(ts) => NoJoin(ts)
@@ -919,11 +872,15 @@ let rec join_using =
       ) {
       | Join(sm', branch_used) =>
         Join(
-          `SliceIncr((
-            Slice(Sum(sm')),
-            choose_branch(branch_used, slice_incr, empty_slice_incr),
-          ))
-          |> temp,
+          Sum(sm')
+          |> term_of_slc_typ_term
+          |> temp
+          |> wrap_branches(
+               wrap_incr,
+               branch_used,
+               slice_incr,
+               empty_slice_incr,
+             ),
           branch_used,
         )
       | NoJoin(sms) =>
@@ -942,11 +899,10 @@ let rec join_using =
     | (List(s1), List(ty2)) =>
       let+ (s, branch_used) = join'(s1, t_of_typ_t(ty2));
       (
-        `SliceIncr((
-          Slice(List(s)),
-          choose_branch(branch_used, slice_incr, empty_slice_incr),
-        ))
-        |> temp,
+        List(s)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(wrap_incr, branch_used, slice_incr, empty_slice_incr),
         branch_used,
       );
     | (List(_), _) => NoJoin([(s1, s2)])
@@ -987,11 +943,15 @@ let rec join_using =
         };
       let+ (s_body, branch_used) = join_using(~resolve, ctx, s1', s2);
       (
-        `SliceIncr((
-          Slice(Rec(tp1, s_body)),
-          choose_branch(branch_used, empty_slice_incr, slice_incr2),
-        ))
-        |> temp,
+        Rec(tp1, s_body)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(
+             wrap_incr,
+             branch_used,
+             empty_slice_incr,
+             slice_incr2,
+           ),
         branch_used,
       );
     | (Rec(_), _) => NoJoin([(s1, s2)])
@@ -1004,15 +964,15 @@ let rec join_using =
       let ctx = Ctx.extend_dummy_tvar(ctx, x2);
       let+ (s_body, branch_used) = join_using(~resolve, ctx, ty1', s2);
       (
-        `SliceIncr((
-          Slice(Forall(x2, s_body)),
-          choose_branch(
-            combine_branches_used(branch_used, Right),
-            empty_slice_incr,
-            slice_incr2,
-          ),
-        ))
-        |> temp,
+        Forall(x2, s_body)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(
+             wrap_incr,
+             combine_branches_used(branch_used, Right),
+             empty_slice_incr,
+             slice_incr2,
+           ),
         branch_used,
       );
     /* Note for above: there is no danger of free variable capture as
@@ -1032,11 +992,15 @@ let rec join_using =
       and+ s2 = join'(ty2 |> t_of_typ_t, s2')
       and! branch_used = ();
       (
-        `SliceIncr((
-          Slice(Arrow(s1, s2)),
-          choose_branch(branch_used, empty_slice_incr, slice_incr2),
-        ))
-        |> temp,
+        Arrow(s1, s2)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(
+             wrap_incr,
+             branch_used,
+             empty_slice_incr,
+             slice_incr2,
+           ),
         branch_used,
       );
     | (Arrow(_), _) => NoJoin([(s1, s2)])
@@ -1045,11 +1009,15 @@ let rec join_using =
       and+ ty = join'(ty1' |> t_of_typ_t, ty2')
       and! branch_used = ();
       (
-        `SliceIncr((
-          Slice(TupLabel(lab, ty)),
-          choose_branch(branch_used, empty_slice_incr, slice_incr2),
-        ))
-        |> temp,
+        TupLabel(lab, ty)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(
+             wrap_incr,
+             branch_used,
+             empty_slice_incr,
+             slice_incr2,
+           ),
         branch_used,
       );
     | (TupLabel(_), _) => NoJoin([(s1, s2)])
@@ -1077,11 +1045,15 @@ let rec join_using =
           let branch_used =
             List.fold_left(combine_branches_used, None, branches_used);
           Join(
-            `SliceIncr((
-              Slice(Prod(tys)),
-              choose_branch(branch_used, empty_slice_incr, slice_incr2),
-            ))
-            |> temp,
+            Prod(tys)
+            |> term_of_slc_typ_term
+            |> temp
+            |> wrap_branches(
+                 wrap_incr,
+                 branch_used,
+                 empty_slice_incr,
+                 slice_incr2,
+               ),
             branch_used,
           );
         | Error(ts) => NoJoin(ts)
@@ -1099,11 +1071,15 @@ let rec join_using =
       ) {
       | Join(sm', branch_used) =>
         Join(
-          `SliceIncr((
-            Slice(Sum(sm')),
-            choose_branch(branch_used, empty_slice_incr, slice_incr2),
-          ))
-          |> temp,
+          Sum(sm')
+          |> term_of_slc_typ_term
+          |> temp
+          |> wrap_branches(
+               wrap_incr,
+               branch_used,
+               empty_slice_incr,
+               slice_incr2,
+             ),
           branch_used,
         )
       | NoJoin(sms) =>
@@ -1122,11 +1098,15 @@ let rec join_using =
     | (List(ty1), List(s2)) =>
       let+ (s, branch_used) = join'(ty1 |> t_of_typ_t, s2);
       (
-        `SliceIncr((
-          Slice(List(s)),
-          choose_branch(branch_used, empty_slice_incr, slice_incr2),
-        ))
-        |> temp,
+        List(s)
+        |> term_of_slc_typ_term
+        |> temp
+        |> wrap_branches(
+             wrap_incr,
+             branch_used,
+             empty_slice_incr,
+             slice_incr2,
+           ),
         branch_used,
       );
     | (List(_), _) => NoJoin([(s1, s2)])
@@ -1144,7 +1124,16 @@ let rec join_using =
     join'(`Typ(ty1) |> rewrap1, s2)
     |> map_join(
          (s, branch_used) =>
-           (left(branch_used) ? wrap_incr(slice_incr1, s) : s, branch_used),
+           (
+             s
+             |> wrap_branches(
+                  wrap_incr,
+                  branch_used,
+                  slice_incr1,
+                  empty_slice_incr,
+                ),
+             branch_used,
+           ),
          ((s1, s2)) => (wrap_incr(slice_incr1, s1), s2),
        )
   | (
@@ -1160,17 +1149,31 @@ let rec join_using =
     |> map_join(
          (s, branch_used) =>
            (
-             right(branch_used) ? wrap_incr(slice_incr2, s) : s,
+             s
+             |> wrap_branches(
+                  wrap_incr,
+                  branch_used,
+                  empty_slice_incr,
+                  slice_incr2,
+                ),
              branch_used,
            ),
          ((s1, s2)) => (s1, wrap_incr(slice_incr2, s2)),
        )
   | (`SliceIncr(Typ(ty1), slice_incr1), _) =>
     let. (s, branch_used) = join'(`Typ(ty1) |> rewrap1, s2);
-    Join(left(branch_used) ? wrap_incr(slice_incr1, s) : s, branch_used);
+    Join(
+      s
+      |> wrap_branches(wrap_incr, branch_used, slice_incr1, empty_slice_incr),
+      branch_used,
+    );
   | (_, `SliceIncr(Typ(ty2), slice_incr2)) =>
     let. (s, branch_used) = join'(s1, `Typ(ty2) |> rewrap2);
-    Join(right(branch_used) ? wrap_incr(slice_incr2, s) : s, branch_used);
+    Join(
+      s
+      |> wrap_branches(wrap_incr, branch_used, empty_slice_incr, slice_incr2),
+      branch_used,
+    );
   | (
       `SliceGlobal(
         `Typ(Unknown(_) | Int | Float | Bool | String | Var(_) | Label(_)) as s1,
@@ -1182,7 +1185,13 @@ let rec join_using =
     |> map_join(
          (s, branch_used) =>
            (
-             left(branch_used) ? wrap_global(slice_global1, s) : s,
+             s
+             |> wrap_branches(
+                  wrap_global,
+                  branch_used,
+                  slice_global1,
+                  empty_slice_global,
+                ),
              branch_used,
            ),
          ((s1, s2)) => (wrap_global(slice_global1, s1), s2),
@@ -1198,7 +1207,13 @@ let rec join_using =
     |> map_join(
          (s, branch_used) =>
            (
-             right(branch_used) ? wrap_global(slice_global2, s) : s,
+             s
+             |> wrap_branches(
+                  wrap_incr,
+                  branch_used,
+                  empty_slice_global,
+                  slice_global2,
+                ),
              branch_used,
            ),
          ((s1, s2)) => (s1, wrap_global(slice_global2, s2)),
@@ -1206,13 +1221,25 @@ let rec join_using =
   | (`SliceGlobal(s1, slice_global1), _) =>
     let. (s, branch_used) = join'((s1 :> term) |> rewrap1, s2);
     Join(
-      left(branch_used) ? wrap_global(slice_global1, s) : s,
+      s
+      |> wrap_branches(
+           wrap_global,
+           branch_used,
+           slice_global1,
+           empty_slice_global,
+         ),
       branch_used,
     );
   | (_, `SliceGlobal(s2, slice_global2)) =>
     let. (s, branch_used) = join'(s1, (s2 :> term) |> rewrap2);
     Join(
-      right(branch_used) ? wrap_global(slice_global2, s) : s,
+      s
+      |> wrap_branches(
+           wrap_global,
+           branch_used,
+           empty_slice_global,
+           slice_global2,
+         ),
       branch_used,
     );
   };

@@ -434,12 +434,12 @@ let rec join_using = (~resolve=false, ctx: Ctx.t, ty1: t, ty2: t): join(t, t) =>
   | (_, Parens(ty2)) => join'(ty1, ty2)
   | (Parens(ty1), _) => join'(ty1, ty2)
   | (Unknown(p1), Unknown(p2)) =>
-    Join(Unknown(join_type_provenance(p1, p2)) |> temp, None)
+    Join(Unknown(join_type_provenance(p1, p2)) |> temp, Both)
   | (Unknown(_), _) => Join(ty2, Right)
   | (_, Unknown(_)) => Join(ty1, Left)
   | (Var(n1), Var(n2)) =>
     if (n1 == n2) {
-      Join(ty1, Left);
+      Join(ty1, Both);
     } else {
       {
         let* ty1 =
@@ -450,7 +450,8 @@ let rec join_using = (~resolve=false, ctx: Ctx.t, ty1: t, ty2: t): join(t, t) =>
           switch (join'(ty1, ty2)) {
           | Join(ty_join, branch_used) =>
             !resolve && equal(ty1, ty_join)
-              ? Join(ty1, Left) : Join(ty_join, branch_used)
+              ? Join(ty1, combine_branches_used(Left, branch_used))
+              : Join(ty_join, branch_used)
           | NoJoin(ts) => NoJoin([(ty1, ty2), ...ts])
           },
         );
@@ -470,7 +471,8 @@ let rec join_using = (~resolve=false, ctx: Ctx.t, ty1: t, ty2: t): join(t, t) =>
         switch (join'(ty_name, ty2)) {
         | Join(ty_join, branch_used) =>
           !resolve && equal(ty_name, ty_join)
-            ? Join(ty1, Left) : Join(ty_join, branch_used)
+            ? Join(ty1, combine_branches_used(Left, branch_used))
+            : Join(ty_join, branch_used)
         | NoJoin(ts) => NoJoin([(ty1, ty2), ...ts])
         },
       );
@@ -489,7 +491,8 @@ let rec join_using = (~resolve=false, ctx: Ctx.t, ty1: t, ty2: t): join(t, t) =>
         switch (join'(ty_name, ty1)) {
         | Join(ty_join, branch_used) =>
           !resolve && equal(ty_name, ty_join)
-            ? Join(ty2, Right) : Join(ty_join, branch_used)
+            ? Join(ty2, combine_branches_used(branch_used, Right))
+            : Join(ty_join, branch_used)
         | NoJoin(ts) => NoJoin([(ty1, ty2), ...ts])
         },
       );
@@ -530,19 +533,19 @@ let rec join_using = (~resolve=false, ctx: Ctx.t, ty1: t, ty2: t): join(t, t) =>
      second type to preserve synthesized type variable names, which
      come from user annotations. */
   | (Forall(_), _) => NoJoin([(ty1, ty2)])
-  | (Int, Int) => Join(ty1, Left)
+  | (Int, Int) => Join(ty1, Both)
   | (Int, _) => NoJoin([(ty1, ty2)])
-  | (Float, Float) => Join(ty1, Left)
+  | (Float, Float) => Join(ty1, Both)
   | (Float, _) => NoJoin([(ty1, ty2)])
-  | (Bool, Bool) => Join(ty1, Left)
+  | (Bool, Bool) => Join(ty1, Both)
   | (Bool, _) => NoJoin([(ty1, ty2)])
-  | (String, String) => Join(ty1, Left)
+  | (String, String) => Join(ty1, Both)
   | (String, _) => NoJoin([(ty1, ty2)])
-  | (Label(_), Label("")) => Join(ty1, Left)
-  | (Label(""), Label(_)) => Join(ty2, Right)
+  | (Label(_), Label("")) => Join(ty1, Both)
+  | (Label(""), Label(_)) => Join(ty2, Both)
   | (Label(name1), Label(name2))
       when LabeledTuple.match_labels(name1, name2) =>
-    Join(ty1, Left)
+    Join(ty1, Both)
   | (Label(_), _) => NoJoin([(ty1, ty2)])
   | (Arrow(ty1, ty2), Arrow(ty1', ty2')) =>
     let+ ty1 = join'(ty1, ty1')
