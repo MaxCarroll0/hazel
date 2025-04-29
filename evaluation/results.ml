@@ -428,3 +428,53 @@ let bfs_results = eval_results bfs
 let dfs_results = eval_results dfs
 let idfs_results = eval_results idfs
 let bdfs_results = eval_results bdfs
+
+exception Timeout
+
+let with_timeout ~secs f =
+  let _ =
+    Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise Timeout))
+  in
+  ignore (Unix.alarm secs);
+  try
+    let r = f () in
+    ignore (Unix.alarm 0); r
+  with
+  | e  -> ignore (Unix.alarm 0); raise e
+
+open Bechamel
+
+let timedout = ref []
+
+let test ~timeout ((impl_name, impl), (progn, program)) =
+  let test_name = Fmt.str "%s-%i" impl_name progn in
+  Test.make ~name:test_name
+  (Staged.stage (fun () -> 
+    try with_timeout ~secs:timeout (fun () -> Some (eval_results impl [ program ])) 
+    with Timeout -> timedout := ("suite/" ^ test_name) :: !timedout; None))
+
+let benchmark test =
+  let run_bench test =
+    Fmt.epr "Benchmarking %s\n%!" (Test.name test);
+    let ols = Analyze.ols ~bootstrap:0 ~r_square:true ~predictors:Measure.[| run |] in
+    let instances = Bechamel.Toolkit.Instance.[ monotonic_clock; minor_allocated; major_allocated; ] in
+    let cfg = Benchmark.cfg ~limit:100 ~quota:(Time.second 1.) ~kde:(Some 1000) () in
+    let raw_results = Benchmark.all cfg instances test in
+    let results =
+      List.map (fun instance -> Analyze.all ols instance raw_results) instances
+    in
+    let results = Analyze.merge ols instances results in
+    (results, raw_results)
+  in
+  let results, _ = run_bench test in
+  Fmt.pr "Timeout %a\n%!" Fmt.(list string) !timedout;
+  Fmt.pr "%a@.%!" (Bechamel_csv.pp ~timedout:!timedout ~print_headings:true) results
+
+let tests =
+  let impls = [ "dfs", dfs; "bfs", bfs; "idfs", idfs; "bdfs", bdfs ] in
+  let tests = List.concat_map (fun v -> List.mapi (fun i e -> (v, (i, e))) [ List.nth ill_typed 1 ]) impls in
+  List.map (test ~timeout:10) tests
+  |> Test.make_grouped ~name:"suite"
+
+let () =
+  benchmark tests
