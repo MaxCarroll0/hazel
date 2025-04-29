@@ -1,8 +1,8 @@
 (include_subdirs unqualified)
 
-(library
- (name evaluation)
- (libraries haz3lcore sexplib base ptmap bisect_ppx.runtime core core_bench)
+(executable
+ (name results)
+ (libraries bechamel haz3lcore sexplib base ptmap bisect_ppx.runtime core core_bench)
  (preprocess
   (pps ppx_blob ppx_let ppx_sexp_conv ppx_deriving.show ppx_yojson_conv))
  (preprocessor_deps

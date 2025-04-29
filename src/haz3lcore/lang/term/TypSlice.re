@@ -565,7 +565,7 @@ let rec join_using =
   };
   let join_typ_rewrap_idbranch = f =>
     join_typ_rewrap(((a, b)) => (f(a), b));
-  let join_typ_rewrap_idincon = f =>
+  let _join_typ_rewrap_idincon = f =>
     join_typ_rewrap(f, TupleUtil.map2(x => x));
 
   let choose_branch = (branch_used, slice_incr1, slice_incr2) =>
