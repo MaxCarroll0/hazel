@@ -78,33 +78,47 @@ type slice_size_expectations_error = {
 let slice_sizes_incon_expectations l =
   l
   |> List.filter_map (function
-       | _, term, slice, Inconsistent { syn; ana } ->
+       | _, term, slice, Inconsistent { syn; ana; incon_join } ->
            Some
              ( term_size term,
                term_size (TypSlice slice),
                slice_size slice,
-               slice_size syn + slice_size ana )
+               slice_size syn + slice_size ana,
+               (incon_join
+               |> List.map (fun (x, y) ->
+                      TypSlice.union_slice_incr
+                        (TypSlice.full_slice (TypSlice.term_of x))
+                        (TypSlice.full_slice (TypSlice.term_of y)))
+               |> List.fold_left TypSlice.union_slice_incr
+                    TypSlice.empty_slice_incr)
+                 .term_ids |> List.length )
        | _ -> None)
-  |> List.filter (function _, _, 0, _ -> false | _ -> true)
+  |> List.filter (function _, _, _, _, 0 -> false | _ -> true)
   (* Filter empty slices, these are implicitly dynamic code or unsupported constructs*)
   (* TODO: Use simplified inconsistency slice joins as the error slice here *)
   |> List.map
-       (fun (term_size, type_size, slice_size, expectations_slice_size) ->
+       (fun
+         ( term_size,
+           type_size,
+           slice_size,
+           expectations_slice_size,
+           error_slice_size )
+       ->
          {
            error_slice_size =
-             (* TODO, error slicing *)
              {
                term_type_size = term_size + type_size;
-               slice_size;
+               slice_size = error_slice_size;
                proportion =
-                 Float.of_int slice_size /. Float.of_int (term_size + type_size);
+                 Float.of_int error_slice_size
+                 /. Float.of_int (term_size + type_size);
              };
            combined_slice_size =
              {
                term_type_size = term_size + type_size;
-               slice_size = expectations_slice_size;
+               slice_size = slice_size + expectations_slice_size;
                proportion =
-                 Float.of_int expectations_slice_size
+                 Float.of_int (slice_size + expectations_slice_size)
                  /. Float.of_int (term_size + type_size);
              };
          })
@@ -113,32 +127,46 @@ let slice_sizes_incon_expectations l =
 let slice_sizes_incon_branches l =
   l
   |> List.filter_map (function
-       | _, term, slice, InconsistentBranches ss ->
+       | _, term, slice, InconsistentBranches (ss, incon_join) ->
            Some
              ( term_size term,
                term_size (TypSlice slice),
                slice_size slice,
-               ss |> List.fold_left (fun acc s -> acc + slice_size s) 0 )
+               ss |> List.fold_left (fun acc s -> acc + slice_size s) 0,
+               (incon_join
+               |> List.map (fun (x, y) ->
+                      TypSlice.union_slice_incr
+                        (TypSlice.full_slice (TypSlice.term_of x))
+                        (TypSlice.full_slice (TypSlice.term_of y)))
+               |> List.fold_left TypSlice.union_slice_incr
+                    TypSlice.empty_slice_incr)
+                 .term_ids |> List.length )
        | _ -> None)
-  |> List.filter (function _, _, 0, _ -> false | _ -> true)
+  |> List.filter (function _, _, _, _, 0 -> false | _ -> true)
   (* Filter empty slices, these are implicitly dynamic code or unsupported constructs*)
-  (* TODO: Use simplified inconsistency slice joins as the error slice here *)
-  |> List.map (fun (term_size, type_size, slice_size, branches_slice_size) ->
+  |> List.map
+       (fun
+         ( term_size,
+           type_size,
+           slice_size,
+           branches_slice_size,
+           error_slice_size )
+       ->
          {
            error_slice_size =
-             (* TODO, error slicing *)
              {
                term_type_size = term_size + type_size;
-               slice_size;
+               slice_size = error_slice_size;
                proportion =
-                 Float.of_int slice_size /. Float.of_int (term_size + type_size);
+                 Float.of_int error_slice_size
+                 /. Float.of_int (term_size + type_size);
              };
            combined_slice_size =
              {
                term_type_size = term_size + type_size;
-               slice_size = branches_slice_size;
+               slice_size = slice_size + branches_slice_size;
                proportion =
-                 Float.of_int branches_slice_size
+                 Float.of_int (slice_size + branches_slice_size)
                  /. Float.of_int (term_size + type_size);
              };
          })
@@ -170,6 +198,10 @@ let aggregate_slice_sizes ss =
         (List.map (fun s -> s.proportion) ss)
         (List.map (fun s -> s.term_type_size) ss |> to_floats);
   }
+
+let aggregate_error_slice_sizes ss =
+  ( ss |> List.map (fun s -> s.error_slice_size) |> aggregate_slice_sizes,
+    ss |> List.map (fun s -> s.combined_slice_size) |> aggregate_slice_sizes )
 
 (* Type Slicing Sizes *)
 let cast_slice_info_elaborated l =

@@ -172,12 +172,12 @@ let common_err_view =
           : [text("Invalid labels: "), ...List.map(code, invalid_labels)]
       )
     | DuplicateLabel(name, _) => [text("Duplicate Label:"), code(name)]
-    | Inconsistent(WithArrow(typ, _)) => [
+    | Inconsistent(WithArrow(typ, _, _)) => [
         text(":"),
         view_type(typ) |> code_box_container,
         text("inconsistent with arrow type"),
       ]
-    | Inconsistent(Expectation({ana, syn})) =>
+    | Inconsistent(Expectation({ana, syn, _})) =>
       switch (syn |> TypSlice.typ_term_of, ana |> TypSlice.typ_term_of) {
       | (Label(syn_l), Label(ana_l)) => [
           code(syn_l),
@@ -211,7 +211,7 @@ let common_err_view =
           }
         )
       }
-    | Inconsistent(Internal(tys)) => [
+    | Inconsistent(Internal(tys, _)) => [
         text(elements_noun(cls) ++ " have inconsistent types:"),
         ...ListUtil.join(text(","), List.map(view_type, tys)),
       ]

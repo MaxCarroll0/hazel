@@ -784,11 +784,12 @@ module Deco =
                [],
              );
         div_c("error", List.map(slice_view, term_ids @ ctx_used_ids));
-      | Some(Exp(Common(Inconsistent(WithArrow(t, slc)))))
-      | Some(Pat(Common(Inconsistent(WithArrow(t, slc))))) =>
+      | Some(Exp(Common(Inconsistent(WithArrow(t, ana, _)))))
+      | Some(Pat(Common(Inconsistent(WithArrow(t, ana, _))))) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
           TypSlice.full_slice(t |> TypSlice.term_of);
-        let {ctx_used: ctx_used2, term_ids: term_ids2}: TypSlice.slc_global = slc;
+        let {ctx_used: ctx_used2, term_ids: term_ids2}: TypSlice.slc_global =
+          TypSlice.full_slice(ana.term);
         let ctx_used_ids =
           ctx_used
           @ ctx_used2
@@ -816,14 +817,10 @@ module Deco =
           "error",
           List.map(slice_view, term_ids @ term_ids2 @ ctx_used_ids),
         );
-      | Some(Exp(Common(Inconsistent(Internal(ts)))))
-      | Some(Pat(Common(Inconsistent(Internal(ts))))) =>
+      | Some(Exp(Common(Inconsistent(Internal(_, incon_join)))))
+      | Some(Pat(Common(Inconsistent(Internal(_, incon_join))))) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
-          TypSlice.join_inconsistency_all(
-            ~empty=TypSlice.(temp(hole([]))),
-            Info.ctx_of(info),
-            ts,
-          )
+          incon_join
           |> List.map(((t1, t2)) =>
                TypSlice.union_slice_incr(
                  TypSlice.full_slice(TypSlice.term_of(t1)),
@@ -857,10 +854,10 @@ module Deco =
                [],
              );
         div_c("error", List.map(slice_view, term_ids @ ctx_used_ids));
-      | Some(Exp(Common(Inconsistent(Expectation({syn, ana})))))
-      | Some(Pat(Common(Inconsistent(Expectation({syn, ana}))))) =>
+      | Some(Exp(Common(Inconsistent(Expectation({incon_join, _})))))
+      | Some(Pat(Common(Inconsistent(Expectation({incon_join, _}))))) =>
         let {ctx_used, term_ids}: TypSlice.slc_incr =
-          TypSlice.join_inconsistency(Info.ctx_of(info), syn, ana)
+          incon_join
           |> List.map(((t1, t2)) =>
                TypSlice.union_slice_incr(
                  TypSlice.full_slice(TypSlice.term_of(t1)),

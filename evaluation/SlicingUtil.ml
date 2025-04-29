@@ -45,8 +45,12 @@ let slice_size (s : TypSlice.t) =
 type error_slice_info =
   | NoTypeError
   | BadTrivAp of TypSlice.t (* Analysis slice of the arrow type *)
-  | Inconsistent of { syn : TypSlice.t; ana : TypSlice.t }
-  | InconsistentBranches of TypSlice.t list
+  | Inconsistent of {
+      syn : TypSlice.t;
+      ana : TypSlice.t;
+      incon_join : (TypSlice.t * TypSlice.t) list;
+    }
+  | InconsistentBranches of TypSlice.t list * (TypSlice.t * TypSlice.t) list
 (* Branch synthesis slices *)
 (* Expected constructor is also an error with slice, but the slice size is always exactly 1, so pointless analysing *)
 
@@ -61,18 +65,13 @@ let common_error_slice_info : Info.error_common -> error_slice_info = function
   | DuplicateLabel _ | TupleLabelError _ ->
       NoTypeError
   | NoType (BadTrivAp ana) -> BadTrivAp ana
-  | Inconsistent (Expectation { syn; ana }) -> Inconsistent { syn; ana }
-  | Inconsistent (Internal branch_tys) -> InconsistentBranches branch_tys
+  | Inconsistent (Expectation { syn; ana; incon_join }) ->
+      Inconsistent { syn; ana; incon_join }
+  | Inconsistent (Internal (branch_tys, incon_join)) ->
+      InconsistentBranches (branch_tys, incon_join)
   (* Arrows can be considered as analysing against ? -> ? with slice being the aplication ?(?) *)
-  | Inconsistent (WithArrow (arrow, slc)) ->
-      Inconsistent
-        {
-          syn = arrow;
-          ana =
-            `Typ
-              (Arrow (Unknown Internal |> Typ.temp, Unknown Internal |> Typ.temp))
-            |> TypSlice.temp |> TypSlice.wrap_global slc;
-        }
+  | Inconsistent (WithArrow (arrow, ana, incon_join)) ->
+      Inconsistent { syn = arrow; ana; incon_join }
 
 let slice_info statics _ : slice_info list =
   statics |> Id.Map.to_list

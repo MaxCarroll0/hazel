@@ -38,11 +38,12 @@ type error_inconsistent =
   | Expectation({
       ana: TypSlice.t,
       syn: TypSlice.t,
+      incon_join: list((TypSlice.t, TypSlice.t)),
     })
   /* Inconsistent match or listlit */
-  | Internal(list(TypSlice.t))
+  | Internal(list(TypSlice.t), list((TypSlice.t, TypSlice.t)))
   /* Bad function position: (syn slice of term, ana slice enforcing arrow)  */
-  | WithArrow(TypSlice.t, TypSlice.slc_global);
+  | WithArrow(TypSlice.t, TypSlice.t, list((TypSlice.t, TypSlice.t)));
 
 [@deriving (show({with_path: false}), sexp, yojson, eq)]
 type error_no_type =
@@ -389,21 +390,36 @@ let rec status_common =
       )
     ) {
     | Some(_) => NotInHole(Syn(ty))
-    | None => InHole(Inconsistent(WithArrow(ty, slc)))
+    | None =>
+      let ana =
+        `Typ(
+          Arrow(
+            Unknown(Internal) |> Typ.temp,
+            Unknown(Internal) |> Typ.temp,
+          ),
+        )
+        |> TypSlice.temp
+        |> TypSlice.wrap_global(slc);
+      InHole(
+        Inconsistent(
+          WithArrow(ty, ana, TypSlice.join_inconsistency(ctx, ana, ty)),
+        ),
+      );
     }
   | (Just(ty), SynTypFun(slc)) =>
-    switch (
-      TypSlice.join(
-        ctx,
-        `Typ(Forall(Var("?") |> TPat.fresh, Unknown(Internal) |> Typ.temp))
-        |> TypSlice.temp
-        |> TypSlice.wrap_global(slc),
-        ty,
-      )
-    ) {
+    let ana =
+      `Typ(Forall(Var("?") |> TPat.fresh, Unknown(Internal) |> Typ.temp))
+      |> TypSlice.temp
+      |> TypSlice.wrap_global(slc);
+    switch (TypSlice.join(ctx, ana, ty)) {
     | Some(_) => NotInHole(Syn(ty))
-    | None => InHole(Inconsistent(WithArrow(ty, slc)))
-    }
+    | None =>
+      InHole(
+        Inconsistent(
+          WithArrow(ty, ana, TypSlice.join_inconsistency(ctx, ana, ty)),
+        ),
+      )
+    };
   | (Just(syn), Ana(ana)) =>
     switch (
       TypSlice.join(
@@ -420,6 +436,7 @@ let rec status_common =
             Expectation({
               ana,
               syn,
+              incon_join: TypSlice.join_inconsistency(ctx, ana, syn),
             }),
           ),
         )
@@ -429,6 +446,7 @@ let rec status_common =
             Expectation({
               ana,
               syn,
+              incon_join: TypSlice.join_inconsistency(ctx, ana, syn),
             }),
           ),
         )
@@ -497,6 +515,7 @@ let rec status_common =
             Expectation({
               ana,
               syn,
+              incon_join: TypSlice.join_inconsistency(ctx, ana, syn),
             }),
           ),
         )
@@ -507,6 +526,7 @@ let rec status_common =
             Expectation({
               ana,
               syn,
+              incon_join: TypSlice.join_inconsistency(ctx, ana, syn),
             }),
           ),
         )
@@ -522,7 +542,18 @@ let rec status_common =
       )
     };
   | (NoJoin(_, tys), Syn | SynFun(_) | SynTypFun(_)) =>
-    InHole(Inconsistent(Internal(TypSlice.of_source(tys))))
+    InHole(
+      Inconsistent(
+        Internal(
+          TypSlice.of_source(tys),
+          TypSlice.of_source(tys)
+          |> TypSlice.join_inconsistency_all(
+               ~empty=TypSlice.temp(TypSlice.hole([])),
+               ctx,
+             ),
+        ),
+      ),
+    )
   | (WantTuple, _) => InHole(NoType(WantTuple))
   | (LabelNotFound(name, labels), _) =>
     InHole(NoType(LabelNotFound(name, labels)))
@@ -852,12 +883,7 @@ let fixed_typ_err_common: error_common => TypSlice.t =
   | DuplicateLabel(_, typ) => typ
   | Inconsistent(Expectation({ana, _})) => ana
   | Inconsistent(Internal(_)) => `Typ(Unknown(Internal)) |> TypSlice.temp // Should this be some sort of meet?
-  | Inconsistent(WithArrow(_, slc)) =>
-    `Typ(
-      Arrow(Unknown(Internal) |> Typ.temp, Unknown(Internal) |> Typ.temp),
-    )
-    |> TypSlice.temp
-    |> TypSlice.wrap_global(slc);
+  | Inconsistent(WithArrow(_, ana, _)) => ana;
 
 let fixed_typ_err: error_exp => TypSlice.t =
   fun

@@ -16,8 +16,8 @@ let eq_info_error_exp = (a: Info.error_exp, b: Info.error_exp) => {
   | (Common(NoType(InvalidLabel(a))), Common(NoType(InvalidLabel(b)))) =>
     a == b
   | (
-      Common(Inconsistent(Expectation({ana: a1, syn: a2}))),
-      Common(Inconsistent(Expectation({ana: b1, syn: b2}))),
+      Common(Inconsistent(Expectation({ana: a1, syn: a2, incon_join: []}))),
+      Common(Inconsistent(Expectation({ana: b1, syn: b2, incon_join: []}))),
     ) =>
     TypSlice.fast_equal(a1, b1) && TypSlice.fast_equal(a2, b2)
   | (Common(TupleLabelError(err)), Common(TupleLabelError(err'))) =>
@@ -240,6 +240,7 @@ let tests = (
                                       ]),
                                     ),
                                   syn: prod([int(), int()]),
+                                  incon_join: [],
                                 }),
                               ),
                             ),
@@ -281,6 +282,7 @@ let tests = (
                               Expectation({
                                 ana: string(),
                                 syn: bool(),
+                                incon_join: [],
                               }),
                             ),
                           ),
@@ -333,6 +335,7 @@ let tests = (
                               Expectation({
                                 ana: string(),
                                 syn: int(),
+                                incon_join: [],
                               }),
                             ),
                           ),
@@ -464,6 +467,7 @@ let tests = (
                                     tup_label(label("b"), float()),
                                     tup_label(label("z"), string()),
                                   ]),
+                                incon_join: [],
                               }),
                             ),
                           ),
@@ -842,6 +846,7 @@ let tests = (
                                     tup_label(label("c"), int()),
                                     tup_label(label("a"), string()),
                                   ]),
+                                incon_join: [],
                               })
                             ),
                           ),
@@ -928,6 +933,7 @@ let tests = (
                                       tup_label(label("a"), int()),
                                       tup_label(label("b"), int()),
                                     ]),
+                                  incon_join: [],
                                 })
                               ),
                             ),
@@ -964,6 +970,7 @@ let tests = (
                             Expectation({
                               ana: int(),
                               syn: string(),
+                              incon_join: [],
                             }),
                           ),
                         ),
