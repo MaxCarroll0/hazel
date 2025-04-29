@@ -158,7 +158,7 @@ module Make =
               ),
             )
             |> TypSlice.fresh,
-            `Typ(Unknown(Internal)) |> TypSlice.fresh,
+            t,
           )
           |> DHExp.fresh,
         )
@@ -213,10 +213,7 @@ module Make =
                    Closure(
                      env
                      |> ClosureEnvironment.map(((_, d)) =>
-                          d
-                          |> subst_term(d', hole_id)
-                          |> Evaluator.evaluate(~env=Builtins.env_init)
-                          |> fst
+                          d |> subst_term(d', hole_id)
                         ),
                      continue(d),
                    ),

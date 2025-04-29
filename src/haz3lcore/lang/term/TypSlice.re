@@ -163,9 +163,13 @@ let rec map_merge =
   switch (term) {
   | `Typ(ty) => f_typ(ty) |> rewrap
   | `SliceIncr(Typ(ty), slice_incr) =>
-    f_typ(ty) |> wrap_incr(slice_incr) |> rewrap
+    f_typ(ty)
+    |> wrap_incr(drop_incr ? empty_slice_incr : slice_incr)
+    |> rewrap
   | `SliceIncr(Slice(s'), slice_incr) =>
-    f_slc(s') |> wrap_incr(slice_incr) |> rewrap
+    f_slc(s')
+    |> wrap_incr(drop_incr ? empty_slice_incr : slice_incr)
+    |> rewrap
   | `SliceGlobal(s', slice_global) =>
     (s' :> term)
     |> temp
@@ -483,14 +487,17 @@ let unroll_incr = (s: incr_t): t => {
   | `Typ(ty) =>
     let (ty', rewrap') = Typ.unroll(ty |> rewrap) |> IdTagged.unwrap;
     `Typ(ty') |> rewrap';
-  | `SliceIncr(Typ(ty), _) =>
+  | `SliceIncr(Typ(ty), slice_incr) =>
     let (ty', rewrap') = Typ.unroll(ty |> rewrap) |> IdTagged.unwrap;
-    `Typ(ty') |> rewrap';
-  | `SliceIncr(Slice(s'), _) =>
-    switch (s') {
-    | Rec(tpat, s_body) => subst((s :> t), tpat, s_body)
-    | _ => (s :> t)
-    }
+    `Typ(ty') |> rewrap' |> wrap_incr(slice_incr);
+  | `SliceIncr(Slice(s'), slice_incr) =>
+    (
+      switch (s') {
+      | Rec(tpat, s_body) => subst((s :> t), tpat, s_body)
+      | _ => (s :> t)
+      }
+    )
+    |> wrap_incr(slice_incr)
   };
 };
 
@@ -499,10 +506,10 @@ let unroll = (s: t): t => {
   switch (term) {
   | `Typ(_) as s
   | `SliceIncr(_) as s => unroll_incr(s |> rewrap)
-  | `SliceGlobal(s, _) => unroll_incr(s |> rewrap)
+  | `SliceGlobal(s, slice_global) =>
+    unroll_incr(s |> rewrap) |> wrap_global(slice_global)
   };
 };
-
 /*
    TypSlice equality: Extending type equality to slices.
    This is type equality, different slices of the same type ARE equal. Type Equality: This coincides with alpha equivalence for normalized types.
@@ -523,6 +530,8 @@ let eq = (t1: t, t2: t): bool => fast_equal(t1, t2);
       TODO: Proof that this computes a minimal code slice which synthesises
       the same join type.
    */
+
+open Joins;
 // Horrible code duplication here.
 let rec join_using =
         (
@@ -531,7 +540,7 @@ let rec join_using =
           {term: term1, _} as s1: t,
           {term: term2, _} as s2: t,
         )
-        : option((t, BranchUsed.t)) => {
+        : join(t, t) => {
   let join' = join_using(~resolve, ctx);
   let rewrap1 = term' => {
     ...s1,
@@ -541,37 +550,30 @@ let rec join_using =
     ...s2,
     term: term',
   };
-  open BranchUsed;
-  let join_typ_rewrap = (f, ty1, ty2) =>
-    Typ.join_using(~resolve, ctx, ty1 |> rewrap1, ty2 |> rewrap2)
-    |> Option.map(((ty, b)) => {
-         let (ty', rewrap') = ty |> IdTagged.unwrap;
-         (ty', b) |> f |> (((ty', b)) => (rewrap'(ty'), b));
-       });
+  let join_typ_rewrap = (rewrap_join, rewrap_incon, ty1, ty2) => {
+    let join =
+      Typ.join_using(~resolve, ctx, ty1 |> rewrap1, ty2 |> rewrap2)
+      |> (
+        fun
+        | Join(t, b) => Join(t_of_typ_t(t), b)
+        | NoJoin(ts) => NoJoin(List.map(TupleUtil.map2(t_of_typ_t), ts))
+      );
+    switch (join) {
+    | Join(ty, b) => (ty, b) |> rewrap_join |> (((ty, b)) => Join(ty, b))
+    | NoJoin(ts) => NoJoin(ts |> List.map(rewrap_incon))
+    };
+  };
   let join_typ_rewrap_idbranch = f =>
     join_typ_rewrap(((a, b)) => (f(a), b));
+  let join_typ_rewrap_idincon = f =>
+    join_typ_rewrap(f, TupleUtil.map2(x => x));
 
   let choose_branch = (branch_used, slice_incr1, slice_incr2) =>
     left(branch_used)
       ? slice_incr1 : right(branch_used) ? slice_incr2 : empty_slice_incr;
-
   switch (term1, term2) {
   | (`Typ(ty1), `Typ(ty2)) =>
-    join_typ_rewrap_idbranch(ty => `Typ(ty), ty1, ty2)
-  | (`SliceIncr(Typ(ty1), slice_incr), `Typ(ty2)) =>
-    join_typ_rewrap(
-      ((ty, b)): (term, BranchUsed.t) =>
-        (left(b) ? `SliceIncr((Typ(ty), slice_incr)) : `Typ(ty), b),
-      ty1,
-      ty2,
-    )
-  | (`Typ(ty1), `SliceIncr(Typ(ty2), slice_incr)) =>
-    join_typ_rewrap(
-      ((ty, b)): (term, BranchUsed.t) =>
-        (right(b) ? `SliceIncr((Typ(ty), slice_incr)) : `Typ(ty), b),
-      ty1,
-      ty2,
-    )
+    join_typ_rewrap_idbranch(ty => ty, TupleUtil.map2(ty => ty), ty1, ty2)
   | (
       `SliceIncr(Slice(s1'), slice_incr1),
       `SliceIncr(Slice(s2'), slice_incr2),
@@ -597,7 +599,7 @@ let rec join_using =
         |> temp,
         branch_used,
       );
-    | (Rec(_), _) => None
+    | (Rec(_), _) => NoJoin([(s1, s2)])
     | (Forall(x1, s1), Forall(x2, s2)) =>
       let ty1' =
         switch (TPat.tyvar_of_utpat(x2)) {
@@ -624,65 +626,99 @@ let rec join_using =
        be exposed to the user. We preserve the variable name of the
        second type to preserve synthesized type variable names, which
        come from user annotations. */
-    | (Forall(_), _) => None
+    | (Forall(_), _) => NoJoin([(s1, s2)])
     | (Arrow(s1, s2), Arrow(s1', s2')) =>
-      let* (s1, branch_used1) = join'(s1, s1');
-      let+ (s2, branch_used2) = join'(s2, s2');
-      let branch_used = combine_branches_used(branch_used1, branch_used2);
+      let+ s1 = join'(s1, s1')
+      and+ s2 = join'(s2, s2')
+      and! branches_used = ();
       (
         `SliceIncr((
           Slice(Arrow(s1, s2)),
-          choose_branch(branch_used, slice_incr1, slice_incr2),
+          choose_branch(branches_used, slice_incr1, slice_incr2),
         ))
         |> temp,
-        branch_used,
+        branches_used,
       );
-    | (Arrow(_), _) => None
+    | (Arrow(_), _) => NoJoin([(s1, s2)])
     | (TupLabel(lab1, ty1'), TupLabel(lab2, ty2')) =>
-      let* (lab, branch_used1) = join'(lab1, lab2);
-      let+ (ty, branch_used2) = join'(ty1', ty2');
+      let+ lab = join'(lab1, lab2)
+      and+ ty = join'(ty1', ty2')
+      and! branch_used = ();
       (
         `SliceIncr((
           Slice(TupLabel(lab, ty)),
-          choose_branch(
-            combine_branches_used(branch_used1, branch_used2),
-            slice_incr1,
-            slice_incr2,
-          ),
+          choose_branch(branch_used, slice_incr1, slice_incr2),
         ))
         |> temp,
-        combine_branches_used(branch_used1, branch_used2),
+        branch_used,
       );
-    | (TupLabel(_), _) => None
+    | (TupLabel(_), _) => NoJoin([(s1, s2)])
     | (Prod(ss1), Prod(ss2)) =>
-      let* joins = ListUtil.map2_opt(join', ss1, ss2);
-      let+ joins = OptUtil.sequence(joins);
-      let (ss, branches_used) = ListUtil.unzip(joins);
-      let branch_used =
-        List.fold_left(combine_branches_used, None, branches_used);
-      (
-        `SliceIncr((
-          Slice(Prod(ss)),
-          choose_branch(branch_used, slice_incr1, slice_incr2),
-        ))
-        |> temp,
-        branch_used,
-      );
-    | (Prod(_), _) => None
+      if (List.length(ss1) != List.length(ss2)) {
+        NoJoin
+          ([(s1, s2)]); // TODO: Could only return the extra parts of tys1/tys2
+      } else {
+        let joins = List.map2(join', ss1, ss2);
+        let joins =
+          List.fold_right(
+            (j, acc) =>
+              switch (acc, j) {
+              | (Ok((tys, branches_used)), Join(ty_join, branch_used)) =>
+                Ok(([ty_join, ...tys], [branch_used, ...branches_used]))
+              | (Ok(_), NoJoin(ts))
+              | (Error(ts), Join(_)) => Error(ts)
+              | (Error(ts_acc), NoJoin(ts)) => Error(ts_acc @ ts)
+              },
+            joins,
+            Ok(([], [])),
+          );
+        switch (joins) {
+        | Ok((tys, branches_used)) =>
+          let branch_used =
+            List.fold_left(combine_branches_used, None, branches_used);
+          Join(
+            `SliceIncr((
+              Slice(Prod(tys)),
+              choose_branch(branch_used, slice_incr1, slice_incr2),
+            ))
+            |> temp,
+            branch_used,
+          );
+        | Error(ts) => NoJoin(ts)
+        };
+      }
+    | (Prod(_), _) => NoJoin([(s1, s2)])
     | (Sum(sm1), Sum(sm2)) =>
-      let+ (sm', branches_used) =
-        ConstructorMap.join(eq, join_using(~resolve, ctx), sm1, sm2);
-      let branch_used =
-        List.fold_left(combine_branches_used, None, branches_used);
-      (
-        `SliceIncr((
-          Slice(Sum(sm')),
-          choose_branch(branch_used, slice_incr1, slice_incr2),
-        ))
-        |> temp,
-        branch_used,
-      ); // TODO: Check!
-    | (Sum(_), _) => None
+      switch (
+        ConstructorMap.join(
+          equal,
+          (x, y) => join_using(~resolve, ctx, x, y),
+          sm1,
+          sm2,
+        )
+      ) {
+      | Join(sm', branch_used) =>
+        Join(
+          `SliceIncr((
+            Slice(Sum(sm')),
+            choose_branch(branch_used, slice_incr1, slice_incr2),
+          ))
+          |> temp,
+          branch_used,
+        )
+      | NoJoin(sms) =>
+        NoJoin(
+          List.map(
+            ((s1, s2)) =>
+              (
+                Sum(s1) |> term_of_slc_typ_term |> temp,
+                Sum(s2) |> term_of_slc_typ_term |> temp,
+              ),
+            sms,
+          ),
+        )
+      }
+    | (Sum(_), _) => NoJoin([(s1, s2)])
     | (List(s1), List(s2)) =>
       let+ (s, branch_used) = join'(s1, s2);
       (
@@ -693,7 +729,7 @@ let rec join_using =
         |> temp,
         branch_used,
       );
-    | (List(_), _) => None
+    | (List(_), _) => NoJoin([(s1, s2)])
     | (Ap(_), _) => failwith("Type join of ap")
     }
   // TODO: remove redundancy here somehow?
@@ -701,11 +737,25 @@ let rec join_using =
     switch (s1', ty2) {
     | (_, Parens(ty2)) => join'(s1, ty2 |> t_of_typ_t)
     | (Parens(s1), _) => join'(s1, s2)
-    | (_, Unknown(_)) => Some((s1, Left))
+    | (_, Unknown(_)) => Join(s1, Left)
     | (_, Var(name)) =>
-      let* s_name = Ctx.lookup_alias(ctx, name);
-      let+ (s_join, branch_used) = join'(s_name, s1);
-      !resolve && eq(s_name, s_join) ? (s2, Right) : (s_join, branch_used);
+      {
+        let* ty_name = Ctx.lookup_alias(ctx, name);
+        Some(
+          switch (join'(ty_name, s1)) {
+          | Join(ty_join, branch_used) =>
+            !resolve && equal(ty_name, ty_join)
+              ? Join(s2, Right) : Join(ty_join, branch_used)
+          | NoJoin(ts) => NoJoin([(s1, s2), ...ts])
+          },
+        );
+      }
+      |> (
+        fun
+        | Some(Join(t, b)) => Join(t, b)
+        | Some(NoJoin(ts)) => NoJoin(ts)
+        | None => NoJoin([(s1, s2)])
+      )
     /* Note: Ordering of Unknown, Var, and Rec above is load-bearing! */
     | (Rec(tp1, s1), Rec(tp2, ty2)) =>
       let ctx = Ctx.extend_dummy_tvar(ctx, tp1);
@@ -715,7 +765,7 @@ let rec join_using =
         | None => s1
         };
       let+ (s_body, branch_used) =
-        join_using(~resolve, ctx, s1', ty2 |> t_of_typ_t);
+        join_using(~resolve, ctx, s1', t_of_typ_t(ty2));
       (
         `SliceIncr((
           Slice(Rec(tp1, s_body)),
@@ -724,16 +774,16 @@ let rec join_using =
         |> temp,
         branch_used,
       );
-    | (Rec(_), _) => None
+    | (Rec(_), _) => NoJoin([(s1, s2)])
     | (Forall(x1, s1), Forall(x2, ty2)) =>
-      let s1' =
+      let ty1' =
         switch (TPat.tyvar_of_utpat(x2)) {
         | Some(x2) => subst(`Typ(Var(x2)) |> temp, x1, s1)
         | None => s1
         };
       let ctx = Ctx.extend_dummy_tvar(ctx, x2);
       let+ (s_body, branch_used) =
-        join_using(~resolve, ctx, s1', ty2 |> t_of_typ_t);
+        join_using(~resolve, ctx, ty1', t_of_typ_t(ty2));
       (
         `SliceIncr((
           Slice(Forall(x2, s_body)),
@@ -752,11 +802,11 @@ let rec join_using =
        be exposed to the user. We preserve the variable name of the
        second type to preserve synthesized type variable names, which
        come from user annotations. */
-    | (Forall(_), _) => None
+    | (Forall(_), _) => NoJoin([(s1, s2)])
     | (Arrow(s1, s2), Arrow(ty1', ty2')) =>
-      let* (s1, branch_used1) = join'(s1, ty1' |> t_of_typ_t);
-      let+ (s2, branch_used2) = join'(s2, ty2' |> t_of_typ_t);
-      let branch_used = combine_branches_used(branch_used1, branch_used2);
+      let+ s1 = join'(s1, t_of_typ_t(ty1'))
+      and+ s2 = join'(s2, t_of_typ_t(ty2'))
+      and! branch_used = ();
       (
         `SliceIncr((
           Slice(Arrow(s1, s2)),
@@ -765,55 +815,88 @@ let rec join_using =
         |> temp,
         branch_used,
       );
-    | (Arrow(_), _) => None
+    | (Arrow(_), _) => NoJoin([(s1, s2)])
     | (TupLabel(lab1, ty1'), TupLabel(lab2, ty2')) =>
-      let* (lab, branch_used1) = join'(lab1, lab2 |> t_of_typ_t);
-      let+ (ty, branch_used2) = join'(ty1', ty2' |> t_of_typ_t);
+      let+ lab = join'(lab1, t_of_typ_t(lab2))
+      and+ ty = join'(ty1', t_of_typ_t(ty2'))
+      and! branch_used = ();
       (
         `SliceIncr((
           Slice(TupLabel(lab, ty)),
-          choose_branch(
-            combine_branches_used(branch_used1, branch_used2),
-            slice_incr,
-            empty_slice_incr,
-          ),
+          choose_branch(branch_used, slice_incr, empty_slice_incr),
         ))
         |> temp,
-        combine_branches_used(branch_used1, branch_used2),
+        branch_used,
       );
-    | (TupLabel(_), _) => None
+    | (TupLabel(_), _) => NoJoin([(s1, s2)])
     | (Prod(ss1), Prod(tys2)) =>
-      let* joins = ListUtil.map2_opt(join', ss1, List.map(t_of_typ_t, tys2));
-      let+ joins = OptUtil.sequence(joins);
-      let (ss, branches_used) = ListUtil.unzip(joins);
-      let branch_used =
-        List.fold_left(combine_branches_used, None, branches_used);
-      (
-        `SliceIncr((
-          Slice(Prod(ss)),
-          choose_branch(branch_used, slice_incr, empty_slice_incr),
-        ))
-        |> temp,
-        branch_used,
-      );
-    | (Prod(_), _) => None
+      if (List.length(ss1) != List.length(tys2)) {
+        NoJoin
+          ([(s1, s2)]); // TODO: Could only return the extra parts of tys1/tys2
+      } else {
+        let joins = List.map2(join', ss1, List.map(t_of_typ_t, tys2));
+        let joins =
+          List.fold_right(
+            (j, acc) =>
+              switch (acc, j) {
+              | (Ok((tys, branches_used)), Join(ty_join, branch_used)) =>
+                Ok(([ty_join, ...tys], [branch_used, ...branches_used]))
+              | (Ok(_), NoJoin(ts))
+              | (Error(ts), Join(_)) => Error(ts)
+              | (Error(ts_acc), NoJoin(ts)) => Error(ts_acc @ ts)
+              },
+            joins,
+            Ok(([], [])),
+          );
+        switch (joins) {
+        | Ok((tys, branches_used)) =>
+          let branch_used =
+            List.fold_left(combine_branches_used, None, branches_used);
+          Join(
+            `SliceIncr((
+              Slice(Prod(tys)),
+              choose_branch(branch_used, slice_incr, empty_slice_incr),
+            ))
+            |> temp,
+            branch_used,
+          );
+        | Error(ts) => NoJoin(ts)
+        };
+      }
+    | (Prod(_), _) => NoJoin([(s1, s2)])
     | (Sum(sm1), Sum(sm2)) =>
-      let sm2 = ConstructorMap.map_preserving(t_of_typ_t, sm2);
-      let+ (sm', branches_used) =
-        ConstructorMap.join(eq, join_using(~resolve, ctx), sm1, sm2);
-      let branch_used =
-        List.fold_left(combine_branches_used, None, branches_used);
-      (
-        `SliceIncr((
-          Slice(Sum(sm')),
-          choose_branch(branch_used, slice_incr, empty_slice_incr),
-        ))
-        |> temp,
-        branch_used,
-      ); // TODO: Check!
-    | (Sum(_), _) => None
+      switch (
+        ConstructorMap.join(
+          equal,
+          (x, y) => join_using(~resolve, ctx, x, y),
+          sm1,
+          sm2 |> ConstructorMap.map_preserving(t_of_typ_t),
+        )
+      ) {
+      | Join(sm', branch_used) =>
+        Join(
+          `SliceIncr((
+            Slice(Sum(sm')),
+            choose_branch(branch_used, slice_incr, empty_slice_incr),
+          ))
+          |> temp,
+          branch_used,
+        )
+      | NoJoin(sms) =>
+        NoJoin(
+          List.map(
+            ((s1, s2)) =>
+              (
+                Sum(s1) |> term_of_slc_typ_term |> temp,
+                Sum(s2) |> term_of_slc_typ_term |> temp,
+              ),
+            sms,
+          ),
+        )
+      }
+    | (Sum(_), _) => NoJoin([(s1, s2)])
     | (List(s1), List(ty2)) =>
-      let+ (s, branch_used) = join'(s1, ty2 |> t_of_typ_t);
+      let+ (s, branch_used) = join'(s1, t_of_typ_t(ty2));
       (
         `SliceIncr((
           Slice(List(s)),
@@ -822,7 +905,7 @@ let rec join_using =
         |> temp,
         branch_used,
       );
-    | (List(_), _) => None
+    | (List(_), _) => NoJoin([(s1, s2)])
     | (Ap(_), _) => failwith("Type join of ap")
     }
   // This case could be implemented via flipping like `SliceGlobal below. But the 'fix' rule must be done managed correctly
@@ -831,18 +914,32 @@ let rec join_using =
     switch (ty1, s2') {
     | (_, Parens(s2)) => join'(s1, s2)
     | (Parens(ty1), _) => join'(ty1 |> t_of_typ_t, s2)
-    | (Unknown(_), _) => Some((s2, Right))
+    | (Unknown(_), _) => Join(s2, Right)
     | (Var(name), _) =>
-      let* s_name = Ctx.lookup_alias(ctx, name);
-      let+ (s_join, branch_used) = join'(s_name, s2);
-      !resolve && eq(s_name, s_join) ? (s1, Left) : (s_join, branch_used);
+      {
+        let* ty_name = Ctx.lookup_alias(ctx, name);
+        Some(
+          switch (join'(ty_name, s2)) {
+          | Join(ty_join, branch_used) =>
+            !resolve && equal(ty_name, ty_join)
+              ? Join(s1, Left) : Join(ty_join, branch_used)
+          | NoJoin(ts) => NoJoin([(s1, s2), ...ts])
+          },
+        );
+      }
+      |> (
+        fun
+        | Some(Join(t, b)) => Join(t, b)
+        | Some(NoJoin(ts)) => NoJoin(ts)
+        | None => NoJoin([(s1, s2)])
+      )
     /* Note: Ordering of Unknown, Var, and Rec above is load-bearing! */
     | (Rec(tp1, ty1), Rec(tp2, s2)) =>
       let ctx = Ctx.extend_dummy_tvar(ctx, tp1);
       let s1' =
         switch (TPat.tyvar_of_utpat(tp2)) {
         | Some(x2) => subst(`Typ(Var(x2)) |> temp, tp1, ty1 |> t_of_typ_t)
-        | None => s1
+        | None => ty1 |> t_of_typ_t
         };
       let+ (s_body, branch_used) = join_using(~resolve, ctx, s1', s2);
       (
@@ -853,15 +950,15 @@ let rec join_using =
         |> temp,
         branch_used,
       );
-    | (Rec(_), _) => None
+    | (Rec(_), _) => NoJoin([(s1, s2)])
     | (Forall(x1, ty1), Forall(x2, s2)) =>
-      let s1' =
+      let ty1' =
         switch (TPat.tyvar_of_utpat(x2)) {
         | Some(x2) => subst(`Typ(Var(x2)) |> temp, x1, ty1 |> t_of_typ_t)
-        | None => s1
+        | None => ty1 |> t_of_typ_t
         };
       let ctx = Ctx.extend_dummy_tvar(ctx, x2);
-      let+ (s_body, branch_used) = join_using(~resolve, ctx, s1', s2);
+      let+ (s_body, branch_used) = join_using(~resolve, ctx, ty1', s2);
       (
         `SliceIncr((
           Slice(Forall(x2, s_body)),
@@ -880,16 +977,16 @@ let rec join_using =
        be exposed to the user. We preserve the variable name of the
        second type to preserve synthesized type variable names, which
        come from user annotations. */
-    | (Forall(_), _) => None
-    | (Int, _) => None
-    | (Float, _) => None
-    | (Bool, _) => None
-    | (String, _) => None
-    | (Label(_), _) => None
+    | (Forall(_), _) => NoJoin([(s1, s2)])
+    | (Int, _) => NoJoin([(s1, s2)])
+    | (Float, _) => NoJoin([(s1, s2)])
+    | (Bool, _) => NoJoin([(s1, s2)])
+    | (String, _) => NoJoin([(s1, s2)])
+    | (Label(_), _) => NoJoin([(s1, s2)])
     | (Arrow(ty1, ty2), Arrow(s1', s2')) =>
-      let* (s1, branch_used1) = join'(ty1 |> t_of_typ_t, s1');
-      let+ (s2, branch_used2) = join'(ty2 |> t_of_typ_t, s2');
-      let branch_used = combine_branches_used(branch_used1, branch_used2);
+      let+ s1 = join'(ty1 |> t_of_typ_t, s1')
+      and+ s2 = join'(ty2 |> t_of_typ_t, s2')
+      and! branch_used = ();
       (
         `SliceIncr((
           Slice(Arrow(s1, s2)),
@@ -898,53 +995,86 @@ let rec join_using =
         |> temp,
         branch_used,
       );
-    | (Arrow(_), _) => None
+    | (Arrow(_), _) => NoJoin([(s1, s2)])
     | (TupLabel(lab1, ty1'), TupLabel(lab2, ty2')) =>
-      let* (lab, branch_used1) = join'(lab1 |> t_of_typ_t, lab2);
-      let+ (ty, branch_used2) = join'(ty1' |> t_of_typ_t, ty2');
+      let+ lab = join'(lab1 |> t_of_typ_t, lab2)
+      and+ ty = join'(ty1' |> t_of_typ_t, ty2')
+      and! branch_used = ();
       (
         `SliceIncr((
           Slice(TupLabel(lab, ty)),
-          choose_branch(
-            combine_branches_used(branch_used1, branch_used2),
-            empty_slice_incr,
-            slice_incr2,
-          ),
+          choose_branch(branch_used, empty_slice_incr, slice_incr2),
         ))
         |> temp,
-        combine_branches_used(branch_used1, branch_used2),
+        branch_used,
       );
-    | (TupLabel(_), _) => None
+    | (TupLabel(_), _) => NoJoin([(s1, s2)])
     | (Prod(tys1), Prod(ss2)) =>
-      let* joins = ListUtil.map2_opt(join', List.map(t_of_typ_t, tys1), ss2);
-      let+ joins = OptUtil.sequence(joins);
-      let (ss, branches_used) = ListUtil.unzip(joins);
-      let branch_used =
-        List.fold_left(combine_branches_used, None, branches_used);
-      (
-        `SliceIncr((
-          Slice(Prod(ss)),
-          choose_branch(branch_used, empty_slice_incr, slice_incr2),
-        ))
-        |> temp,
-        branch_used,
-      );
-    | (Prod(_), _) => None
+      if (List.length(tys1) != List.length(ss2)) {
+        NoJoin
+          ([(s1, s2)]); // TODO: Could only return the extra parts of tys1/tys2
+      } else {
+        let joins = List.map2(join', tys1 |> List.map(t_of_typ_t), ss2);
+        let joins =
+          List.fold_right(
+            (j, acc) =>
+              switch (acc, j) {
+              | (Ok((tys, branches_used)), Join(ty_join, branch_used)) =>
+                Ok(([ty_join, ...tys], [branch_used, ...branches_used]))
+              | (Ok(_), NoJoin(ts))
+              | (Error(ts), Join(_)) => Error(ts)
+              | (Error(ts_acc), NoJoin(ts)) => Error(ts_acc @ ts)
+              },
+            joins,
+            Ok(([], [])),
+          );
+        switch (joins) {
+        | Ok((tys, branches_used)) =>
+          let branch_used =
+            List.fold_left(combine_branches_used, None, branches_used);
+          Join(
+            `SliceIncr((
+              Slice(Prod(tys)),
+              choose_branch(branch_used, empty_slice_incr, slice_incr2),
+            ))
+            |> temp,
+            branch_used,
+          );
+        | Error(ts) => NoJoin(ts)
+        };
+      }
+    | (Prod(_), _) => NoJoin([(s1, s2)])
     | (Sum(sm1), Sum(sm2)) =>
-      let sm1 = ConstructorMap.map_preserving(t_of_typ_t, sm1);
-      let+ (sm', branches_used) =
-        ConstructorMap.join(eq, join_using(~resolve, ctx), sm1, sm2);
-      let branch_used =
-        List.fold_left(combine_branches_used, None, branches_used);
-      (
-        `SliceIncr((
-          Slice(Sum(sm')),
-          choose_branch(branch_used, empty_slice_incr, slice_incr2),
-        ))
-        |> temp,
-        branch_used,
-      ); // TODO: Check!
-    | (Sum(_), _) => None
+      switch (
+        ConstructorMap.join(
+          equal,
+          (x, y) => join_using(~resolve, ctx, x, y),
+          sm1 |> ConstructorMap.map_preserving(t_of_typ_t),
+          sm2,
+        )
+      ) {
+      | Join(sm', branch_used) =>
+        Join(
+          `SliceIncr((
+            Slice(Sum(sm')),
+            choose_branch(branch_used, empty_slice_incr, slice_incr2),
+          ))
+          |> temp,
+          branch_used,
+        )
+      | NoJoin(sms) =>
+        NoJoin(
+          List.map(
+            ((s1, s2)) =>
+              (
+                Sum(s1) |> term_of_slc_typ_term |> temp,
+                Sum(s2) |> term_of_slc_typ_term |> temp,
+              ),
+            sms,
+          ),
+        )
+      }
+    | (Sum(_), _) => NoJoin([(s1, s2)])
     | (List(ty1), List(s2)) =>
       let+ (s, branch_used) = join'(ty1 |> t_of_typ_t, s2);
       (
@@ -955,26 +1085,141 @@ let rec join_using =
         |> temp,
         branch_used,
       );
-    | (List(_), _) => None
+    | (List(_), _) => NoJoin([(s1, s2)])
     | (Ap(_), _) => failwith("Type join of ap")
     }
+  | (
+      `SliceIncr(
+        Typ(
+          (Unknown(_) | Int | Float | Bool | String | Var(_) | Label(_)) as ty1,
+        ),
+        slice_incr1,
+      ),
+      _,
+    ) =>
+    join'(`Typ(ty1) |> rewrap1, s2)
+    |> map_join(
+         (s, branch_used) =>
+           (left(branch_used) ? wrap_incr(slice_incr1, s) : s, branch_used),
+         ((s1, s2)) => (wrap_incr(slice_incr1, s1), s2),
+       )
+  | (
+      _,
+      `SliceIncr(
+        Typ(
+          (Unknown(_) | Int | Float | Bool | String | Var(_) | Label(_)) as ty2,
+        ),
+        slice_incr2,
+      ),
+    ) =>
+    join'(s1, `Typ(ty2) |> rewrap2)
+    |> map_join(
+         (s, branch_used) =>
+           (
+             right(branch_used) ? wrap_incr(slice_incr2, s) : s,
+             branch_used,
+           ),
+         ((s1, s2)) => (s1, wrap_incr(slice_incr2, s2)),
+       )
   | (`SliceIncr(Typ(ty1), slice_incr1), _) =>
-    let+ (s, branch_used) = join'(`Typ(ty1) |> rewrap1, s2);
-    (left(branch_used) ? wrap_incr(slice_incr1, s) : s, branch_used);
+    let. (s, branch_used) = join'(`Typ(ty1) |> rewrap1, s2);
+    Join(left(branch_used) ? wrap_incr(slice_incr1, s) : s, branch_used);
   | (_, `SliceIncr(Typ(ty2), slice_incr2)) =>
-    let+ (s, branch_used) = join'(s1, `Typ(ty2) |> rewrap2);
-    (right(branch_used) ? wrap_incr(slice_incr2, s) : s, branch_used);
+    let. (s, branch_used) = join'(s1, `Typ(ty2) |> rewrap2);
+    Join(right(branch_used) ? wrap_incr(slice_incr2, s) : s, branch_used);
+  | (
+      `SliceGlobal(
+        `Typ(Unknown(_) | Int | Float | Bool | String | Var(_) | Label(_)) as s1,
+        slice_global1,
+      ),
+      _,
+    ) =>
+    join'((s1 :> term) |> rewrap1, s2)
+    |> map_join(
+         (s, branch_used) =>
+           (
+             left(branch_used) ? wrap_global(slice_global1, s) : s,
+             branch_used,
+           ),
+         ((s1, s2)) => (wrap_global(slice_global1, s1), s2),
+       )
+  | (
+      _,
+      `SliceGlobal(
+        `Typ(Unknown(_) | Int | Float | Bool | String | Var(_) | Label(_)) as s2,
+        slice_global2,
+      ),
+    ) =>
+    join'(s1, (s2 :> term) |> rewrap1)
+    |> map_join(
+         (s, branch_used) =>
+           (
+             right(branch_used) ? wrap_global(slice_global2, s) : s,
+             branch_used,
+           ),
+         ((s1, s2)) => (s1, wrap_global(slice_global2, s2)),
+       )
   | (`SliceGlobal(s1, slice_global1), _) =>
-    let+ (s, branch_used) = join'((s1 :> term) |> rewrap1, s2);
-    (left(branch_used) ? wrap_global(slice_global1, s) : s, branch_used);
+    let. (s, branch_used) = join'((s1 :> term) |> rewrap1, s2);
+    Join(
+      left(branch_used) ? wrap_global(slice_global1, s) : s,
+      branch_used,
+    );
   | (_, `SliceGlobal(s2, slice_global2)) =>
-    let+ (s, branch_used) = join'(s1, (s2 :> term) |> rewrap2);
-    (right(branch_used) ? wrap_global(slice_global2, s) : s, branch_used);
+    let. (s, branch_used) = join'(s1, (s2 :> term) |> rewrap2);
+    Join(
+      right(branch_used) ? wrap_global(slice_global2, s) : s,
+      branch_used,
+    );
   };
 };
 
-let rec join = (~resolve=false, ctx: Ctx.t, ty1: t, ty2: t): option(t) =>
-  join_using(~resolve, ctx, ty1, ty2) |> Option.map(fst);
+let join = (~resolve=false, ctx: Ctx.t, ty1: t, ty2: t): option(t) =>
+  join_using(~resolve, ctx, ty1, ty2)
+  |> (
+    fun
+    | Join(t, _) => Some(t)
+    | NoJoin(_) => None
+  );
+
+let join_inconsistency =
+    (~resolve=false, ctx: Ctx.t, ty1: t, ty2: t): list((t, t)) =>
+  join_using(~resolve, ctx, ty1, ty2)
+  |> (
+    fun
+    | Join(_, _) => []
+    | NoJoin(ts) => ts
+  );
+
+let join_all = (~empty: t, ctx: Ctx.t, ts: list(t)): option(t) =>
+  List.fold_left(
+    (acc, ty) => OptUtil.and_then(join(ctx, ty), acc),
+    Some(empty),
+    ts,
+  );
+
+let join_inconsistency_all = (~empty: t, ctx, ts) =>
+  List.fold_left(
+    fun
+    | Ok(acc) => (
+        t =>
+          switch (join_using(ctx, acc, t)) {
+          | Join(acc', _) => Ok(acc')
+          | NoJoin(ts) => Error(ts)
+          }
+      )
+    | Error(ts) => (_ => Error(ts)),
+    Ok(empty),
+    ts,
+  )
+  |> (
+    fun
+    | Ok(_) => []
+    | Error(ts) => ts
+  );
+
+let is_consistent = (ctx: Ctx.t, ty1: t, ty2: t): bool =>
+  join(ctx, ty1, ty2) != None;
 
 /* REQUIRES NORMALIZED TYPES
    Remove synswitches from t1 by matching against t2 */
@@ -1124,16 +1369,6 @@ let rec match_synswitch =
     |> wrap_global(slice_global)
   };
 };
-
-let join_all = (~empty: t, ctx: Ctx.t, ts: list(t)): option(t) =>
-  List.fold_left(
-    (acc, ty) => OptUtil.and_then(join(ctx, ty), acc),
-    Some(empty),
-    ts,
-  );
-
-let is_consistent = (ctx: Ctx.t, ty1: t, ty2: t): bool =>
-  join(ctx, ty1, ty2) != None;
 
 // Destructuring constructs
 let unparens =
@@ -1327,7 +1562,7 @@ let rec matched_arrow_strict = (ctx, s: t) => {
     | _ => None
     }
   | `SliceGlobal(s, slice_global) =>
-    matched_arrow_strict(ctx, (s :> term) |> fresh)
+    matched_arrow_strict(ctx, (s :> term) |> temp)
     |> Option.map(TupleUtil.map2(wrap_global(slice_global)))
   };
 };
@@ -1355,14 +1590,14 @@ let rec matched_forall_strict = (ctx, s) => {
     | _ => None // (None, Unknown(Internal) |> temp)
     }
   | `SliceGlobal(s, slice_global) =>
-    matched_forall_strict(ctx, (s :> term) |> fresh)
+    matched_forall_strict(ctx, (s :> term) |> temp)
     |> Option.map(((tpat, s)) => (tpat, wrap_global(slice_global, s)))
   };
 };
 
 let matched_forall = (ctx, ty) =>
   matched_forall_strict(ctx, ty)
-  |> Option.value(~default=(None, `Typ(Unknown(Internal)) |> temp));
+  |> Option.value(~default=(Option.None, `Typ(Unknown(Internal)) |> temp));
 
 let rec matched_prod_strict:
   type a.
@@ -1407,7 +1642,7 @@ let rec matched_prod_strict:
         ctx,
         es,
         get_label_es,
-        (s :> term) |> fresh,
+        (s :> term) |> temp,
         constructor,
       )
       |> (
@@ -1445,7 +1680,7 @@ let rec matched_list_strict = (ctx, s) => {
     | _ => None
     }
   | `SliceGlobal(s, slice_global) =>
-    matched_list_strict(ctx, (s :> term) |> fresh)
+    matched_list_strict(ctx, (s :> term) |> temp)
     |> Option.map(wrap_global(slice_global))
   };
 };
@@ -1469,7 +1704,7 @@ let rec matched_args = (ctx, default_arity, s) => {
     | _ => [s']
     }
   | `SliceGlobal(s, slice_global) =>
-    matched_args(ctx, default_arity, (s :> term) |> fresh)
+    matched_args(ctx, default_arity, (s :> term) |> temp)
     |> List.map(wrap_global(slice_global))
   };
 };
@@ -1480,47 +1715,50 @@ let rec get_sum_constructors = (ctx: Ctx.t, s: t): option(sum_map) => {
     term: term',
   };
   let s = weak_head_normalize(ctx, s);
-  apply_t(
-    ty =>
-      Typ.get_sum_constructors(ctx, ty)
-      |> Option.map(ConstructorMap.map_preserving(t_of_typ_t)),
-    s =>
-      switch (s.term) {
-      | Parens(s) => get_sum_constructors(ctx, s)
-      | Sum(sm) => Some(sm)
-      | Rec(_) =>
-        /* Note: We must unroll here to get right ctr types;
-           otherwise the rec parameter will leak. However, seeing
-           as substitution is too expensive to be used here, we
-           currently making the optimization that, since all
-           recursive types are type alises which use the alias name
-           as the recursive parameter, and type aliases cannot be
-           shadowed, it is safe to simply remove the Rec constructor,
-           provided we haven't escaped the context in which the alias
-           is bound. If either of the above assumptions become invalid,
-           the below code will be incorrect! */
-        let s =
-          switch (s.term) {
-          | Rec({term: Var(x), _}, s_body) =>
-            switch (Ctx.lookup_alias(ctx, x)) {
-            | None => unroll(s |> IdTagged.apply(term_of_slc_typ_term))
-            | Some(_) => s_body
-            }
-          | _ => s |> IdTagged.apply(term_of_slc_typ_term)
-          };
-        apply(
-          fun
-          | Sum(sm) => Some(sm |> ConstructorMap.map_preserving(t_of_typ_t))
-          | _ => None,
-          fun
-          | Sum(sm) => Some(sm)
-          | _ => None,
-          s.term,
-        );
-      | _ => None
-      },
-    s,
-  );
+  switch (term_of(s)) {
+  | `Typ(ty)
+  | `SliceIncr(Typ(ty), _) =>
+    Typ.get_sum_constructors(ctx, ty |> rewrap)
+    |> Option.map(ConstructorMap.map_preserving(t_of_typ_t))
+  | `SliceIncr(Slice(s'), _) =>
+    switch (s') {
+    | Parens(s) => get_sum_constructors(ctx, s)
+    | Sum(sm) => Some(sm)
+    | Rec(_) =>
+      /* Note: We must unroll here to get right ctr types;
+         otherwise the rec parameter will leak. However, seeing
+         as substitution is too expensive to be used here, we
+         currently making the optimization that, since all
+         recursive types are type alises which use the alias name
+         as the recursive parameter, and type aliases cannot be
+         shadowed, it is safe to simply remove the Rec constructor,
+         provided we haven't escaped the context in which the alias
+         is bound. If either of the above assumptions become invalid,
+         the below code will be incorrect! */
+      let s =
+        switch (s') {
+        | Rec({term: Var(x), _}, s_body) =>
+          switch (Ctx.lookup_alias(ctx, x)) {
+          | Option.None => unroll(s' |> term_of_slc_typ_term |> rewrap)
+          | Some(_) => s_body
+          }
+        | _ => s' |> term_of_slc_typ_term |> rewrap
+        };
+      apply(
+        fun
+        | Sum(sm) => Some(sm |> ConstructorMap.map_preserving(t_of_typ_t))
+        | _ => None,
+        fun
+        | Sum(sm) => Some(sm)
+        | _ => None,
+        s.term,
+      );
+    | _ => None
+    }
+  | `SliceGlobal(s, slice_global) =>
+    get_sum_constructors(ctx, (s :> term) |> rewrap)
+    |> Option.map(ConstructorMap.map_preserving(wrap_global(slice_global)))
+  };
 };
 
 let is_synswitch = s =>
@@ -1545,7 +1783,7 @@ let get_slice: term => (option(slc_global), option(slc_incr)) =
 
 let rec add_slice = (slc, s) =>
   switch (slc) {
-  | (None, None) => s
+  | (Option.None, Option.None) => s
   | (g, Some(slc_incr)) => s |> add_slice((g, None)) |> wrap_incr(slc_incr)
   | (Some(slc_global), None) => s |> wrap_global(slc_global)
   };
