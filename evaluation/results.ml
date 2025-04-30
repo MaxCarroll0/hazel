@@ -51,9 +51,10 @@ let make_exp_info e =
 let ill_typed_annotated =
   ill_typed_annotated
   |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
-  let ill_typed_dynamic =
-    ill_typed_dynamic
-    |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
+
+let ill_typed_dynamic =
+  ill_typed_dynamic
+  |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
 
 let ill_typed = ill_typed_annotated @ ill_typed_dynamic
 
@@ -490,8 +491,8 @@ let with_timeout ~secs f =
     ignore (Unix.alarm 0);
     raise e
 
-let dfs  ~secs d =
-with_timeout  ~secs (fun () ->
+let dfs ~secs d =
+  with_timeout ~secs (fun () ->
       DFS.once (SearchDFS.cast_errors ~env:Builtins.env_init d))
 
 let bfs ~secs d =
@@ -553,7 +554,6 @@ let dfs_results ~secs = eval_results (dfs ~secs)
 let idfs_results ~secs = eval_results (idfs ~secs)
 let bdfs_results ~secs = eval_results (bdfs ~secs)
 
-
 (* Performance Benchmarks *)
 open Bechamel
 
@@ -563,9 +563,7 @@ let test ~timeout ((impl_name, impl), (progn, program)) =
   let test_name = Fmt.str "%s-%i" impl_name progn in
   Test.make ~name:test_name
     (Staged.stage (fun () ->
-         try
-           (
-               Some (eval_results (impl ~secs: timeout) [ program ]))
+         try Some (eval_results (impl ~secs:timeout) [ program ])
          with Timeout ->
            timedout := ("suite/" ^ test_name) :: !timedout;
            None))
