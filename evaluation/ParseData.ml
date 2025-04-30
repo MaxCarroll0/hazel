@@ -2,6 +2,11 @@ module B = Base
 open Haz3lcore
 module Fresh = IdTagged.FreshGrammar
 
+(* The current version of Hazel does not correctly parse any variable starting with "in" when inside a let expression *)
+(* I delete any in[a-Z,0-9] to temporarily get around this *)
+(* This must also be performed on the Ctx, see Settings.ctx *)
+let replace_inC = Re.(replace_string (compile (seq [ str "in"; alnum ])) ~by:"")
+
 let add_builtins e =
   Exp.map_term
     ~f_exp:(fun cont e ->
@@ -19,7 +24,8 @@ let add_builtins e =
 
 let rec ap_of_typ t e =
   match Typ.term_of t with
-  | Forall(_, t2) -> Exp.fresh (TypAp(e, Typ.hole([]) |> Typ.fresh)) |> ap_of_typ t2
+  | Forall (_, t2) ->
+      Exp.fresh (TypAp (e, Typ.hole [] |> Typ.fresh)) |> ap_of_typ t2
   | Arrow (_, t2) ->
       Exp.fresh (Ap (Forward, e, Exp.fresh EmptyHole)) |> ap_of_typ t2
   | _ -> e
@@ -45,6 +51,7 @@ let rec add_search_points (statics : Statics.Map.t) e =
 
 (* Existing recovering parser *)
 let make_term_parse s =
+  s |> replace_inC |> fun s ->
   ( add_builtins
       (MakeTerm.from_zip_for_sem (Option.get (Printer.zipper_of_string s))).term
   |> fun x ->

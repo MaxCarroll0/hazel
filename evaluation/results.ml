@@ -22,12 +22,14 @@ let make_exp_info e =
   { term = e; statics; elaboration; result }
 
 let ill_typed =
-  ill_typed_annotated @ ill_typed_dynamic |> List.filter_map (fun e -> try Some(make_exp_info e) with _ -> None)
+  ill_typed_annotated @ ill_typed_dynamic
+  |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
 
-let well_typed = well_typed |> List.filter_map (fun e -> try Some(make_exp_info e) with _ -> None)
+let well_typed =
+  well_typed
+  |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
 
 (* Corpus Statistics *)
-
 
 (* Effectiveness *)
 (* Type Slice Size Stats*)
