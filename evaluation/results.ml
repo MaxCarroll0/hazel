@@ -33,16 +33,16 @@ type expression_info = {
 }
 
 let make_exp_info i e =
-  print_endline ("Calculator info for prog" ^ Int.to_string i);
+  print_endline ("Calculating info for prog" ^ Int.to_string i);
   print_endline "Typing";
   let statics = Statics.mk Settings.settings Settings.ctx e in
   print_endline "Elaborating";
   let elaboration, _ = Elaborator.elaborate statics e in
   print_endline "Evaluating";
   let state, result =
-    DFS.once
+    with_timeout ~secs: 2 (fun () -> DFS.once
       (SearchDFS.deterministic ~env:Builtins.env_init
-         ~state:IndetEvaluatorState.init e)
+         ~state:IndetEvaluatorState.init e))
     |> Option.get
   in
   print_endline "Finished";
