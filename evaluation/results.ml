@@ -19,7 +19,7 @@ module SearchBFS = IndetEvaluator.Make (BFS)
 (* Bounded depth increments of 5 *)
 module BDFS =
   Nondeterminism.Bounded
-    ((val Nondeterminism.const_incr_config ~init:100 ~inc:50))
+    ((val Nondeterminism.const_incr_config ~init:10 ~inc:10))
 
 module SearchBDFS = IndetEvaluator.Make (BDFS)
 
@@ -648,10 +648,10 @@ let aggregate_search_results rs =
         |> List.map (fun (trace_length, _, _) -> Float.of_int trace_length));
   }
 
-let dfs_results ~secs l = eval_results (dfs ~secs) l
-let bfs_results ~secs l = eval_results (bfs ~secs) l
-let idfs_results ~secs l = eval_results (idfs ~secs) l
-let bdfs_results ~secs l = eval_results (bdfs ~secs) l
+let dfs_results_print ~secs l = eval_results (dfs_print ~secs) l
+let bfs_results_print ~secs l = eval_results (bfs_print ~secs) l
+let idfs_results_print ~secs l = eval_results (idfs_print ~secs) l
+let bdfs_results_print ~secs l = eval_results (bdfs_print ~secs) l
 
 (* Performance Benchmarks *)
 open Bechamel
@@ -694,7 +694,9 @@ let benchmark test =
     results
 
 let tests =
-  let impls = [ ("dfs", dfs); ("bfs", bfs); ("idfs", idfs); ("bdfs", bdfs) ] in
+  let impls =
+    [ ("dfs", dfs); (*("bfs", bfs);*) ("idfs", idfs); ("bdfs", bdfs) ]
+  in
   let tests =
     List.concat_map
       (fun v -> List.mapi (fun i e -> (v, (i, e))) ill_typed_annotated)
@@ -856,16 +858,16 @@ let () =
   print_endline "WITNESS RESULTS:";
   print_endline "DFS";
   print_aggregate_search_result
-    (aggregate_search_results (dfs_results ~secs:10 ill_typed_annotated));
+    (aggregate_search_results (dfs_results_print ~secs:10 ill_typed_annotated));
   print_endline "Bounded DFS";
   print_aggregate_search_result
-    (aggregate_search_results (bdfs_results ~secs:10 ill_typed_annotated));
+    (aggregate_search_results (bdfs_results_print ~secs:10 ill_typed_annotated));
   print_endline "Interleaved DFS";
   print_aggregate_search_result
-    (aggregate_search_results (idfs_results ~secs:10 ill_typed_annotated));
-  print_endline "BFS";
+    (aggregate_search_results (idfs_results_print ~secs:10 ill_typed_annotated));
+  (*print_endline "BFS";
   print_aggregate_search_result
-    (aggregate_search_results (bfs_results ~secs:10 ill_typed_annotated));
+    (aggregate_search_results (bfs_results_print ~secs:10 ill_typed_annotated));*)
   print_endline "";
   print_endline "";
 
