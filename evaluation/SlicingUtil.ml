@@ -3,7 +3,7 @@ open Haz3lcore
 let term_size (e : 'a Grammar.any_t) =
   let id_count = ref 0 in
   let incr_count (type a) cont (e : a IdTagged.t) =
-    id_count := !id_count + List.length(e.annotation.ids);
+    id_count := !id_count + List.length e.annotation.ids;
     cont e
   in
   let _ =
@@ -25,15 +25,13 @@ let rec remove_duplicates = function
 let term_ids (e : 'a Grammar.any_t) =
   let ids = ref [] in
   let incr_count (type a) cont e =
-    ids := IdTagged.ids (e) @ !ids;
+    ids := IdTagged.ids e @ !ids;
     cont e
   in
   let _ =
     e
-    |> Any.map_term ~f_exp:(incr_count)
-         ~f_typ:(incr_count) ~f_pat:(incr_count)
-         ~f_typslice:(incr_count)
-         ~f_rul:(incr_count)
+    |> Any.map_term ~f_exp:incr_count ~f_typ:incr_count ~f_pat:incr_count
+         ~f_typslice:incr_count ~f_rul:incr_count
   in
   !ids
 
