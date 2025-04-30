@@ -16,7 +16,7 @@ type expression_info = {
 }
 
 let make_exp_info e =
-  let statics = Statics.mk Settings.settings Builtins.ctx_init e in
+  let statics = Statics.mk Settings.settings Settings.ctx e in
   let elaboration, _ = Elaborator.elaborate statics e in
   let result, _ = Evaluator.evaluate ~env:Builtins.env_init e in
   { term = e; statics; elaboration; result }

@@ -39,7 +39,7 @@ let rec add_search_points (statics : Statics.Map.t) e =
           match Statics.Map.lookup (Exp.rep_id e) statics with
           | None -> failwith "No statics map for hole"
           | Some info ->
-              Ctx.added_bindings (Info.ctx_of info) Builtins.ctx_init
+              Ctx.added_bindings (Info.ctx_of info) Settings.ctx
               |> List.filter_map (function
                    | Ctx.VarEntry { name; typ; _ } ->
                        Some
@@ -58,7 +58,7 @@ let make_term_parse s =
     print_endline ("Successfully parsed:\n" ^ s);
     x )
   |> fun e ->
-  (Statics.mk Settings.settings Builtins.ctx_init e, e) |> fun x ->
+  (Statics.mk Settings.settings Settings.ctx e, e) |> fun x ->
   print_endline "Successfully Type Checked";
   x |> fun (statics, e) ->
   add_search_points statics e |> fun e ->

@@ -235,7 +235,7 @@ module Pervasives = {
   let builtins =
     Fresh.Typ.(
       VarMap.empty
-      |> const("infinity", Float, infinity)
+      |> const("finity", Float, infinity)
       |> const("neg_infinity", Float, neg_infinity)
       |> const("nan", Float, nan)
       |> const("epsilon_float", Float, epsilon_float)
@@ -245,12 +245,12 @@ module Pervasives = {
       |> fn("is_finite", Float, Bool, is_finite)
       |> fn("is_infinite", Float, Bool, is_infinite)
       |> fn("is_nan", Float, Bool, is_nan)
-      |> fn("int_of_float", Float, Int, int_of_float)
+      |> fn("t_of_float", Float, Int, int_of_float)
       |> fn("float_of_int", Int, Float, float_of_int)
       |> fn("string_of_int", Int, String, string_of_int)
       |> fn("string_of_float", Float, String, string_of_float)
       |> fn("string_of_bool", Bool, String, string_of_bool)
-      |> fn("int_of_string", String, Int, int_of_string("int_of_string"))
+      |> fn("t_of_string", String, Int, int_of_string("int_of_string"))
       |> fn(
            "float_of_string",
            String,
