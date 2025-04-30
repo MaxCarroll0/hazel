@@ -7,7 +7,6 @@ open Haz3lcore
 
 (* Performance Benchmarks *)
 
-
 (* Limiting the running limit to ~60s and 1GB using garbage collector alarms *)
 open ResourceLimits
 module DFS = Nondeterminism.DFS
@@ -20,6 +19,7 @@ module SearchBFS = IndetEvaluator.Make (BFS)
 (* Bounded depth increments of 5 *)
 module BDFS =
   Nondeterminism.Bounded ((val Nondeterminism.const_incr_config ~init:5 ~inc:5))
+
 module SearchBDFS = IndetEvaluator.Make (BDFS)
 
 (* Basic info relevant to slicing *)
@@ -28,13 +28,25 @@ type expression_info = {
   statics : Statics.Map.t;
   elaboration : Exp.t;
   result : DHExp.t; (* Deterministic eval result *)
-  trace_length : int (* Deterministic trace length *)
+  trace_length : int; (* Deterministic trace length *)
 }
+
 let make_exp_info e =
   let statics = Statics.mk Settings.settings Settings.ctx e in
   let elaboration, _ = Elaborator.elaborate statics e in
-  let state, result = DFS.once(SearchDFS.deterministic ~env:Builtins.env_init ~state: IndetEvaluatorState.init e) |>Option.get in
-  { term = e; statics; elaboration; result; trace_length= IndetEvaluatorState.get_trace_length(state)}
+  let state, result =
+    DFS.once
+      (SearchDFS.deterministic ~env:Builtins.env_init
+         ~state:IndetEvaluatorState.init e)
+    |> Option.get
+  in
+  {
+    term = e;
+    statics;
+    elaboration;
+    result;
+    trace_length = IndetEvaluatorState.get_trace_length state;
+  }
 
 let ill_typed =
   ill_typed_annotated @ ill_typed_dynamic
@@ -45,46 +57,70 @@ let well_typed =
   |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
 
 (* Corpus Statistics *)
+type corpus_stats = {
+  avg_prog_size : float;
+  std_prog_size : float;
+  avg_trace_size : float;
+  std_trace_size : float;
+}
+
+let aggregate_corpus_stats l =
+  {
+    avg_prog_size =
+      avg_0 (List.map (fun i -> Float.of_int (term_size (Exp i.term))) l);
+    std_prog_size =
+      std_0 (List.map (fun i -> Float.of_int (term_size (Exp i.term))) l);
+    avg_trace_size = avg (List.map (fun i -> Float.of_int i.trace_length) l);
+    std_trace_size = std (List.map (fun i -> Float.of_int i.trace_length) l);
+  }
 
 (* Effectiveness *)
 (* Type Slice Size Stats*)
 let slice_info l =
   l
-  |> List.map (fun { term; statics; _ } -> slice_info statics term)
+  |> List.map (fun { term; statics; _ } -> slice_info statics (Exp term))
   |> List.flatten
 
 let slice_info_all = ill_typed @ well_typed |> slice_info
 
 (* Total slice size info
    Proportion of size of term + type. Type size approximates the checking context size *)
-type slice_size = { term_type_size : int; slice_size : int; proportion : float }
+type slice_size = {
+  prog_size : int;
+  type_size : int;
+  slice_size : int;
+  proportion_prog : float;
+  ratio_typ : float;
+}
 
 let slice_sizes_all l =
   l
-  |> List.map (fun (_, term, slice, _) ->
-         (term_size term, term_size (TypSlice slice), slice_size slice))
+  |> List.map (fun (prog, _, _, slice, _) ->
+         (term_size prog, term_size (TypSlice slice), slice_size slice))
      (* TODO: Use simplified inconsistency slice joins as the error slice here *)
-  |> List.map (fun (term_size, type_size, slice_size) ->
+  |> List.map (fun (prog_size, type_size, slice_size) ->
          {
-           term_type_size = term_size + type_size;
+           prog_size;
+           type_size;
            slice_size;
-           proportion =
-             Float.of_int slice_size /. Float.of_int (term_size + type_size);
+           proportion_prog = Float.of_int slice_size /. Float.of_int prog_size;
+           ratio_typ = Float.of_int slice_size /. Float.of_int type_size;
          })
 
 let slice_sizes_ok l =
   l
-  |> List.filter (function _, _, _, NoTypeError -> true | _ -> false)
-  |> List.map (fun (_, term, slice, _) ->
-         (term_size term, term_size (TypSlice slice), slice_size slice))
+  |> List.filter (function _, _, _, _, NoTypeError -> true | _ -> false)
+  |> List.map (fun (prog, _, _, slice, _) ->
+         (term_size prog, term_size (TypSlice slice), slice_size slice))
   |> List.filter (function _, _, 0 -> false | _ -> true)
      (* Filter empty slices, these are implicitly dynamic code or unsupported constructs*)
-  |> List.map (fun (term_size, type_size, slice_size) ->
+  |> List.map (fun (prog_size, type_size, slice_size) ->
          {
-           term_type_size = term_size + type_size;
+           prog_size;
+           type_size;
            slice_size;
-           proportion =
-             Float.of_int slice_size /. Float.of_int (term_size + type_size);
+           proportion_prog = Float.of_int slice_size /. Float.of_int prog_size;
+           ratio_typ = Float.of_int slice_size /. Float.of_int type_size;
          })
 
 (* Slice size vs the combined slice size of the expectations*)
@@ -96,9 +132,9 @@ type slice_size_expectations_error = {
 let slice_sizes_incon_expectations l =
   l
   |> List.filter_map (function
-       | _, term, slice, Inconsistent { syn; ana; incon_join } ->
+       | prog, _, _, slice, Inconsistent { syn; ana; incon_join } ->
            Some
-             ( term_size term,
+             ( term_size prog,
                term_size (TypSlice slice),
                slice_size slice,
                slice_size syn + slice_size ana,
@@ -116,7 +152,7 @@ let slice_sizes_incon_expectations l =
   (* TODO: Use simplified inconsistency slice joins as the error slice here *)
   |> List.map
        (fun
-         ( term_size,
+         ( prog_size,
            type_size,
            slice_size,
            expectations_slice_size,
@@ -125,19 +161,25 @@ let slice_sizes_incon_expectations l =
          {
            error_slice_size =
              {
-               term_type_size = term_size + type_size;
+               prog_size;
                slice_size = error_slice_size;
-               proportion =
-                 Float.of_int error_slice_size
-                 /. Float.of_int (term_size + type_size);
+               type_size;
+               proportion_prog =
+                 Float.of_int error_slice_size /. Float.of_int prog_size;
+               ratio_typ =
+                 Float.of_int error_slice_size /. Float.of_int prog_size;
              };
            combined_slice_size =
              {
-               term_type_size = term_size + type_size;
+               prog_size;
+               type_size;
                slice_size = slice_size + expectations_slice_size;
-               proportion =
+               proportion_prog =
                  Float.of_int (slice_size + expectations_slice_size)
-                 /. Float.of_int (term_size + type_size);
+                 /. Float.of_int prog_size;
+               ratio_typ =
+                 Float.of_int (slice_size + expectations_slice_size)
+                 /. Float.of_int type_size;
              };
          })
 
@@ -145,9 +187,9 @@ let slice_sizes_incon_expectations l =
 let slice_sizes_incon_branches l =
   l
   |> List.filter_map (function
-       | _, term, slice, InconsistentBranches (ss, incon_join) ->
+       | prog, _, _, slice, InconsistentBranches (ss, incon_join) ->
            Some
-             ( term_size term,
+             ( term_size prog,
                term_size (TypSlice slice),
                slice_size slice,
                ss |> List.fold_left (fun acc s -> acc + slice_size s) 0,
@@ -164,7 +206,7 @@ let slice_sizes_incon_branches l =
   (* Filter empty slices, these are implicitly dynamic code or unsupported constructs*)
   |> List.map
        (fun
-         ( term_size,
+         ( prog_size,
            type_size,
            slice_size,
            branches_slice_size,
@@ -173,48 +215,63 @@ let slice_sizes_incon_branches l =
          {
            error_slice_size =
              {
-               term_type_size = term_size + type_size;
+               prog_size;
                slice_size = error_slice_size;
-               proportion =
-                 Float.of_int error_slice_size
-                 /. Float.of_int (term_size + type_size);
+               type_size;
+               proportion_prog =
+                 Float.of_int error_slice_size /. Float.of_int prog_size;
+               ratio_typ =
+                 Float.of_int error_slice_size /. Float.of_int type_size;
              };
            combined_slice_size =
              {
-               term_type_size = term_size + type_size;
+               prog_size;
                slice_size = slice_size + branches_slice_size;
-               proportion =
+               type_size;
+               proportion_prog =
                  Float.of_int (slice_size + branches_slice_size)
-                 /. Float.of_int (term_size + type_size);
+                 /. Float.of_int prog_size;
+               ratio_typ =
+                 Float.of_int (slice_size + branches_slice_size)
+                 /. Float.of_int type_size;
              };
          })
 
-(* Simple average of term and slice size. Weighted average of proportions*)
+(* Simple average of term and slice size. Weighted average of proportions *)
+(* Avg prog size here is weighted by the number of slices considered in the prog*)
 type aggregate_slice_size = {
-  avg_term_type_size : float;
-  std_term_type_size : float;
+  avg_prog_size : float;
+  std_prog_size : float;
   avg_slice_size : float;
   std_slice_size : float;
-  w_avg_proportion : float;
-  w_std_proportion : float;
+  w_avg_proportion_prog : float;
+  w_std_proportion_prog : float;
+  w_avg_ratio_typ : float;
+  w_std_ratio_typ : float;
 }
 
 let aggregate_slice_sizes ss =
   {
-    avg_term_type_size =
-      avg (List.map (fun s -> s.term_type_size) ss |> to_floats);
-    std_term_type_size =
-      std (List.map (fun s -> s.term_type_size) ss |> to_floats);
+    avg_prog_size = avg (List.map (fun s -> s.prog_size) ss |> to_floats);
+    std_prog_size = std (List.map (fun s -> s.prog_size) ss |> to_floats);
     avg_slice_size = avg_0 (List.map (fun s -> s.slice_size) ss |> to_floats);
     std_slice_size = std_0 (List.map (fun s -> s.slice_size) ss |> to_floats);
-    w_avg_proportion =
+    w_avg_proportion_prog =
       w_avg_0
-        (List.map (fun s -> s.proportion) ss)
-        (List.map (fun s -> s.term_type_size) ss |> to_floats);
-    w_std_proportion =
+        (List.map (fun s -> s.proportion_prog) ss)
+        (List.map (fun s -> s.prog_size) ss |> to_floats);
+    w_std_proportion_prog =
       w_std_0
-        (List.map (fun s -> s.proportion) ss)
-        (List.map (fun s -> s.term_type_size) ss |> to_floats);
+        (List.map (fun s -> s.proportion_prog) ss)
+        (List.map (fun s -> s.prog_size) ss |> to_floats);
+    w_avg_ratio_typ =
+      w_avg_0
+        (List.map (fun s -> s.ratio_typ) ss)
+        (List.map (fun s -> s.type_size) ss |> to_floats);
+    w_std_ratio_typ =
+      w_std_0
+        (List.map (fun s -> s.ratio_typ) ss)
+        (List.map (fun s -> s.type_size) ss |> to_floats);
   }
 
 let aggregate_error_slice_sizes ss =
@@ -240,38 +297,43 @@ let cast_slice_info_all =
    Ratio between slice casted from size and the casted term size
    Ratio between slice casted to size and it's type *)
 type cast_slice_size = {
+  prog_size : int;
   term_size : int;
   type_size : int;
   slice_from_size : int;
   slice_to_size : int;
-  ratio_from_term : float;
-  ratio_to_type : float;
+  proportion_prog : float;
+  ratio_typ : float;
 }
 
 let cast_slice_sizes_all l =
   l
   |> List.map (function
-       | ExpCast (_, e, t1, t2) | ExpCastFail (_, e, t1, t2) ->
+       | ExpCast (prog, _, e, t1, t2) | ExpCastFail (prog, _, e, t1, t2) ->
            {
+             prog_size = term_size (Exp prog);
              term_size = term_size (Exp e);
              type_size = term_size (TypSlice t2);
              slice_from_size = slice_size t1;
              slice_to_size = slice_size t2;
-             ratio_from_term =
-               Float.of_int (slice_size t1) /. Float.of_int (term_size (Exp e));
-             ratio_to_type =
+             proportion_prog =
+               Float.of_int (slice_size t1)
+               /. Float.of_int (term_size (Exp prog));
+             ratio_typ =
                Float.of_int (slice_size t2)
                /. Float.of_int (term_size (TypSlice t2));
            }
-       | PatCast (_, p, t1, t2) ->
+       | PatCast (prog, _, p, t1, t2) ->
            {
+             prog_size = term_size (Exp prog);
              term_size = term_size (Pat p);
              type_size = term_size (TypSlice t2);
              slice_from_size = slice_size t1;
              slice_to_size = slice_size t2;
-             ratio_from_term =
-               Float.of_int (slice_size t1) /. Float.of_int (term_size (Pat p));
-             ratio_to_type =
+             proportion_prog =
+               Float.of_int (slice_size t1)
+               /. Float.of_int (term_size (Exp prog));
+             ratio_typ =
                Float.of_int (slice_size t2)
                /. Float.of_int (term_size (TypSlice t2));
            })
@@ -280,31 +342,33 @@ let cast_slice_sizes_ok l =
   l
   |> List.filter_map (function
        | ExpCastFail _ -> None
-       | ExpCast (_, e, t1, t2) ->
+       | ExpCast (prog, _, e, t1, t2) ->
            Some
              {
+               prog_size = term_size (Exp prog);
                term_size = term_size (Exp e);
                type_size = term_size (TypSlice t2);
                slice_from_size = slice_size t1;
                slice_to_size = slice_size t2;
-               ratio_from_term =
+               proportion_prog =
                  Float.of_int (slice_size t1)
-                 /. Float.of_int (term_size (Exp e));
-               ratio_to_type =
+                 /. Float.of_int (term_size (Exp prog));
+               ratio_typ =
                  Float.of_int (slice_size t2)
                  /. Float.of_int (term_size (TypSlice t2));
              }
-       | PatCast (_, p, t1, t2) ->
+       | PatCast (prog, _, p, t1, t2) ->
            Some
              {
+               prog_size = term_size (Exp prog);
                term_size = term_size (Pat p);
                type_size = term_size (TypSlice t2);
                slice_from_size = slice_size t1;
                slice_to_size = slice_size t2;
-               ratio_from_term =
+               proportion_prog =
                  Float.of_int (slice_size t1)
-                 /. Float.of_int (term_size (Pat p));
-               ratio_to_type =
+                 /. Float.of_int (term_size (Exp prog));
+               ratio_typ =
                  Float.of_int (slice_size t2)
                  /. Float.of_int (term_size (TypSlice t2));
              })
@@ -313,17 +377,18 @@ let cast_slice_sizes_pats l =
   l
   |> List.filter_map (function
        | ExpCastFail _ | ExpCast _ -> None
-       | PatCast (_, p, t1, t2) ->
+       | PatCast (prog, _, p, t1, t2) ->
            Some
              {
+               prog_size = term_size (Exp prog);
                term_size = term_size (Pat p);
                type_size = term_size (TypSlice t2);
                slice_from_size = slice_size t1;
                slice_to_size = slice_size t2;
-               ratio_from_term =
+               proportion_prog =
                  Float.of_int (slice_size t1)
-                 /. Float.of_int (term_size (Pat p));
-               ratio_to_type =
+                 /. Float.of_int (term_size (Exp prog));
+               ratio_typ =
                  Float.of_int (slice_size t2)
                  /. Float.of_int (term_size (TypSlice t2));
              })
@@ -331,23 +396,26 @@ let cast_slice_sizes_pats l =
 let cast_slice_sizes_errors l =
   l
   |> List.filter_map (function
-       | ExpCastFail (_, e, t1, t2) ->
+       | ExpCastFail (prog, _, e, t1, t2) ->
            Some
              {
+               prog_size = term_size (Exp prog);
                term_size = term_size (Exp e);
                type_size = term_size (TypSlice t2);
                slice_from_size = slice_size t1;
                slice_to_size = slice_size t2;
-               ratio_from_term =
+               proportion_prog =
                  Float.of_int (slice_size t1)
-                 /. Float.of_int (term_size (Exp e));
-               ratio_to_type =
+                 /. Float.of_int (term_size (Exp prog));
+               ratio_typ =
                  Float.of_int (slice_size t2)
                  /. Float.of_int (term_size (TypSlice t2));
              }
        | ExpCast _ | PatCast _ -> None)
 
 type aggregate_cast_slice_size = {
+  avg_prog_size : float;
+  std_prog_size : float;
   avg_term_size : float;
   std_term_size : float;
   avg_type_size : float;
@@ -356,14 +424,16 @@ type aggregate_cast_slice_size = {
   std_slice_from_size : float;
   avg_slice_to_size : float;
   std_slice_to_size : float;
-  w_avg_ratio_from_term : float;
-  w_std_ratio_from_term : float;
-  w_avg_ratio_to_type : float;
-  w_std_ratio_to_type : float;
+  w_avg_proportion_prog : float;
+  w_std_proportion_prog : float;
+  w_avg_ratio_typ : float;
+  w_std_ratio_typ : float;
 }
 
 let aggregate_cast_slice_sizes ss =
   {
+    avg_prog_size = avg (List.map (fun s -> s.prog_size) ss |> to_floats);
+    std_prog_size = std (List.map (fun s -> s.prog_size) ss |> to_floats);
     avg_term_size = avg (List.map (fun s -> s.term_size) ss |> to_floats);
     std_term_size = std (List.map (fun s -> s.term_size) ss |> to_floats);
     avg_type_size = avg (List.map (fun s -> s.type_size) ss |> to_floats);
@@ -376,21 +446,21 @@ let aggregate_cast_slice_sizes ss =
       avg_0 (List.map (fun s -> s.slice_to_size) ss |> to_floats);
     std_slice_to_size =
       std_0 (List.map (fun s -> s.slice_to_size) ss |> to_floats);
-    w_avg_ratio_from_term =
+    w_avg_proportion_prog =
       w_avg_0
-        (List.map (fun s -> s.ratio_from_term) ss)
-        (List.map (fun s -> s.term_size) ss |> to_floats);
-    w_std_ratio_from_term =
+        (List.map (fun s -> s.proportion_prog) ss)
+        (List.map (fun s -> s.prog_size) ss |> to_floats);
+    w_std_proportion_prog =
       w_avg_0
-        (List.map (fun s -> s.ratio_from_term) ss)
-        (List.map (fun s -> s.term_size) ss |> to_floats);
-    w_avg_ratio_to_type =
+        (List.map (fun s -> s.proportion_prog) ss)
+        (List.map (fun s -> s.prog_size) ss |> to_floats);
+    w_avg_ratio_typ =
       w_avg_0
-        (List.map (fun s -> s.ratio_to_type) ss)
+        (List.map (fun s -> s.ratio_typ) ss)
         (List.map (fun s -> s.type_size) ss |> to_floats);
-    w_std_ratio_to_type =
+    w_std_ratio_typ =
       w_avg_0
-        (List.map (fun s -> s.ratio_to_type) ss)
+        (List.map (fun s -> s.ratio_typ) ss)
         (List.map (fun s -> s.type_size) ss |> to_floats);
   }
 

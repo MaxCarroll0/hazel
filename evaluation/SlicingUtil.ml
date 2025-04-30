@@ -53,7 +53,7 @@ type error_slice_info =
 (* Expected constructor is also an error with slice, but the slice size is always exactly 1, so pointless analysing *)
 
 type slice_info =
-  Id.t * IdTagged.IdTag.t Grammar.any_t * TypSlice.t * error_slice_info
+  Any.t * Id.t * IdTagged.IdTag.t Grammar.any_t * TypSlice.t * error_slice_info
 
 let common_error_slice_info : Info.error_common -> error_slice_info = function
   | NoType
@@ -71,13 +71,14 @@ let common_error_slice_info : Info.error_common -> error_slice_info = function
   | Inconsistent (WithArrow (arrow, ana, incon_join)) ->
       Inconsistent { syn = arrow; ana; incon_join }
 
-let slice_info statics _ : slice_info list =
+let slice_info statics e : slice_info list =
   statics |> Id.Map.to_list
   |> List.map (fun (id, info) ->
          match info with
          | Info.InfoExp exp ->
              Some
-               ( id,
+               ( e,
+                 id,
                  Grammar.Exp exp.term,
                  exp.ty,
                  match exp.status with
@@ -89,7 +90,8 @@ let slice_info statics _ : slice_info list =
                  | InHole (Common err) -> common_error_slice_info err )
          | Info.InfoPat pat ->
              Some
-               ( id,
+               ( e,
+                 id,
                  Pat pat.term,
                  pat.ty,
                  match pat.status with
