@@ -7,7 +7,7 @@ module Fresh = IdTagged.FreshGrammar
 (* This must also be performed on the Ctx, see Settings.ctx *)
 let replace_inC =
   Re.replace ~all:true (Re.Perl.compile_pat " in([a-zA-Z0-9])") ~f:(fun g ->
-      Re.Group.get g 1)
+      " " ^ Re.Group.get g 1)
 
 let add_builtins e =
   Exp.map_term
@@ -52,10 +52,14 @@ let rec add_search_points (statics : Statics.Map.t) e =
     e
 
 (* Existing recovering parser *)
+open ResourceLimits
+
 let make_term_parse s =
   s |> replace_inC |> fun s ->
   ( add_builtins
-      (MakeTerm.from_zip_for_sem (Option.get (Printer.zipper_of_string s))).term
+      (with_timeout ~secs:10 (fun () ->
+           MakeTerm.from_zip_for_sem (Option.get (Printer.zipper_of_string s))))
+        .term
   |> fun x ->
     print_endline ("Successfully parsed:\n" ^ s);
     x )
