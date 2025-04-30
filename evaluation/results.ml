@@ -574,13 +574,13 @@ let aggregate_search_results rs =
   {
     witness_proportion =
       Float.of_int (List.length witnesses)
-      /. Float.of_int (num_nowitness + num_timeout);
+      /. Float.of_int (List.length witnesses + num_nowitness + num_timeout);
     nowitness_proportion =
       Float.of_int num_nowitness
-      /. Float.of_int (List.length witnesses + num_timeout);
+      /. Float.of_int (List.length witnesses + num_nowitness + num_timeout);
     timeout_proportion =
       Float.of_int num_timeout
-      /. Float.of_int (num_nowitness + List.length witnesses);
+      /. Float.of_int (List.length witnesses + num_nowitness + num_timeout);
     avg_trace_length =
       avg_0
         (witnesses
