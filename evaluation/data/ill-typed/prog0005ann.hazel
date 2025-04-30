@@ -1,4 +1,0 @@
-let sumList : [?] -> [?] = fun xs -> case xs 
-  | [] => []
-  | x :: xs' => 1(sumList)(xs')
-end in sumList(?)

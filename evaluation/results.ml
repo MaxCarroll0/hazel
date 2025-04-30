@@ -5,8 +5,6 @@ open CastSliceUtil
 open Core_bench
 open Haz3lcore
 
-let settings = CoreSettings.on (* Note: search off *)
-
 (* Performance Benchmarks *)
 
 (* Basic info relevant to slicing *)
@@ -18,15 +16,18 @@ type expression_info = {
 }
 
 let make_exp_info e =
-  let statics = Statics.mk settings Builtins.ctx_init e in
+  let statics = Statics.mk Settings.settings Builtins.ctx_init e in
   let elaboration, _ = Elaborator.elaborate statics e in
   let result, _ = Evaluator.evaluate ~env:Builtins.env_init e in
   { term = e; statics; elaboration; result }
 
-let ill_typed = ill_typed |> List.map make_exp_info
-let well_typed = well_typed |> List.map make_exp_info
+let ill_typed =
+  ill_typed_annotated @ ill_typed_dynamic |> List.filter_map (fun e -> try Some(make_exp_info e) with _ -> None)
+
+let well_typed = well_typed |> List.filter_map (fun e -> try Some(make_exp_info e) with _ -> None)
 
 (* Corpus Statistics *)
+
 
 (* Effectiveness *)
 (* Type Slice Size Stats*)
