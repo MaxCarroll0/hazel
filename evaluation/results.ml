@@ -18,7 +18,8 @@ module SearchBFS = IndetEvaluator.Make (BFS)
 
 (* Bounded depth increments of 5 *)
 module BDFS =
-  Nondeterminism.Bounded ((val Nondeterminism.const_incr_config ~init:5 ~inc:5))
+  Nondeterminism.Bounded
+    ((val Nondeterminism.const_incr_config ~init:100 ~inc:50))
 
 module SearchBDFS = IndetEvaluator.Make (BDFS)
 
@@ -492,21 +493,57 @@ let with_timeout ~secs f =
     ignore (Unix.alarm 0);
     raise e
 
-let dfs ~secs d =
+let dfs ~secs _ d =
   with_timeout ~secs (fun () ->
       DFS.once (SearchDFS.cast_errors ~env:Builtins.env_init d))
 
-let bfs ~secs d =
+let bfs ~secs _ d =
   with_timeout ~secs (fun () ->
       BFS.once (SearchBFS.cast_errors ~env:Builtins.env_init d))
 
-let idfs ~secs d =
+let idfs ~secs _ d =
   with_timeout ~secs (fun () ->
       IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d))
 
-let bdfs ~secs d =
+let bdfs ~secs _ d =
   with_timeout ~secs (fun () ->
       BDFS.once (SearchBDFS.cast_errors ~env:Builtins.env_init d))
+
+let dfs_print ~secs i d =
+  Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
+  try
+    with_timeout ~secs (fun () ->
+        DFS.once (SearchDFS.cast_errors ~env:Builtins.env_init d))
+  with Timeout ->
+    print_endline "Timed Out";
+    raise Timeout
+
+let bfs_print ~secs i d =
+  Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
+  try
+    with_timeout ~secs (fun () ->
+        BFS.once (SearchBFS.cast_errors ~env:Builtins.env_init d))
+  with Timeout ->
+    print_endline "Timed Out";
+    raise Timeout
+
+let idfs_print ~secs i d =
+  Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
+  try
+    with_timeout ~secs (fun () ->
+        IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d))
+  with Timeout ->
+    print_endline "Timed Out";
+    raise Timeout
+
+let bdfs_print ~secs i d =
+  Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
+  try
+    with_timeout ~secs (fun () ->
+        BDFS.once (SearchBDFS.cast_errors ~env:Builtins.env_init d))
+  with Timeout ->
+    print_endline "Timed Out";
+    raise Timeout
 
 type search_result =
   | Witness of {
@@ -522,9 +559,9 @@ type search_result =
 
 let eval_results search l =
   l
-  |> List.map (fun s ->
+  |> List.mapi (fun i s ->
          try
-           match search s.elaboration with
+           match search i s.elaboration with
            | None -> NoWitness
            | Some (state, result) ->
                Witness
@@ -612,49 +649,9 @@ let aggregate_search_results rs =
   }
 
 let dfs_results ~secs l = eval_results (dfs ~secs) l
-|> List.mapi (fun i -> function
-     | TimeOut ->
-         Printf.printf "Prog %i: TIMED OUT%!\n" i;
-         TimeOut
-     | NoWitness ->
-         Printf.printf "Prog %i: Proved No Witness%!\n" i;
-         NoWitness
-     | Witness _ as w ->
-         Printf.printf "Prog %i: Found Witness%!\n" i;
-         w)
-let bfs_results ~secs l = eval_results (bfs ~secs) l 
-|> List.mapi (fun i -> function
-     | TimeOut ->
-         Printf.printf "Prog %i: TIMED OUT%!\n" i;
-         TimeOut
-     | NoWitness ->
-         Printf.printf "Prog %i: Proved No Witness%!\n" i;
-         NoWitness
-     | Witness _ as w ->
-         Printf.printf "Prog %i: Found Witness%!\n" i;
-         w)
+let bfs_results ~secs l = eval_results (bfs ~secs) l
 let idfs_results ~secs l = eval_results (idfs ~secs) l
-|> List.mapi (fun i -> function
-     | TimeOut ->
-         Printf.printf "Prog %i: TIMED OUT%!\n" i;
-         TimeOut
-     | NoWitness ->
-         Printf.printf "Prog %i: Proved No Witness%!\n" i;
-         NoWitness
-     | Witness _ as w ->
-         Printf.printf "Prog %i: Found Witness%!\n" i;
-         w)
 let bdfs_results ~secs l = eval_results (bdfs ~secs) l
-|> List.mapi (fun i -> function
-     | TimeOut ->
-         Printf.printf "Prog %i: TIMED OUT%!\n" i;
-         TimeOut
-     | NoWitness ->
-         Printf.printf "Prog %i: Proved No Witness%!\n" i;
-         NoWitness
-     | Witness _ as w ->
-         Printf.printf "Prog %i: Found Witness%!\n" i;
-         w)
 
 (* Performance Benchmarks *)
 open Bechamel
