@@ -5,7 +5,7 @@ module Fresh = IdTagged.FreshGrammar
 (* The current version of Hazel does not correctly parse any variable starting with "in" when inside a let expression *)
 (* I delete any in[a-Z,0-9] to temporarily get around this *)
 (* This must also be performed on the Ctx, see Settings.ctx *)
-let replace_inC = Re.(replace_string (compile (seq [ str "in"; alnum ])) ~by:"")
+let replace_inC = Re.replace ~all:true (Re.Perl.compile_pat "in([a-zA-Z0-9])") ~f:(fun g -> Re.Group.get g 1) ;;
 
 let add_builtins e =
   Exp.map_term
