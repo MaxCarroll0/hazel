@@ -1,5 +1,6 @@
-let well_typed : string list = [
-  {|
+let well_typed : string list =
+  [
+    {|
 let length_aux : forall a -> Int -> [a] -> Int = typfun a -> fun len -> fun x37 -> case x37 
   | [] => len
   | _ :: l => length_aux@<a>(len + 1)(l)
@@ -256,46 +257,47 @@ end in let compare : forall a -> forall b -> (a -> b -> Int) -> [a] -> [b] -> In
   | (a1 :: l1, a2 :: l2) =>
       let c = cmp(a1)(a2) in if c != 0 then c else compare@<a>@<b>(cmp)(l1)(l2)
 end in ?|};
-]
+  ]
 
-let ill_typed_annotated : string list = [
-  {|
+let ill_typed_annotated : string list =
+  [
+    {|
 let sumList : forall a -> [Int] -> [a] = typfun a -> fun xs -> case xs 
   | [] => []
   | h1 :: h2 :: t => h1 + h2(sumList)(t)
 end in ?
 |};
-  {|
+    {|
 let sumList : forall a -> [Int] -> [a] = typfun a -> fun xs -> case xs 
   | [] => []
   | x :: xs' => x + 1(sumList)(xs')
 end in ?
 |};
-  {|
+    {|
 let sumList : forall a -> forall b -> forall c -> [a -> b -> [c]] -> [c] = typfun a -> typfun b -> typfun c -> fun xs -> case xs 
   | [] => []
   | x :: xs' => x(sumList)(xs')
 end in ?
 |};
-  {|
+    {|
 let sumList : forall a -> [Int] -> [a] = typfun a -> fun xs -> case xs 
   | [] => []
   | x :: xs' => x + sumList@<a>(xs')
 end in ?
 |};
-  {|
+    {|
 let sumList : forall a -> forall b -> [a] -> [b] = typfun a -> typfun b -> fun xs -> case xs 
   | [] => []
   | x :: xs' => 1(sumList)(xs')
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else int_mod((n, 10)) :: digitsOfInt(n / 10) in let sumList : [Int] -> Int = fun xs -> case xs 
   | [] => 0
   | x :: xs' => x + sumList(xs')
 end in let sum : [Int] -> [Int] = fun n :: [i] -> if ||(n < 10)([]) then sumList(digitsOfInt(n)) :: [i] else sumList(digitsOfInt(n)) :: [1 + 1] in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -316,7 +318,7 @@ type expr =
       "(" ++ exprToString(m) ++ "<" ++ exprToString(n) ++ "?" ++ exprToString(o) ++ ":" ++ exprToString(p)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -333,7 +335,7 @@ end else let num = rand((0, 5)) in case num
   | _ => Cosine(build((rand, depth - 1)))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -359,7 +361,7 @@ type expr =
       "(" ++ exprToString(m) ++ "<" ++ exprToString(n) ++ "?" ++ exprToString(o) ++ ":" ++ exprToString(p) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -392,7 +394,7 @@ type expr =
       "(" ++ exprToString(m) ++ "<" ++ exprToString(n) ++ "?" ++ exprToString(o) ++ ":" ++ exprToString(p) ++ ")"
 end in let _ = exprToString(MyExpr((VarX, VarY, VarX))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -418,7 +420,7 @@ type expr =
       "(" ++ exprToString(m) ++ "<" ++ exprToString(n) ++ "?" ++ exprToString(o) ++ ":" ++ exprToString(p) ++ ")"
 end in let _ = exprToString(MyExpr((VarX, VarY, VarX))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -431,7 +433,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildMyExpr : forall d -> ? -> d = typfun d -> fun (a, b, a_less) -> MyExpr((a, b, a_less)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -468,7 +470,7 @@ type expr =
       "sin(pi*(" ++ exprToString(a) ++ "+" ++ exprToString(b) ++ exprToString(c) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -495,7 +497,7 @@ type expr =
       "sin(pi*(" ++ exprToString(a) ++ "+" ++ exprToString(b) ++ exprToString(c) ++ ")/3)"
 end in let _ = exprToString(Sin_Avg((VarX(()), VarY(()), VarX(())))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -522,7 +524,7 @@ type expr =
       "sin(pi*(" ++ exprToString(a) ++ "+" ++ exprToString(b) ++ exprToString(c) ++ ")/3)"
 end in let _ = exprToString(Sin_Avg((Average((VarX(()), VarY(()))), VarY(()), VarX(())))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -535,7 +537,7 @@ type expr =
   + Sine_Avg(expr, expr, expr)
  in let buildSine_Avg : forall c -> ? -> c = typfun c -> fun (e1, e2) -> Sine_Avg((e1, e2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -558,7 +560,7 @@ type expr =
   | Tan(e) => "tan(pi*" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -570,7 +572,7 @@ type expr =
   + Custom1(expr, expr, expr)
  in let buildCustom1 : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun e -> Custom1(e) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -591,7 +593,7 @@ type expr =
       "(" ++ exprToString(e1) ++ "<" ++ exprToString(e2) ++ " ? " ++ exprToString(e3) ++ " : " ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -627,7 +629,7 @@ type expr =
       "sqrt(sqrt(" ++ exprToString(e1) ++ ")+sqrt(" ++ exprToString(e2) ++ ")+sqrt(" ++ exprToString(e3) ++ "))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -654,7 +656,7 @@ type expr =
       "(" ++ exprToString(e1) ++ ">" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":" ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -667,7 +669,7 @@ type expr =
   + Op2(expr, expr, expr)
  in let buildOp2 : forall a -> unit -> a = typfun a -> fun () -> Op2(()) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -680,7 +682,7 @@ type expr =
   + Op2(expr, expr, expr)
  in let buildOp2 : forall e -> ? -> e = typfun e -> fun (a, b, a_less, b_less) -> Op2((a, b, a_less, b_less)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -700,7 +702,7 @@ type expr =
   | Thresh => ets@<a>@<b>((e, s ++ Thresh))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -719,7 +721,7 @@ type expr =
   | Thresh => ets@<a>@<b>((e, s ++ Thresh))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -745,7 +747,7 @@ type expr =
   | Asin(e1, e2, e3) => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -771,7 +773,7 @@ type expr =
   | Asin(e1, e2, e3) => "1"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -797,7 +799,7 @@ type expr =
   | Asin(e1, e2, e3) => "1"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -823,7 +825,7 @@ type expr =
   | Crazy(e1, e2, e3) => exprToString(e2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -836,7 +838,7 @@ type expr =
   + Crazy(expr, expr)
  in let buildCrazy : forall d -> ? -> d = typfun d -> fun (e1, e2, e3) -> Crazy((e1, e2, e3)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -862,7 +864,7 @@ type expr =
   | Crazy(e1, e2, e3) => exprToString(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -885,10 +887,10 @@ type expr =
   | Sqr(s) => "(" ++ ex(s) ++ "*" ++ ex(s) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let palindrome : forall a -> [a] -> unit = typfun a -> fun w -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -909,10 +911,10 @@ type expr =
       "(" ++ exprToString(expr1) ++ "<" ++ exprToString(expr2) ++ " ? " ++ exprToString(expr3) ++ " : " ++ exprToString(expr4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n < 0 then [] else if n == 0 then [0] else ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -923,7 +925,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let buildThresh : ? -> expr = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes : ? -> expr = fun (e1, e2) -> Times((e1, e2)) in let buildHelper : (? -> Int) -> Int -> Int -> expr = fun rand -> fun max_depth -> fun curr_depth -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -934,7 +936,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let eval : forall d -> ? -> d = typfun d -> fun (e, x, y) -> failwith("to be written") in let _ = eval@<d>((Sine(Cos(Varx)), 0.5, -0.5)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -945,7 +947,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let eval : forall d -> ? -> d = typfun d -> fun (e, x, y) -> failwith("to be written") in let _ = eval@<d>((Sine(Varx), 0.5, -0.5)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -961,16 +963,16 @@ type expr =
   | Cosine(p1) => evalhelper(buildCosine)(p1)(x)(y)
 end in evalhelper(e)(x)(y) in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -996,7 +998,7 @@ type expr =
       "(" ++ exprToString(v) ++ "*" ++ exprToString(w) ++ "*" ++ exprToString(x)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1017,13 +1019,13 @@ type expr =
       exprToString(e1) ++ "<" ++ exprToString(e2)("?") ++ exprToString(e3) ++ "?"(exprToString)(e4)
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1042,10 +1044,10 @@ type expr =
   | Thresh => printf("A")
 end in ?
 |};
-  {|
+    {|
 let _ = [] in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1059,7 +1061,7 @@ type expr =
   | VarY(y) => sprintf(y)
 end in acc(e)(exprToString)(VarX) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1073,7 +1075,7 @@ type expr =
   | VarY(y) => sprintf("%s")(y)
 end in acc(e)(exprToString)(VarX) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1087,7 +1089,7 @@ type expr =
   | VarY(y) => sprintf("%s")(y)
 end in acc(e)("")(exprToString)(VarX) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1101,7 +1103,7 @@ type expr =
   | VarY(y) => sprintf("y")
 end in acc(e)("")(exprToString)(VarX) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1116,7 +1118,7 @@ type expr =
   | Sine(s) => Sine(exprToString(s))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1142,7 +1144,7 @@ type expr =
       "(tan(" ++ exprToString(e1) ++ "*" ++ exprToString(e2) ++ "*" ++ exprToString(e3) ++ "))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1155,19 +1157,19 @@ type expr =
   + Weird(expr, expr, expr)
  in let buildWeird : forall e -> ? -> e = typfun e -> fun (e1, e2, e3, e4) -> Weird((e1, e2, e3, e4)) in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else if int_mod((n - 1, 10)) == 0 then 1 :: digitsOfInt(n - 1 / 10) else if int_mod((n - 2, 10)) == 0 then 1 :: digitsOfInt(n - 2 / 10) else if int_mod((n - 3, 10)) == 0 then 1 :: digitsOfInt(n - 3 / 10) else if int_mod((n - 4, 10)) == 0 then 1 :: digitsOfInt(n - 4 / 10) else if int_mod((n - 5, 10)) == 0 then 1 :: digitsOfInt(n - 5 / 10) else if int_mod((n - 6, 10)) == 0 then 1 :: digitsOfInt(n - 6 / 10) else if int_mod((n - 7, 10)) == 0 then 1 :: digitsOfInt(n - 7 / 10) else if int_mod((n - 8, 10)) == 0 then 1 :: digitsOfInt(n - 8 / 10) else ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else if int_mod((n - 1, 10)) == 0 then 1 :: digitsOfInt(n - 1 / 10) else if int_mod((n - 2, 10)) == 0 then 2 :: digitsOfInt(n - 2 / 10) else if int_mod((n - 3, 10)) == 0 then 3 :: digitsOfInt(n - 3 / 10) else if int_mod((n - 4, 10)) == 0 then 4 :: digitsOfInt(n - 4 / 10) else if int_mod((n - 5, 10)) == 0 then 5 :: digitsOfInt(n - 5 / 10) else if int_mod((n - 6, 10)) == 0 then 6 :: digitsOfInt(n - 6 / 10) else if int_mod((n - 7, 10)) == 0 then 7 :: digitsOfInt(n - 7 / 10) else if int_mod((n - 8, 10)) == 0 then 8 :: digitsOfInt(n - 8 / 10) else ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else ? in ?
 |};
-  {|
+    {|
 let listReverse : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun l -> let reverseHelper = fun acc -> if [] then acc else reverseHelper(h :: acc)(t) in reverseHelper([])(l) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1178,7 +1180,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let buildThresh : ? -> expr = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes : ? -> expr = fun (e1, e2) -> Times((e1, e2)) in let buildY : unit -> expr = fun () -> VarY in let build : ? -> expr = fun (rand, depth) -> let case = rand((0, 6)) in ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1205,7 +1207,7 @@ type expr =
       "((" ++ exprToString(ex1) ++ "*sin(pi*" ++ exprToString(ex2) ++ ")*cos(pi*" ++ exprToString(ex3) ++ "))/2)"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1231,7 +1233,7 @@ type expr =
       "(" ++ exprToString(ex3) ++ "=" ++ exprToString(ex2) ++ "?" ++ exprToString(ex3) ++ ":" ++ exprToString(ex1) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1244,7 +1246,7 @@ type expr =
   + TheThing(expr, expr, expr)
  in let buildSixtyNine : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun e1 -> SixtyNine(e1) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1264,7 +1266,7 @@ type expr =
       exprToString@<a>(e1) ++ exprToString@<a>(e2) ++ exprToString@<a>(e3)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1284,7 +1286,7 @@ type expr =
       exprToString(e1) ++ exprToString(e2) ++ exprToString(e3)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1298,14 +1300,14 @@ type expr =
   + SumPercent(expr, expr, expr)
  in let buildSumPercent : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun e -> SumPercent(e) in ?
 |};
-  {|
+    {|
 let t : Int -> Int = fun x -> x + 1 in let sepConcat : unit -> [String] -> String = fun sep -> fun sl -> case sl 
   | [] => ""
   | h :: t =>
       let f = fun a -> fun x -> ? in let base = sep in let l = t in fold_left(f)(base)(l)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1316,7 +1318,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let _ = Sine in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1327,7 +1329,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let _ = Sine(Cosine) in ?
 |};
-  {|
+    {|
 type tree = 
   + Leaf(Int)
   + Node(tree, tree)
@@ -1336,7 +1338,7 @@ type tree =
   | Node(t1, t2) => foo(t1) + foo(t2)
 end in foo(Node((Node((Leaf(1), Leaf(2))), Leaf3))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1351,7 +1353,7 @@ type expr =
   | Sine(e1) => Sine ++ exprToString(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1370,7 +1372,7 @@ type expr =
   | Time(e1, e2) => exprToString(e1) ++ "*" ++ exprToString(e2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1396,7 +1398,7 @@ type expr =
       "(" ++ exprToString(e1) ++ ">" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":0.0"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1409,18 +1411,18 @@ type expr =
   + KellysOp(expr, expr, expr, expr)
  in let buildKellysOp : forall d -> ? -> d = typfun d -> fun (a, b, a_more) -> KellysOp((a, b, a_more)) in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> case n 
   | _ => ?
 end in ?
 |};
-  {|
+    {|
 let _ = let n = 0 in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : forall a -> Int -> [a] = typfun a -> fun n -> if n <= 0 then [] else ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1435,7 +1437,7 @@ type expr =
   | Sine => "Sine" ++ exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1457,7 +1459,7 @@ type expr =
   | Half(x) => ".5*" ++ exprToString(x)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1482,23 +1484,23 @@ type expr =
   | Third(x) => "0.33*" ++ exprToString(x)
 end in ?
 |};
-  {|
+    {|
 let sepConcat : String -> [String] -> String = fun sep -> fun sl -> case sl 
   | [] => ""
   | h :: t =>
       let f = fun a -> fun x -> if length(()) == 0 then a ++ x else a ++ x ++ sep in let base = "" in let l = sl in fold_left(f)(base)(l)
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt : forall a -> Int -> [a] = typfun a -> fun n -> if n < 0 then [] else let a = n / 10 in let b = int_mod((n, 10)) in let c = a :: [b] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : forall a -> Int -> [a] = typfun a -> fun n -> if n < 0 then [] else let a = n / 10 in let b = int_mod((n, 10)) in let c = a :: [b] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : forall a -> Int -> [a] = typfun a -> fun n -> if n < 0 then [] else let a = n / 10 in let b = int_mod((n, 10)) in let c = a :: [b] in ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1512,7 +1514,7 @@ type expr =
   | VarY(y) => "y"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1537,65 +1539,65 @@ type expr =
       let s = exprToString(e3) in "(abs(" ++ exprToString(e1) ++ ")<abs(" ++ exprToString(e2) ++ "?" ++ s ++ ":abs(" ++ exprToString(e4) ++ "))"
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> let myList = [] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> let myList = [] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList : [Int] -> Int = fun xs -> case xs 
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
 end in let additivePersistence : Int -> unit = fun n -> let count = [] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList : [Int] -> Int = fun xs -> case xs 
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
 end in let additivePersistence : Int -> unit = fun n -> let count = [0] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList : [Int] -> Int = fun xs -> case xs 
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
 end in let additivePersistence : Int -> Int = fun n -> let count = [0] in if sumList(digitsOfInt(n)) > 9 then &(1 :: count)(additivePersistence(sumList(digitsOfInt(n)))) else sumList(count) in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList : [Int] -> Int = fun xs -> case xs 
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
 end in let additivePersistence : Int -> Bool = fun n -> let count = [0] in if sumList(digitsOfInt(n)) > 9 then &&(1 :: count)(additivePersistence(sumList(digitsOfInt(n)))) else sumList(count) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [a] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [a] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [a] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [a] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1608,7 +1610,7 @@ type expr =
   | VarX(x) => sprintf("%s")(x)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1621,7 +1623,7 @@ type expr =
   | VarX(a) => sprintf("%s")(a)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1636,7 +1638,7 @@ type expr =
   | Average => buildAverage((vx, vy))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1657,7 +1659,7 @@ type expr =
   | 7 => buildSine(buildX(()))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1682,23 +1684,23 @@ type expr =
       buildThresh((if depth == 0 then buildX(()) else build((rand, depth - 1)), if depth == 0 then buildY(()) else build((rand, depth - 1)), if depth == 0 then buildX(()) else build((rand, depth - 1)), if depth == 0 then buildY(()) else build((rand, depth - 1))))
 end in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [a] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = ? in let rest' = failwith("to be written") in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let padZero : [a] -> [b] -> ? = fun l1 -> fun l2 -> if length(l1) == length(l2) then (l1, l2) else ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> let int = fun list -> fun digInt -> int_mod((n, 10)) :: digInt in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> let int = fun list -> fun digInt -> [] in ? in ?
 |};
-  {|
+    {|
 let f : [Int] -> ? -> [Int] = fun a -> fun x -> let intlist = fun l -> if l < 10 then [l] else @(intlist(l / 10))([int_mod((l, 10))]) in case x 
   | (z, y) => case a 
   | [] => let sum = z + y in intlist(sum)
@@ -1706,7 +1708,7 @@ let f : [Int] -> ? -> [Int] = fun a -> fun x -> let intlist = fun l -> if l < 10
 end
 end in let _ = f([]) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1734,7 +1736,7 @@ type expr =
   | None => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1762,7 +1764,7 @@ type expr =
   | None => 0
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1781,7 +1783,7 @@ type expr =
   | VarX => exprToString@<a>(buildX)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1800,7 +1802,7 @@ type expr =
   | VarX => exprToString@<a>(buildX)
 end in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone@<a>(x)(n - 1))([x])
@@ -1812,7 +1814,7 @@ end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun 
   | ([h1 :: t1], [h2 :: t2]) => ?
 end in let base = [] in let args = l1(l2) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone@<a>(x)(n - 1))([x])
@@ -1824,7 +1826,7 @@ end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun 
   | ([h1 :: t1], [h2 :: t2]) => ?
 end in let base = [] in let args = l1(l2) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone@<a>(x)(n - 1))([x])
@@ -1836,7 +1838,7 @@ end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun 
   | ([h1 :: t1], [h2 :: t2]) => ?
 end in let base = [] in let args = l1(l2) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone@<a>(x)(n - 1))([x])
@@ -1847,7 +1849,7 @@ end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun 
   | (h :: t, (x1, x2)) => ?
 end in let base = [0] in let args = rev(combine(l1)(l2)) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone@<a>(x)(n - 1))([x])
@@ -1858,7 +1860,7 @@ end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun 
   | (h :: t, (x1, x2)) => ?
 end in let base = [0] in let args = rev(combine(l1)(l2)) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone@<a>(x)(n - 1))([x])
@@ -1869,7 +1871,7 @@ end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun 
   | (h :: t, (x1, x2) :: t2) => ?
 end in let base = [0] in let args = rev(combine(l1)(l2)) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1884,7 +1886,7 @@ type expr =
   | Sine => "sine(pi*" ++ exprToString(d) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1899,25 +1901,25 @@ type expr =
   | Sine => "sine(pi*" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [unit] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> forall b -> [a] -> [b] = typfun a -> typfun b -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> forall b -> [a] -> [b] = typfun a -> typfun b -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1932,7 +1934,7 @@ type expr =
   | Sine(s) => "sin (pi*" ++ exprString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1952,7 +1954,7 @@ type expr =
       "(" ++ exprToString(e) ++ "<" ++ exprToString(e) ++ "?" ++ exprToString(e) ++ ":" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1972,7 +1974,7 @@ type expr =
       "(" ++ exprToString(e) ++ "<" ++ exprToString(e) ++ "?" ++ exprToString(e) ++ ":" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -1999,7 +2001,7 @@ type expr =
       "(sin(pi*" ++ exprToString(e1) ++ ")/" ++ "cos(pi*" ++ exprToString(e2) ++ "))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2012,7 +2014,7 @@ type expr =
   + Timmy2(expr, expr, expr, expr)
  in let buildTimmy2 : forall c -> ? -> c = typfun c -> fun (e1, e2) -> Timmy2((e1, e2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2025,7 +2027,7 @@ type expr =
   + Timmy2(expr, expr, expr)
  in let buildTimmy2 : forall c -> ? -> c = typfun c -> fun (e1, e2) -> Timmy2((e1, e2)) in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n <= 0 then [] else x :: clone@<a>(x)(n - 1) in let padZero : [Int] -> [Int] -> ? = fun l1 -> fun l2 -> let s1 = length(l1) in let s2 = length(l2) in if s1 < s2 then (@(clone@<a>(0)(s2 - s1))(l1), l2) else if s2 < s1 then (l1, @(clone@<a>(0)(s1 - s2))(l2)) else (l1, l2) in let removeZero : [Int] -> [Int] = fun l -> case l 
   | [] => []
   | h :: t => if !=(h)(0) then h :: t else removeZero(t)
@@ -2035,10 +2037,10 @@ end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun 
       let sum = c + fst(x) + snd(x) in (sum / 10, int_mod((sum, 10)) :: snd(a))
 end in let base = (0, []) in let args = @(combine(rev(l1))(rev(l2)))([(0, 0)]) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in let bigMul : forall a -> forall b -> a -> [b] -> [Int] = typfun a -> typfun b -> fun l1 -> fun l2 -> let f = fun a -> fun x -> (fst(a), bigAdd(())(())) in let base = (0, []) in let args = rev(l2) in let (_, res) = fold_left(f)(base)(args) in res in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2057,7 +2059,7 @@ type expr =
   | Thresh => "%s"(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2076,7 +2078,7 @@ type expr =
   | Thresh => "%s"(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2095,7 +2097,7 @@ type expr =
   | Thresh => "%s"(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2108,7 +2110,7 @@ type expr =
   + Special2(expr, expr)
  in let buildSpecial1 : forall c -> ? -> c = typfun c -> fun (e1, e2) -> Special1((e1, e2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2124,7 +2126,7 @@ type expr =
   | Cosine => @(VarX)(@("/")(VarY))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2140,7 +2142,7 @@ type expr =
   | Cosine => VarX ++ "/" ++ VarY
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2156,7 +2158,7 @@ type expr =
   | Cosine => exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2172,7 +2174,7 @@ type expr =
   | Cosine => exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2188,7 +2190,7 @@ type expr =
   | Cosine => exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2205,7 +2207,7 @@ type expr =
   | Average(e) => "(" ++ exprToString(e) ++ "+" ++ exprToString(e) ++ ")/2"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2220,10 +2222,10 @@ type expr =
   | Sine => buildSine(e)
 end in ?
 |};
-  {|
+    {|
 let bigAdd : forall a -> forall b -> forall c -> a -> b -> c = typfun a -> typfun b -> typfun c -> fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a -> fun x -> map(fun x -> x + a)(x) in let base = hd(L1) in let args = l2 in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2242,7 +2244,7 @@ type expr =
   | (Thresh(e1), e2, e3, e4) => printf("(%s<%s?%s:%s)")(e1)(e2)(e3)(e4)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2255,10 +2257,10 @@ type expr =
   + Flatten(expr, expr, expr)
  in let buildFlatten : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun e -> Flatten(e) in ?
 |};
-  {|
+    {|
 let _ = () in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2281,7 +2283,7 @@ type expr =
   | Stuff(t) => "cos(pi*" ++ "(sin(pi*" ++ ex(t) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2304,7 +2306,7 @@ type expr =
   | Stuff(t) => "cos(pi*" ++ "(sin(pi*" ++ ex(t) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2327,7 +2329,7 @@ type expr =
   | Stuff(t) => "cos(pi*" ++ "(sin(pi*" ++ e(t) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2348,7 +2350,7 @@ type expr =
   | Stuff(t) => "cos(pi*" ++ "(sin(pi*" ++ e(t) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2372,7 +2374,7 @@ type expr =
       "Vol(H: " ++ exprToString(s) ++ ", W: " ++ exprToString(t) ++ ", L: " ++ exprToString(u) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2408,7 +2410,7 @@ type expr =
       "Vol(H: " ++ exprToString(s) ++ ", W: " ++ exprToString(t) ++ ", L: " ++ exprToString(u) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2428,7 +2430,7 @@ type expr =
       "(" ++ exprToString(v) ++ "<" ++ exprToString(v) ++ "?" ++ exprToString(v) ++ ":" ++ exprToString(v) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2453,7 +2455,7 @@ type expr =
       "(" ++ exprToString(a) ++ "*" ++ exprToString(b) ++ "*" ++ exprToString(c) ++ ")/2"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2467,7 +2469,7 @@ type expr =
   | VarY(y) => printf("%s")(y)
 end in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n <= 0 then [] else x :: clone@<a>(x)(n - 1) in let padZero : [Int] -> [Int] -> ? = fun l1 -> fun l2 -> let difference = length(l1) - length(l2) in if difference > 0 then (l1, @(clone@<a>(0)(difference))(l2)) else if difference < 0 then (@(clone@<a>(0)(-1 * difference))(l1), l2) else (l1, l2) in let removeZero : [Int] -> [Int] = fun l -> case l 
   | [] => l
   | h :: t => if h == 0 then removeZero(t) else h :: t
@@ -2475,19 +2477,19 @@ end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun 
   | (x1, x2) => x1 + x2
 end in ? in let base = [] in let args = rev(combine(l1)(l2)) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n <= 0 then [] else x :: clone@<a>(x)(n - 1) in let padZero : [Int] -> [Int] -> ? = fun l1 -> fun l2 -> let difference = length(l1) - length(l2) in if difference > 0 then (l1, @(clone@<a>(0)(difference))(l2)) else if difference < 0 then (@(clone@<a>(0)(-1 * difference))(l1), l2) else (l1, l2) in let removeZero : [Int] -> [Int] = fun l -> case l 
   | [] => l
   | h :: t => if h == 0 then removeZero(t) else h :: t
 end in let bigAdd : [Int] -> [Int] -> [Int] = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a -> fun x -> ? in let base = (0, []) in let args = let combine = fun (a, b) -> a + b in map(combine)(rev(combine(l1)(l2))) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2501,7 +2503,7 @@ type expr =
   | VarY(y) => int_to_string(y)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2512,7 +2514,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let buildThresh : ? -> expr = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes : ? -> expr = fun (e1, e2) -> Times((e1, e2)) in let build : ? -> expr = fun (rand, depth) -> ? in ?
 |};
-  {|
+    {|
 let lastListElement : forall a -> [a] -> a = typfun a -> fun n -> case n 
   | [] => failwith("ERROR: List must be of size 1 or greater")
   | [x] => x
@@ -2522,7 +2524,7 @@ end in let catLists : Bool -> [Bool] -> [Bool] = fun x -> fun y -> if not(x) == 
   | h :: t => catLists(t)(lastListElement@<a>(x) :: y)
 end else if x == [] then y else ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2544,7 +2546,7 @@ type expr =
       let (x, y, z, w) = n in "(" ++ exprToString(x) ++ "<" ++ exprToString(y) ++ "?" ++ exprToString(z) ++ ":" ++ exprToString(w)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2566,7 +2568,7 @@ type expr =
       let (x, y, z, w) = n in "(" ++ exprToString(x) ++ "<" ++ exprToString(y) ++ "?" ++ exprToString(z) ++ ":" ++ exprToString(w)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2584,7 +2586,7 @@ type expr =
   | Times(m, n) => eval((m, x, y)) *. eval((n, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2604,7 +2606,7 @@ end else let g = rand((0, 4)) in case g
   | 4 => Thresh((build((rand, depth - 1)), build((rand, depth - 1))))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2640,7 +2642,7 @@ type expr =
       "(" ++ exprToString(x) ++ "*" ++ exprToString(y) ++ ")/" ++ exprToString(z)
 end in let _ = exprToString(Log(VarX)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2666,7 +2668,7 @@ type expr =
       "(" ++ exprToString(x) ++ "*" ++ exprToString(y) ++ ")/" ++ exprToString(z)
 end in let _ = exprToString(Op((VarX, VarY))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2702,15 +2704,15 @@ type expr =
       "(" ++ exprToString(x) ++ "*" ++ exprToString(y) ++ "*" ++ exprToString(z) ++ ")/(" ++ exprToString(x) ++ "+" ++ exprToString(y) ++ "+" ++ exprToString(z) ++ ")"
 end in let _ = exprToString(Power((VarX, VarY))) in ?
 |};
-  {|
+    {|
 let pipe : forall a -> [[a]] -> [a] = typfun a -> fun fs -> let f = fun a -> fun x -> case fs 
   | h :: t => h
 end in let base = [] in fold_left(f)(base)(fs) in ?
 |};
-  {|
+    {|
 let pipe : [Int -> Int] -> Int = fun fs -> let f = fun a -> fun x -> x(a) in let base = 0 in fold_left(f)(base)(fs) in let _ = pipe([]) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2730,7 +2732,7 @@ type expr =
       "(" ++ exprToString(e) ++ "<" ++ exprToString(e) ++ " ? " ++ exprToString(e) ++ " : " ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2754,22 +2756,22 @@ type expr =
       "(" ++ exprToString(e) ++ "<" ++ exprToString(f) ++ "?" ++ exprToString(g) ++ ":" ++ exprToString(h) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let listReverse : forall a -> [[a]] -> [a] = typfun a -> fun l -> ? in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [a] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [a] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2782,7 +2784,7 @@ type expr =
   | VarX(x) => x
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2797,7 +2799,7 @@ type expr =
   | Sine(N) => Sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2812,7 +2814,7 @@ type expr =
   | Sine(N) => Sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2827,7 +2829,7 @@ type expr =
   | Sine(N) => Sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2842,7 +2844,7 @@ type expr =
   | Sine(N) => sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2857,7 +2859,7 @@ type expr =
   | Sine => sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2872,7 +2874,7 @@ type expr =
   | Sine(e1) => sin(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2887,7 +2889,7 @@ type expr =
   | Sine => sin(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2906,7 +2908,7 @@ type expr =
   | Thresh => "/"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2925,7 +2927,7 @@ type expr =
   | Thresh => "/"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2944,10 +2946,10 @@ type expr =
   | Thresh => "/"
 end in ?
 |};
-  {|
+    {|
 let clone : forall a -> [a] -> Int -> unit = typfun a -> fun x -> fun n -> ? in ?
 |};
-  {|
+    {|
 let removeZero : [Int] -> [Int] = fun l -> case l 
   | [] => []
   | h :: t => if h == 0 then removeZero(t) else h :: t
@@ -2956,10 +2958,10 @@ end in let mulByDigit : Int -> [Int] -> [Int] = fun i -> fun l -> let f = fun a 
   | _ => carry / 10 :: [int_mod((carry, 10))]
 end in let base = [] in removeZero(fold_left(f)(base)(rev(l))) in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -2978,7 +2980,7 @@ type expr =
   | Thresh(e1, e2, e3, e4) => e1 * e2 * e3 * e4
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3015,7 +3017,7 @@ type expr =
       "(" ++ exprToString(e1) ++ " * " ++ exprToString(e1) ++ ") + (" ++ exprToString(e2) ++ "/2"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3042,7 +3044,7 @@ type expr =
       exprToString(e1) ++ " * " ++ exprToString(e1) ++ " * " ++ exprToString(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3072,7 +3074,7 @@ type expr =
       "(("(exprToString(e1)) ++ " * " ++ exprToString(e2) ++ ") /6)"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3097,7 +3099,7 @@ type expr =
 end
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3118,17 +3120,17 @@ type expr =
   | _ => []
 end in ?
 |};
-  {|
+    {|
 let wwhile : forall a -> ? -> a = typfun a -> fun (f, b) -> let x = f(b) in case x 
   | h :: t => if t == true then wwhile@<a>((f, h)) else h
 end in ?
 |};
-  {|
+    {|
 let wwhile : forall a -> ? -> a = typfun a -> fun (f, b) -> let x = f(b) in case x 
   | h :: t => if t == false then h else wwhile@<a>((f, h))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3152,7 +3154,7 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1)("*")(exprToString)(i2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3164,7 +3166,7 @@ type expr =
   + Square(expr, expr)
  in let buildSquare : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun e -> Square(e) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3189,7 +3191,7 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1)("*")(exprToString)(i2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3202,7 +3204,7 @@ type expr =
   + Exponential(expr, expr)
  in let buildSquare : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun e -> Square(e) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3227,7 +3229,7 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1)("*")(exprToString)(i2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3253,7 +3255,7 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1) ++ "^" ++ exprToString(i2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3279,28 +3281,28 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1) ++ "^" ++ exprToString(i2)
 end in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> unit = typfun a -> fun x -> fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
 |};
-  {|
+    {|
 let equiv : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun x -> fun y -> case x 
   | [] => ?
 end in ?
 |};
-  {|
+    {|
 let equiv : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun x -> fun y -> case x 
   | [] => ?
 end in ?
 |};
-  {|
+    {|
 let equiv : forall a -> [a] -> [a] -> unit = typfun a -> fun x -> fun y -> case x 
   | h :: tl => ?
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3322,7 +3324,7 @@ type expr =
   | Square(e) => "%s*%s"(exprToString)(e)(exprToString)(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3355,7 +3357,7 @@ type expr =
   | MeanPi => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3380,7 +3382,7 @@ type expr =
   | MeanPi => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3401,7 +3403,7 @@ type expr =
       "(" ++ exprToString(expr1) ++ "<" ++ exprToString(expr2) ++ "?" ++ exprToString(expr3) ++ ":" ++ exprToString(expr4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3432,25 +3434,25 @@ type expr =
   | Sqrt(e1) => "sqrt(" ++ exprToString(e1) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let wwhile : forall b -> ? -> [b] = typfun b -> fun (f, b) -> let x = wwhile@<b>((f, b)) in let h :: t = x in case t 
   | false => h
   | true => wwhile@<b>((f, h))
 end in ?
 |};
-  {|
+    {|
 let wwhile : forall b -> ? -> [b] = typfun b -> fun (f, b) -> let x = wwhile@<b>((f, b)) in let h :: t = x in case [t] 
   | false => h
   | true => wwhile@<b>((f, h))
 end in ?
 |};
-  {|
+    {|
 let wwhile : forall a -> ? -> a = typfun a -> fun (f, b) -> let x = f(b) in let h :: t = x in let r :: l = t in case t 
   | false => h
   | true => wwhile@<a>((f, h))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3464,7 +3466,7 @@ type expr =
   | VarY => printf("%s")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3478,7 +3480,7 @@ type expr =
   | VarY => printf("%s")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3499,7 +3501,7 @@ type expr =
   | _ => 0
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3518,7 +3520,7 @@ type expr =
   | Thresh => buildThresh((a, b, a_less, b_less))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3543,10 +3545,10 @@ type expr =
       "((" ++ exprToString(s) ++ "+" ++ exprToString(p) ++ "+" ++ exprToString(p) ++ ")/2"
 end in ?
 |};
-  {|
+    {|
 let pipe : forall a -> forall b -> [(a -> [b]) -> a -> [b]] -> a -> [b] = typfun a -> typfun b -> fun fs -> let f = fun a -> fun x -> x(a) in let base = fun x -> [] in fold_left(f)(base)(fs) in ?
 |};
-  {|
+    {|
 let filter : forall a -> [a] -> a -> [a] = typfun a -> fun l -> fun a -> case l 
   | [] => []
   | h :: t => if a == h then filter@<a>(t)(a) else h :: filter@<a>(t)(a)
@@ -3560,7 +3562,7 @@ end in rev(helper(([], l))) in let removeDuplicates : forall a -> [[a]] -> [a] =
       let seen' = h in let rest' = h :: filter@<a>(t)(h) in helper((seen', rest'))
 end in removeDuplicates@<a>(helper([])) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3584,7 +3586,7 @@ type expr =
   | _ => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3611,7 +3613,7 @@ type expr =
   | _ => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3624,7 +3626,7 @@ type expr =
   + TripMult(expr, expr, expr)
  in let buildExpn : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun b -> Expn(b) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3643,7 +3645,7 @@ type expr =
   | Thresh(x7, x8, x9, x0) => eval@<a>((buildThresh((x7, x8, x9, x0)), x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3679,7 +3681,7 @@ type expr =
       "(" ++ exprToString(x12) ++ "<0?" ++ exprToString(x13) ++ ":" ++ exprToString(x14) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3699,7 +3701,7 @@ type expr =
       "Thresh(" ++ exprToString(a) ++ "," ++ exprToString(b) ++ "," ++ exprToString(c) ++ "," ++ exprToString(d) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3722,7 +3724,7 @@ type expr =
       "((" ++ exprToString(x) ++ "%30.0)" ++ exprToString ++ "%" ++ exprToString(z) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3748,26 +3750,26 @@ type expr =
       "(" ++ exprToString(x) ++ ">" ++ exprToString(y) ++ "?" ++ exprToString(x) ++ ":" ++ exprToString(y) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> forall b -> [a] -> [b] = typfun a -> typfun b -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = [] in let rest' = rev(t) in if mem(h)(rest') then rest == t else h :: seen'(helper)((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> forall b -> [a] -> [b] = typfun a -> typfun b -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let rest' = rev(t) in let seen' = seen in ?
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> forall b -> [a] -> [b] = typfun a -> typfun b -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let rest' = rev(t) in let seen' = seen in ?
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3788,7 +3790,7 @@ type expr =
       "(" ++ exprToString(ex1) ++ "<" ++ exprToString(ex2) ++ "?" ++ exprToString(ex3) ++ ":" ++ exprToString(ex4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3812,38 +3814,38 @@ type expr =
       eval((ex1, x, y)) *. cos(pi *. eval((ex2, x, y))) *. sin(pi *. eval((ex3, x, y)))
 end in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> let difference = length(l1) - length(l2) in ? in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> [[Int]] -> [a] -> [[Int]] = typfun a -> fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in if difference1 > 0 then clone@<a>(0)(difference1) :: l1 else ? in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
 |};
-  {|
+    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> [Int] = fun n -> if n < 10 then [n] else [int_mod((n, 10))] in ?
 |};
-  {|
+    {|
 let listReverse : forall a -> [a] -> [a] = typfun a -> fun l -> case l 
   | [] => []
   | h :: t => [h]
 end in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> forall b -> [a] -> [b] = typfun a -> typfun b -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = mem(h)(t) in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3862,7 +3864,7 @@ type expr =
   | Times(e) => exprToString(e)("*")(exprToString)(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3880,7 +3882,7 @@ type expr =
   | Times(e) => exprToString(e)("*")(exprToString)(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3899,7 +3901,7 @@ type expr =
   | Times(e) => exprToString(e)("*")(exprToString)(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3921,7 +3923,7 @@ type expr =
   | Cotanget(e) => "(" ++ 1. /. "(" ++ tan ++ "("(exprToString)(e) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3943,7 +3945,7 @@ type expr =
   | Cotangent(e) => "(" ++ 1. /. "(" ++ tan ++ "("(exprToString)(e) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3965,7 +3967,7 @@ type expr =
   | Cotangent(e) => 1 ++ "/cot"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -3987,7 +3989,7 @@ type expr =
   | Cotangent(e) => "contan" ++ exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4009,7 +4011,7 @@ type expr =
   | Cotangent(e) => "contan(" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4031,7 +4033,7 @@ type expr =
   | Cotangent(e) => "cot(" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4057,7 +4059,7 @@ type expr =
       "(" ++ exprToString(e) ++ "*(" ++ exprToString(e) ++ ")*" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4083,7 +4085,7 @@ type expr =
       "(" ++ exprToString(e) ++ "*(" ++ exprToString(e) ++ ")*" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4096,7 +4098,7 @@ type expr =
   + Volume(expr, expr, expr)
  in let buildSquares : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun e -> Squares(e) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4121,7 +4123,7 @@ type expr =
   | Substract(j, k) => "(" ++ exprToString(e) ++ "-" ++ exprToString(e)(")")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4134,20 +4136,20 @@ type expr =
   + Volume(expr, expr, expr)
  in let buildSubstract : forall c -> ? -> c = typfun c -> fun (j, k) -> Volume((j, k)) in ?
 |};
-  {|
+    {|
 let padZero : [a] -> [b] -> [?] = fun l1 -> fun l2 -> if length(l1) == length(l2) then [(l1, l2)] else let numZeros = length(l1) - length(l2) in ? in ?
 |};
-  {|
+    {|
 let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> ? in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> [[Bool]] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = mem(seen)(h) in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4160,7 +4162,7 @@ type expr =
   | VarX(s) => printf("%s")(s)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4179,7 +4181,7 @@ type expr =
   | Thresh => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4198,7 +4200,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4217,7 +4219,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4236,7 +4238,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4255,7 +4257,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4274,7 +4276,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4293,7 +4295,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4312,7 +4314,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4331,7 +4333,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4350,7 +4352,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4369,7 +4371,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4388,7 +4390,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4407,7 +4409,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4426,7 +4428,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4442,7 +4444,7 @@ type expr =
   | (11, 18) => buildCosine(build((rand, depth - 1)))
 end else () in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4456,7 +4458,7 @@ type expr =
   | (11, 18) => buildCosine(build((rand, depth - 1)))
 end else () in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4480,7 +4482,7 @@ type expr =
       "(" ++ exprToString(e1) ++ "<" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":" ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4506,7 +4508,7 @@ type expr =
       "(" ++ exprToString(e1) ++ "<" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":" ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4532,7 +4534,7 @@ type expr =
       "(" ++ exprToString(e1) ++ "<" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":" ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4543,7 +4545,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let _ = Thresh((buildSine(buildCosine(VarX)), VarX, VarY, VarZ)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4574,7 +4576,7 @@ type expr =
   | Power(x, y) => ex(x) ++ "^" ++ ex(y)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4596,10 +4598,10 @@ type expr =
   | SqDist(x, y) => ex(x) ++ "^2+" ++ ex(y) ++ "^2"
 end in ?
 |};
-  {|
+    {|
 let wwhile : forall a -> ? -> a = typfun a -> fun (f, b) -> let (b', c') = f(b) in if c' == true then wwhile@<a>((f, b')) else b' in let fixpoint : forall a -> ? -> a = typfun a -> fun (f, b) -> wwhile@<a>((fun x -> (f(b), NOT(b == f(b))), b)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4619,7 +4621,7 @@ type expr =
       exprToString(v) ++ "<" ++ exprToString(v) ++ "?" ++ exprToString(v) ++ ":" ++ exprToString(v)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4640,7 +4642,7 @@ type expr =
       exprToString(v) ++ "<" ++ exprToString(v) ++ "?" ++ exprToString(v) ++ ":" ++ exprToString(v)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4662,7 +4664,7 @@ type expr =
   | Super(v, w) => eval((v, x, y)) + eval((w, x, y)) * eval((v, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4686,7 +4688,7 @@ type expr =
       "(" ++ exprToString(v) ++ "+" ++ exprToString(w) ++ ") *" ++ exprToString(v)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4705,7 +4707,7 @@ type expr =
   | Thresh(th) => printf("(%s<*%s?%s:%s)")(th)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4729,7 +4731,7 @@ type expr =
   | NatLog(nlog) => "ln(" ++ nlog ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4755,7 +4757,7 @@ type expr =
   | Arcsin(m4) => "asin(" ++ exprToString(m4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4781,7 +4783,7 @@ type expr =
       "(" ++ exprToString(m4) ++ "/((1-" ++ exprToString(m4) ++ ")^2+" ++ exprToString(m4) ++ "^2))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4794,7 +4796,7 @@ type expr =
   + Oscillate(expr)
  in let buildCirc : forall a -> forall b -> a -> b = typfun a -> typfun b -> fun c1 -> Circ(c1) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4807,7 +4809,7 @@ type expr =
   + Oscillate(expr)
  in let buildCirc : forall c -> ? -> c = typfun c -> fun (c1, c2) -> Circ((c1, c2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4827,7 +4829,7 @@ type expr =
       "(" ++ exp(a) ++ "<" ++ exp(b) ++ "?" ++ exp(c) ++ ":" ++ exp(d) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4848,7 +4850,7 @@ type expr =
   | Tan(a) => "sin(pi*" ++ exp(a) ++ ")/(cos(pi*" ++ exp(a) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4870,7 +4872,7 @@ type expr =
   | Tan(a) => "sin(pi*" ++ exp(a) ++ ")/(cos(pi*" ++ exp(a) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4892,7 +4894,7 @@ type expr =
   | Tangent(a) => "sin(pi*" ++ exp(a) ++ ")/(cos(pi*" ++ exp(a) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4915,7 +4917,7 @@ type expr =
       "sin(pi*" ++ exp(a) ++ ")"("*")("cos(pi*" ++ exp(b) ++ ")")("/2")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4940,20 +4942,20 @@ type expr =
       "sin(pi*" ++ exp(a) ++ ")*cos(pi*" ++ exp(b) ++ ")/(" ++ exp(c) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> Int = fun n -> let numL = [] in if n / 10 > 0 then &&(int_mod((n, 10)) :: numL)(digitsOfInt(n) / 10) else numL in ?
 |};
-  {|
+    {|
 let digitsOfInt : Int -> unit = fun n -> let sumL = [] in ? in ?
 |};
-  {|
+    {|
 let removeDuplicates : forall a -> forall b -> [a] -> [b] = typfun a -> typfun b -> fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = if mem(h)(t) then true else false in let rest' = failwith("to be written") in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4964,7 +4966,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let exprToString : forall a -> forall b -> a -> [b] = typfun a -> typfun b -> fun e -> [Thresh(?)] in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -4986,46 +4988,47 @@ type expr =
   | Exp(e') => "e^" ++ exprToString(e')
 end in ?
 |};
-]
+  ]
 
-let ill_typed_dynamic : string list = [
-  {|
+let ill_typed_dynamic : string list =
+  [
+    {|
 let sumList = fun xs -> case xs 
   | [] => []
   | h1 :: h2 :: t => h1 + h2(sumList)(t)
 end in ?
 |};
-  {|
+    {|
 let sumList = fun xs -> case xs 
   | [] => []
   | x :: xs' => x + 1(sumList)(xs')
 end in ?
 |};
-  {|
+    {|
 let sumList = fun xs -> case xs 
   | [] => []
   | x :: xs' => x(sumList)(xs')
 end in ?
 |};
-  {|
+    {|
 let sumList = fun xs -> case xs 
   | [] => []
   | x :: xs' => x + sumList(xs')
 end in ?
 |};
-  {|
+    {|
 let sumList = fun xs -> case xs 
   | [] => []
   | x :: xs' => 1(sumList)(xs')
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else int_mod((n, 10)) :: digitsOfInt(n / 10) in let sumList = fun xs -> case xs 
   | [] => 0
   | x :: xs' => x + sumList(xs')
 end in let sum = fun n :: [i] -> if ||(n < 10)([]) then sumList(digitsOfInt(n)) :: [i] else sumList(digitsOfInt(n)) :: [1 + 1] in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5046,7 +5049,7 @@ type expr =
       "(" ++ exprToString(m) ++ "<" ++ exprToString(n) ++ "?" ++ exprToString(o) ++ ":" ++ exprToString(p)
 end in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -5061,7 +5064,7 @@ let pi = 4. *. atan(1.) in type expr =
   | _ => x
 end in let _ = eval((Sine, 0.5, 0.)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5078,7 +5081,7 @@ end else let num = rand((0, 5)) in case num
   | _ => Cosine(build((rand, depth - 1)))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5104,7 +5107,7 @@ type expr =
       "(" ++ exprToString(m) ++ "<" ++ exprToString(n) ++ "?" ++ exprToString(o) ++ ":" ++ exprToString(p) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5137,7 +5140,7 @@ type expr =
       "(" ++ exprToString(m) ++ "<" ++ exprToString(n) ++ "?" ++ exprToString(o) ++ ":" ++ exprToString(p) ++ ")"
 end in let _ = exprToString(MyExpr((VarX, VarY, VarX))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5163,7 +5166,7 @@ type expr =
       "(" ++ exprToString(m) ++ "<" ++ exprToString(n) ++ "?" ++ exprToString(o) ++ ":" ++ exprToString(p) ++ ")"
 end in let _ = exprToString(MyExpr((VarX, VarY, VarX))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5176,7 +5179,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildMyExpr = fun (a, b, a_less) -> MyExpr((a, b, a_less)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5213,7 +5216,7 @@ type expr =
       "sin(pi*(" ++ exprToString(a) ++ "+" ++ exprToString(b) ++ exprToString(c) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5240,7 +5243,7 @@ type expr =
       "sin(pi*(" ++ exprToString(a) ++ "+" ++ exprToString(b) ++ exprToString(c) ++ ")/3)"
 end in let _ = exprToString(Sin_Avg((VarX(()), VarY(()), VarX(())))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5267,7 +5270,7 @@ type expr =
       "sin(pi*(" ++ exprToString(a) ++ "+" ++ exprToString(b) ++ exprToString(c) ++ ")/3)"
 end in let _ = exprToString(Sin_Avg((Average((VarX(()), VarY(()))), VarY(()), VarX(())))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5280,7 +5283,7 @@ type expr =
   + Sin_Avg(expr, expr, expr)
  in let x = Sin_Avg((VarX(()), VarY(()), VarX(()))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5293,7 +5296,7 @@ type expr =
   + Sine_Avg(expr, expr, expr)
  in let buildSine_Avg = fun (e1, e2) -> Sine_Avg((e1, e2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5316,7 +5319,7 @@ type expr =
   | Tan(e) => "tan(pi*" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5338,7 +5341,7 @@ type expr =
   | Tan(e) => sin(pi *. eval((e, x, y))) /. cos(pi *. eval((e, x, y)))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5350,7 +5353,7 @@ type expr =
   + Custom1(expr, expr, expr)
  in let buildCustom1 = fun e -> Custom1(e) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5371,7 +5374,7 @@ type expr =
       "(" ++ exprToString(e1) ++ "<" ++ exprToString(e2) ++ " ? " ++ exprToString(e3) ++ " : " ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -5391,7 +5394,7 @@ let pi = 4. *. atan(1.) in type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in let _ = eval(Thresh((VarX, VarY, Sine(VarX), Cos(VarY), 1., 2.))) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -5411,7 +5414,7 @@ let pi = 4. *. atan(1.) in type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in let _ = eval((Thresh((VarX, VarY, Sine(VarX), Cos(VarY))), 1., 2.)) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -5431,7 +5434,7 @@ let pi = 4. *. atan(1.) in type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in let _ = eval((Cosine(Average), 0.5, 0.2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5456,7 +5459,7 @@ type expr =
       sqrt(sqrt(eval)((e', x, x))(sqrt(eval)((e', x, y)))(sqrt(eval)((e', y, y))))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5492,7 +5495,7 @@ type expr =
       "sqrt(sqrt(" ++ exprToString(e1) ++ ")+sqrt(" ++ exprToString(e2) ++ ")+sqrt(" ++ exprToString(e3) ++ "))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5519,7 +5522,7 @@ type expr =
       "(" ++ exprToString(e1) ++ ">" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":" ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5532,7 +5535,7 @@ type expr =
   + Op2(expr, expr, expr)
  in let buildOp2 = fun () -> Op2(()) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5557,7 +5560,7 @@ type expr =
       if eval((e1, x, y)) > eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5582,7 +5585,7 @@ type expr =
       if eval((e1, x, y)) > eval((e2, x, y)) then eval((e3, x, y)) else eval((e1, x, y)) -. eval((e2, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5595,7 +5598,7 @@ type expr =
   + Op2(expr, expr, expr)
  in let buildOp2 = fun (a, b, a_less, b_less) -> Op2((a, b, a_less, b_less)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5615,7 +5618,7 @@ type expr =
   | Thresh => ets((e, s ++ Thresh))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5634,7 +5637,7 @@ type expr =
   | Thresh => ets((e, s ++ Thresh))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5660,7 +5663,7 @@ type expr =
   | Asin(e1, e2, e3) => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5686,7 +5689,7 @@ type expr =
   | Asin(e1, e2, e3) => "1"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5712,7 +5715,7 @@ type expr =
   | Asin(e1, e2, e3) => "1"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5734,7 +5737,7 @@ type expr =
   | Accossin(e1, e2) => acos(eval(e1)) *. asin(eval(e2)) *. 2. /. pi *. pi
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5760,7 +5763,7 @@ type expr =
   | Crazy(e1, e2, e3) => exprToString(e2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5773,7 +5776,7 @@ type expr =
   + Crazy(expr, expr)
  in let buildCrazy = fun (e1, e2, e3) -> Crazy((e1, e2, e3)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5798,7 +5801,7 @@ type expr =
   | Crazy(e1, e2, e3) => eval(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5823,7 +5826,7 @@ type expr =
   | Crazy(e1, e2, e3) => eval((e1, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5849,7 +5852,7 @@ type expr =
   | Crazy(e1, e2, e3) => exprToString(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5860,7 +5863,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Thresh((VarXarY, VarX, Times((Sine(VarX), Cosine(erage((VarX, VarY))))))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5883,10 +5886,10 @@ type expr =
   | Sqr(s) => "(" ++ ex(s) ++ "*" ++ ex(s) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let palindrome = fun w -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5907,7 +5910,7 @@ type expr =
       "(" ++ exprToString(expr1) ++ "<" ++ exprToString(expr2) ++ " ? " ++ exprToString(expr3) ++ " : " ++ exprToString(expr4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -5927,7 +5930,7 @@ let pi = 4. *. atan(1.) in type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in let _ = eval((NewExprA((VarX, Vary)), 1., -1.)) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -5953,7 +5956,7 @@ let pi = 4. *. atan(1.) in type expr =
       eval((e1, x, y)) +. eval((e2, x, y)) -. eval((e3, x, y))
 end in let _ = eval((NewExprA((VarX, Vary)), 1., -1.)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -5987,10 +5990,10 @@ type expr =
       eval((e1, x, y)) +. eval((e2, x, y)) *. eval((e3, x, y))
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n < 0 then [] else if n == 0 then [0] else ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6001,7 +6004,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let buildThresh = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes = fun (e1, e2) -> Times((e1, e2)) in let buildHelper = fun rand -> fun max_depth -> fun curr_depth -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6012,7 +6015,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let eval = fun (e, x, y) -> failwith("to be written") in let _ = eval((Sine(Cos(Varx)), 0.5, -0.5)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6023,7 +6026,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let eval = fun (e, x, y) -> failwith("to be written") in let _ = eval((Sine(Varx), 0.5, -0.5)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6039,7 +6042,7 @@ type expr =
   | Cosine(p1) => evalhelper(buildCosine)(p1)(x)(y)
 end in evalhelper(e)(x)(y) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -6055,16 +6058,16 @@ let pi = 4. *. atan(1.) in type expr =
   | Cosine(p1) => cos(pi *. evalhelper(p1)(x)(y))
 end in evalhelper(e)(x)(y) in let _ = eval((Sine(Varx), 0.5, -0.5)) in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6090,7 +6093,7 @@ type expr =
       "(" ++ exprToString(v) ++ "*" ++ exprToString(w) ++ "*" ++ exprToString(x)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6111,7 +6114,7 @@ type expr =
       exprToString(e1) ++ "<" ++ exprToString(e2)("?") ++ exprToString(e3) ++ "?"(exprToString)(e4)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6138,13 +6141,13 @@ end
     eval((e1, x, y)) ** 2. +. eval((e2, x, y)) ** 2. +. eval((e3, x, y)) ** 2. /. 3.
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6163,7 +6166,7 @@ type expr =
   | Thresh => printf("A")
 end in ?
 |};
-  {|
+    {|
 let a = (1, 2) in let (c, d) = (1, 2) in let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -6189,10 +6192,10 @@ let a = (1, 2) in let (c, d) = (1, 2) in let pi = 4. *. atan(1.) in type expr =
       if eval((a, x, y)) < eval((b, x, y)) then eval((b, x, y)) else if eval((a, x, y)) > eval((c, x, y)) then eval((c, x, y)) else eval((a, x, y))
 end in let _ = eval((Clamp((Sine(Varx), VarX, VarY)), 1, 2)) in ?
 |};
-  {|
+    {|
 let _ = [] in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6206,7 +6209,7 @@ type expr =
   | VarY(y) => sprintf(y)
 end in acc(e)(exprToString)(VarX) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6220,7 +6223,7 @@ type expr =
   | VarY(y) => sprintf("%s")(y)
 end in acc(e)(exprToString)(VarX) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6234,7 +6237,7 @@ type expr =
   | VarY(y) => sprintf("%s")(y)
 end in acc(e)("")(exprToString)(VarX) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6248,7 +6251,7 @@ type expr =
   | VarY(y) => sprintf("y")
 end in acc(e)("")(exprToString)(VarX) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -6286,7 +6289,7 @@ let pi = 4. *. atan(1.) in type expr =
   | _ => failwith("we are seriously writing a lisp compiler god save us all")
 end in let _ = eval((Quad((VarX, VarY, VarX)), 0.5, 0.5)) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -6324,7 +6327,7 @@ let pi = 4. *. atan(1.) in type expr =
   | _ => failwith("error")
 end in let _ = eval((Gauss((VarX, VarY, VarX)), 0.5, 0.5)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6347,7 +6350,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExprTangent = Thresh((VarX, VarY, VarX, Tangent((Sine(VarX), Cosine(Average((VarX, VarY))))))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6362,7 +6365,7 @@ type expr =
   | Sine(s) => Sine(exprToString(s))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6387,7 +6390,7 @@ type expr =
       -1 * eval((e1, x, y)) * eval((e2, x, y)) * eval((e3, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6413,7 +6416,7 @@ type expr =
       "(tan(" ++ exprToString(e1) ++ "*" ++ exprToString(e2) ++ "*" ++ exprToString(e3) ++ "))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6426,19 +6429,19 @@ type expr =
   + Weird(expr, expr, expr)
  in let buildWeird = fun (e1, e2, e3, e4) -> Weird((e1, e2, e3, e4)) in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else if int_mod((n - 1, 10)) == 0 then 1 :: digitsOfInt(n - 1 / 10) else if int_mod((n - 2, 10)) == 0 then 1 :: digitsOfInt(n - 2 / 10) else if int_mod((n - 3, 10)) == 0 then 1 :: digitsOfInt(n - 3 / 10) else if int_mod((n - 4, 10)) == 0 then 1 :: digitsOfInt(n - 4 / 10) else if int_mod((n - 5, 10)) == 0 then 1 :: digitsOfInt(n - 5 / 10) else if int_mod((n - 6, 10)) == 0 then 1 :: digitsOfInt(n - 6 / 10) else if int_mod((n - 7, 10)) == 0 then 1 :: digitsOfInt(n - 7 / 10) else if int_mod((n - 8, 10)) == 0 then 1 :: digitsOfInt(n - 8 / 10) else ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else if int_mod((n - 1, 10)) == 0 then 1 :: digitsOfInt(n - 1 / 10) else if int_mod((n - 2, 10)) == 0 then 2 :: digitsOfInt(n - 2 / 10) else if int_mod((n - 3, 10)) == 0 then 3 :: digitsOfInt(n - 3 / 10) else if int_mod((n - 4, 10)) == 0 then 4 :: digitsOfInt(n - 4 / 10) else if int_mod((n - 5, 10)) == 0 then 5 :: digitsOfInt(n - 5 / 10) else if int_mod((n - 6, 10)) == 0 then 6 :: digitsOfInt(n - 6 / 10) else if int_mod((n - 7, 10)) == 0 then 7 :: digitsOfInt(n - 7 / 10) else if int_mod((n - 8, 10)) == 0 then 8 :: digitsOfInt(n - 8 / 10) else ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else ? in ?
 |};
-  {|
+    {|
 let listReverse = fun l -> let reverseHelper = fun acc -> if [] then acc else reverseHelper(h :: acc)(t) in reverseHelper([])(l) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6449,7 +6452,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let buildThresh = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes = fun (e1, e2) -> Times((e1, e2)) in let buildY = fun () -> VarY in let build = fun (rand, depth) -> let case = rand((0, 6)) in ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6476,7 +6479,7 @@ type expr =
       "((" ++ exprToString(ex1) ++ "*sin(pi*" ++ exprToString(ex2) ++ ")*cos(pi*" ++ exprToString(ex3) ++ "))/2)"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6502,7 +6505,7 @@ type expr =
       eval((ex1, x, y)) *. sin(pi *. eval((ex2, x, y))) *. cos(pi *. eval((ex3, x, y))) /. 2.
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6528,7 +6531,7 @@ type expr =
       eval((ex1, x, y)) *. sin(pi *. eval((ex2, x, y))) *. cos(pi *. eval((ex3, x, y))) /. 2.
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6554,7 +6557,7 @@ type expr =
       "(" ++ exprToString(ex3) ++ "=" ++ exprToString(ex2) ++ "?" ++ exprToString(ex3) ++ ":" ++ exprToString(ex1) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6567,7 +6570,7 @@ type expr =
   + TheThing(expr, expr, expr)
  in let buildSixtyNine = fun e1 -> SixtyNine(e1) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6592,7 +6595,7 @@ type expr =
       eval((ex1, x, y)) *. sin(pi *. eval((ex2, x, y))) *. cos(pi *. eval((ex3, x, y))) /. 2.
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6612,7 +6615,7 @@ type expr =
       exprToString(e1) ++ exprToString(e2) ++ exprToString(e3)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6632,7 +6635,7 @@ type expr =
       exprToString(e1) ++ exprToString(e2) ++ exprToString(e3)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6646,20 +6649,20 @@ type expr =
   + SumPercent(expr, expr, expr)
  in let buildSumPercent = fun e -> SumPercent(e) in ?
 |};
-  {|
+    {|
 let t = fun x -> x + 1 in let sepConcat = fun sep -> fun sl -> case sl 
   | [] => ""
   | h :: t =>
       let f = fun a -> fun x -> ? in let base = sep in let l = t in fold_left(f)(base)(l)
 end in ?
 |};
-  {|
+    {|
 let seal = 1 :: 2 :: [3] in let _ = ? in ?
 |};
-  {|
+    {|
 let seal = 1 :: 2 :: [3] in let _ = ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6670,7 +6673,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let _ = Sine in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6681,7 +6684,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let _ = Sine(Cosine) in ?
 |};
-  {|
+    {|
 type tree = 
   + Leaf(Int)
   + Node(tree, tree)
@@ -6690,7 +6693,7 @@ type tree =
   | Node(t1, t2) => foo(t1) + foo(t2)
 end in foo(Node((Node((Leaf(1), Leaf(2))), Leaf3))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6705,7 +6708,7 @@ type expr =
   | Sine(e1) => Sine ++ exprToString(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6724,10 +6727,10 @@ type expr =
   | Time(e1, e2) => exprToString(e1) ++ "*" ++ exprToString(e2)
 end in ?
 |};
-  {|
+    {|
 let hi = [] in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6740,7 +6743,7 @@ type expr =
   + MyExpr2(expr)
  in let sampleExpr1 = MyExpr2(MyExpr1((Varx, VarY, Thresh((VarX, VarY, VarX, Times((Sine(VarX), Cosine(Average((VarX, VarY)))))))))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6766,7 +6769,7 @@ type expr =
       "(" ++ exprToString(e1) ++ ">" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":0.0"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6779,7 +6782,7 @@ type expr =
   + KellysOp(expr, expr, expr, expr)
  in let buildKellysOp = fun (a, b, a_more) -> KellysOp((a, b, a_more)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6804,18 +6807,18 @@ type expr =
       if eval((a, x, y)) > eval((b, x, y)) then eval((a_more, x, y)) else 0.
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> case n 
   | _ => ?
 end in ?
 |};
-  {|
+    {|
 let _ = let n = 0 in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6830,7 +6833,7 @@ type expr =
   | Sine => "Sine" ++ exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6852,7 +6855,7 @@ type expr =
   | Half(x) => ".5*" ++ exprToString(x)
 end in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -6874,7 +6877,7 @@ let pi = 4. *. atan(1.) in type expr =
   | Half(a) => 0.5 *. eval((a, x, y))
 end in let _ = eval((Half, 0.3, 0.3)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6899,7 +6902,7 @@ type expr =
   | Third(x) => "0.33*" ++ exprToString(x)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6923,23 +6926,23 @@ type expr =
   | Third(a) => 0.33 *. eal((a, x, y))
 end in ?
 |};
-  {|
+    {|
 let sepConcat = fun sep -> fun sl -> case sl 
   | [] => ""
   | h :: t =>
       let f = fun a -> fun x -> if length(()) == 0 then a ++ x else a ++ x ++ sep in let base = "" in let l = sl in fold_left(f)(base)(l)
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n < 0 then [] else let a = n / 10 in let b = int_mod((n, 10)) in let c = a :: [b] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n < 0 then [] else let a = n / 10 in let b = int_mod((n, 10)) in let c = a :: [b] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n < 0 then [] else let a = n / 10 in let b = int_mod((n, 10)) in let c = a :: [b] in ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6953,7 +6956,7 @@ type expr =
   | VarY(y) => "y"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -6978,65 +6981,65 @@ type expr =
       let s = exprToString(e3) in "(abs(" ++ exprToString(e1) ++ ")<abs(" ++ exprToString(e2) ++ "?" ++ s ++ ":abs(" ++ exprToString(e4) ++ "))"
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> let myList = [] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> let myList = [] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList = fun xs -> case xs 
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
 end in let additivePersistence = fun n -> let count = [] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList = fun xs -> case xs 
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
 end in let additivePersistence = fun n -> let count = [0] in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList = fun xs -> case xs 
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
 end in let additivePersistence = fun n -> let count = [0] in if sumList(digitsOfInt(n)) > 9 then &(1 :: count)(additivePersistence(sumList(digitsOfInt(n)))) else sumList(count) in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList = fun xs -> case xs 
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
 end in let additivePersistence = fun n -> let count = [0] in if sumList(digitsOfInt(n)) > 9 then &&(1 :: count)(additivePersistence(sumList(digitsOfInt(n)))) else sumList(count) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7049,7 +7052,7 @@ type expr =
   | VarX(x) => sprintf("%s")(x)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7062,7 +7065,7 @@ type expr =
   | VarX(a) => sprintf("%s")(a)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7073,7 +7076,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let cool = VarX(2.) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7088,7 +7091,7 @@ type expr =
   | Average => buildAverage((vx, vy))
 end in ?
 |};
-  {|
+    {|
 let c1 = fun () -> failwith("to be implemented") in let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -7108,7 +7111,7 @@ let c1 = fun () -> failwith("to be implemented") in let pi = 4. *. atan(1.) in t
       if eval((h1, x, y)) < eval((h2, x, y)) then eval((h3, x, y)) else eval((h4, x, y))
 end in let _ = eval((Sine(Average((Varx, VarY))), 0.5, -0.5)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7129,7 +7132,7 @@ type expr =
   | 7 => buildSine(buildX(()))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7154,7 +7157,7 @@ type expr =
       buildThresh((if depth == 0 then buildX(()) else build((rand, depth - 1)), if depth == 0 then buildY(()) else build((rand, depth - 1)), if depth == 0 then buildX(()) else build((rand, depth - 1)), if depth == 0 then buildY(()) else build((rand, depth - 1))))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7167,7 +7170,7 @@ type expr =
   + Hello2(expr, expr, expr, expr)
  in let sampleExpr4 = Hello2((VarX, VarY, VarX, SinX)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7204,23 +7207,23 @@ type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e4, x, y)) else eval((e3, x, y))
 end in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = ? in let rest' = failwith("to be written") in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let padZero = fun l1 -> fun l2 -> if length(l1) == length(l2) then (l1, l2) else ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> let int = fun list -> fun digInt -> int_mod((n, 10)) :: digInt in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> let int = fun list -> fun digInt -> [] in ? in ?
 |};
-  {|
+    {|
 let f = fun a -> fun x -> let intlist = fun l -> if l < 10 then [l] else @(intlist(l / 10))([int_mod((l, 10))]) in case x 
   | (z, y) => case a 
   | [] => let sum = z + y in intlist(sum)
@@ -7228,7 +7231,7 @@ let f = fun a -> fun x -> let intlist = fun l -> if l < 10 then [l] else @(intli
 end
 end in let _ = f([]) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7256,7 +7259,7 @@ type expr =
   | None => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7284,7 +7287,7 @@ type expr =
   | None => 0
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7303,7 +7306,7 @@ type expr =
   | VarX => exprToString(buildX)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7322,7 +7325,7 @@ type expr =
   | VarX => exprToString(buildX)
 end in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -7342,7 +7345,7 @@ let pi = 4. *. atan(1.) in type expr =
   | VarX => x
 end in let _ = eval((Time((VarX, VarY)), 1., 2.)) in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone(x)(n - 1))([x])
@@ -7354,7 +7357,7 @@ end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a 
   | ([h1 :: t1], [h2 :: t2]) => ?
 end in let base = [] in let args = l1(l2) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone(x)(n - 1))([x])
@@ -7366,7 +7369,7 @@ end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a 
   | ([h1 :: t1], [h2 :: t2]) => ?
 end in let base = [] in let args = l1(l2) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone(x)(n - 1))([x])
@@ -7378,7 +7381,7 @@ end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a 
   | ([h1 :: t1], [h2 :: t2]) => ?
 end in let base = [] in let args = l1(l2) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone(x)(n - 1))([x])
@@ -7389,7 +7392,7 @@ end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a 
   | (h :: t, (x1, x2)) => ?
 end in let base = [0] in let args = rev(combine(l1)(l2)) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone(x)(n - 1))([x])
@@ -7400,7 +7403,7 @@ end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a 
   | (h :: t, (x1, x2)) => ?
 end in let base = [0] in let args = rev(combine(l1)(l2)) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> case n 
   | 0 => []
   | a => if a < 0 then [] else @(clone(x)(n - 1))([x])
@@ -7411,7 +7414,7 @@ end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a 
   | (h :: t, (x1, x2) :: t2) => ?
 end in let base = [0] in let args = rev(combine(l1)(l2)) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7426,7 +7429,7 @@ type expr =
   | Sine => "sine(pi*" ++ exprToString(d) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7441,7 +7444,7 @@ type expr =
   | Sine => "sine(pi*" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -7457,25 +7460,25 @@ let pi = 4. *. atan(1.) in type expr =
   | Cosine(e) => cos(pi *. eval((e, x, y)))
 end in let _ = eval((Sine(Varx), 1, 1)) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7490,7 +7493,7 @@ type expr =
   | Sine(s) => "sin (pi*" ++ exprString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7510,7 +7513,7 @@ type expr =
       "(" ++ exprToString(e) ++ "<" ++ exprToString(e) ++ "?" ++ exprToString(e) ++ ":" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7530,7 +7533,7 @@ type expr =
       "(" ++ exprToString(e) ++ "<" ++ exprToString(e) ++ "?" ++ exprToString(e) ++ ":" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7547,7 +7550,7 @@ type expr =
   | Thresh(e, f, g, h) => failwith("sad")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7566,7 +7569,7 @@ type expr =
   | Thresh(e1, e2, e3, e4) => failwith("sad")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7593,7 +7596,7 @@ type expr =
       "(sin(pi*" ++ exprToString(e1) ++ ")/" ++ "cos(pi*" ++ exprToString(e2) ++ "))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7606,7 +7609,7 @@ type expr =
   + Timmy2(expr, expr, expr, expr)
  in let buildTimmy2 = fun (e1, e2) -> Timmy2((e1, e2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7629,7 +7632,7 @@ type expr =
       sin(pi *. eval((e, x, y))) ** 2. *. cos(pi *. eval((e, x, y)))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7642,7 +7645,7 @@ type expr =
   + Timmy2(expr, expr, expr)
  in let buildTimmy2 = fun (e1, e2) -> Timmy2((e1, e2)) in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> if n <= 0 then [] else x :: clone(x)(n - 1) in let padZero = fun l1 -> fun l2 -> let s1 = length(l1) in let s2 = length(l2) in if s1 < s2 then (@(clone(0)(s2 - s1))(l1), l2) else if s2 < s1 then (l1, @(clone(0)(s1 - s2))(l2)) else (l1, l2) in let removeZero = fun l -> case l 
   | [] => []
   | h :: t => if !=(h)(0) then h :: t else removeZero(t)
@@ -7652,10 +7655,10 @@ end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a 
       let sum = c + fst(x) + snd(x) in (sum / 10, int_mod((sum, 10)) :: snd(a))
 end in let base = (0, []) in let args = @(combine(rev(l1))(rev(l2)))([(0, 0)]) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in let bigMul = fun l1 -> fun l2 -> let f = fun a -> fun x -> (fst(a), bigAdd(())(())) in let base = (0, []) in let args = rev(l2) in let (_, res) = fold_left(f)(base)(args) in res in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7668,7 +7671,7 @@ type expr =
   + Squa(expr)
  in let sampleExpr2 = Times((Squa(Nom((VarX, VarY, VarX))), Sine(Varx))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7681,7 +7684,7 @@ type expr =
   + Squa(expr)
  in let sampleExpr2 = Nom((VarX, VarY, Sin(VarX))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7700,7 +7703,7 @@ type expr =
   | Thresh => "%s"(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7719,7 +7722,7 @@ type expr =
   | Thresh => "%s"(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7738,7 +7741,7 @@ type expr =
   | Thresh => "%s"(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7757,7 +7760,7 @@ type expr =
   | Thresh(s, t, u, v) => if eval(s) < eval(t) then eval(u) else eval(v)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7780,7 +7783,7 @@ type expr =
       sqrt(abs(eval((u, x, y))) *. abs(eval((v, x, y))) *. abs(eval((w, x, y))))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7793,7 +7796,7 @@ type expr =
   + Special2(expr, expr)
  in let buildSpecial1 = fun (e1, e2) -> Special1((e1, e2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7809,7 +7812,7 @@ type expr =
   | Cosine => @(VarX)(@("/")(VarY))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7825,7 +7828,7 @@ type expr =
   | Cosine => VarX ++ "/" ++ VarY
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7841,7 +7844,7 @@ type expr =
   | Cosine => exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7857,7 +7860,7 @@ type expr =
   | Cosine => exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7873,7 +7876,7 @@ type expr =
   | Cosine => exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7890,7 +7893,7 @@ type expr =
   | Average(e) => "(" ++ exprToString(e) ++ "+" ++ exprToString(e) ++ ")/2"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7905,7 +7908,7 @@ type expr =
   | Sine => buildSine(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7927,10 +7930,10 @@ type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in ?
 |};
-  {|
+    {|
 let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a -> fun x -> map(fun x -> x + a)(x) in let base = hd(L1) in let args = l2 in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7949,7 +7952,7 @@ type expr =
   | (Thresh(e1), e2, e3, e4) => printf("(%s<%s?%s:%s)")(e1)(e2)(e3)(e4)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7973,7 +7976,7 @@ type expr =
   | Root(e) => eval(e ** 1 / 2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -7986,7 +7989,7 @@ type expr =
   + Flatten(expr, expr, expr)
  in let buildFlatten = fun e -> Flatten(e) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -8021,10 +8024,10 @@ let pi = 4. *. atan(1.) in type expr =
       eval((e1, x, y)) /. eval((e2, x, y)) /. eval((e3, x, y))
 end in let _ = eval((Root(VarX), 0.5, 1.)) in ?
 |};
-  {|
+    {|
 let _ = () in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8047,7 +8050,7 @@ type expr =
   | Stuff(t) => "cos(pi*" ++ "(sin(pi*" ++ ex(t) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8070,7 +8073,7 @@ type expr =
   | Stuff(t) => "cos(pi*" ++ "(sin(pi*" ++ ex(t) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8093,7 +8096,7 @@ type expr =
   | Stuff(t) => "cos(pi*" ++ "(sin(pi*" ++ e(t) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8114,7 +8117,7 @@ type expr =
   | Stuff(t) => "cos(pi*" ++ "(sin(pi*" ++ e(t) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8138,7 +8141,7 @@ type expr =
       "Vol(H: " ++ exprToString(s) ++ ", W: " ++ exprToString(t) ++ ", L: " ++ exprToString(u) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8161,7 +8164,7 @@ type expr =
       eval((vol_1, x, y)) *. eval((vol_2, x, y)) *. eval((vol_3, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8197,7 +8200,7 @@ type expr =
       "Vol(H: " ++ exprToString(s) ++ ", W: " ++ exprToString(t) ++ ", L: " ++ exprToString(u) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8232,7 +8235,7 @@ type expr =
       eval((vol_1, x, y)) *. eval((vol_2, x, y)) *. eval((vol_3, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8252,7 +8255,7 @@ type expr =
       "(" ++ exprToString(v) ++ "<" ++ exprToString(v) ++ "?" ++ exprToString(v) ++ ":" ++ exprToString(v) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8277,7 +8280,7 @@ type expr =
       "(" ++ exprToString(a) ++ "*" ++ exprToString(b) ++ "*" ++ exprToString(c) ++ ")/2"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8299,7 +8302,7 @@ type expr =
   | MultHalf(a, b, c) => a *. b *. c / 2.
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8313,7 +8316,7 @@ type expr =
   | VarY(y) => printf("%s")(y)
 end in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> if n <= 0 then [] else x :: clone(x)(n - 1) in let padZero = fun l1 -> fun l2 -> let difference = length(l1) - length(l2) in if difference > 0 then (l1, @(clone(0)(difference))(l2)) else if difference < 0 then (@(clone(0)(-1 * difference))(l1), l2) else (l1, l2) in let removeZero = fun l -> case l 
   | [] => l
   | h :: t => if h == 0 then removeZero(t) else h :: t
@@ -8321,19 +8324,19 @@ end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a 
   | (x1, x2) => x1 + x2
 end in ? in let base = [] in let args = rev(combine(l1)(l2)) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> if n <= 0 then [] else x :: clone(x)(n - 1) in let padZero = fun l1 -> fun l2 -> let difference = length(l1) - length(l2) in if difference > 0 then (l1, @(clone(0)(difference))(l2)) else if difference < 0 then (@(clone(0)(-1 * difference))(l1), l2) else (l1, l2) in let removeZero = fun l -> case l 
   | [] => l
   | h :: t => if h == 0 then removeZero(t) else h :: t
 end in let bigAdd = fun l1 -> fun l2 -> let add = fun (l1, l2) -> let f = fun a -> fun x -> ? in let base = (0, []) in let args = let combine = fun (a, b) -> a + b in map(combine)(rev(combine(l1)(l2))) in let (_, res) = fold_left(f)(base)(args) in res in removeZero(add(padZero(l1)(l2))) in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8347,7 +8350,7 @@ type expr =
   | VarY(y) => int_to_string(y)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8358,7 +8361,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let buildThresh = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes = fun (e1, e2) -> Times((e1, e2)) in let build = fun (rand, depth) -> ? in ?
 |};
-  {|
+    {|
 let lastListElement = fun n -> case n 
   | [] => failwith("ERROR: List must be of size 1 or greater")
   | [x] => x
@@ -8368,7 +8371,7 @@ end in let catLists = fun x -> fun y -> if not(x) == [] then case x
   | h :: t => catLists(t)(lastListElement(x) :: y)
 end else if x == [] then y else ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8390,7 +8393,7 @@ type expr =
       let (x, y, z, w) = n in "(" ++ exprToString(x) ++ "<" ++ exprToString(y) ++ "?" ++ exprToString(z) ++ ":" ++ exprToString(w)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8412,7 +8415,7 @@ type expr =
       let (x, y, z, w) = n in "(" ++ exprToString(x) ++ "<" ++ exprToString(y) ++ "?" ++ exprToString(z) ++ ":" ++ exprToString(w)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8430,7 +8433,7 @@ type expr =
   | Times(m, n) => eval((m, x, y)) *. eval((n, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8450,7 +8453,7 @@ end else let g = rand((0, 4)) in case g
   | 4 => Thresh((build((rand, depth - 1)), build((rand, depth - 1))))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8486,7 +8489,7 @@ type expr =
       "(" ++ exprToString(x) ++ "*" ++ exprToString(y) ++ ")/" ++ exprToString(z)
 end in let _ = exprToString(Log(VarX)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8512,7 +8515,7 @@ type expr =
       "(" ++ exprToString(x) ++ "*" ++ exprToString(y) ++ ")/" ++ exprToString(z)
 end in let _ = exprToString(Op((VarX, VarY))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8548,7 +8551,7 @@ type expr =
       "(" ++ exprToString(x) ++ "*" ++ exprToString(y) ++ "*" ++ exprToString(z) ++ ")/(" ++ exprToString(x) ++ "+" ++ exprToString(y) ++ "+" ++ exprToString(z) ++ ")"
 end in let _ = exprToString(Power((VarX, VarY))) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -8573,15 +8576,15 @@ let pi = 4. *. atan(1.) in type expr =
       sqrt(eval((m, x, y)) +. eval((n, x, y)) +. eval((o, x, y))) /. 3.
 end in let _ = eval(Power((VarX, VarY, 0.5, -0.5))) in ?
 |};
-  {|
+    {|
 let pipe = fun fs -> let f = fun a -> fun x -> case fs 
   | h :: t => h
 end in let base = [] in fold_left(f)(base)(fs) in ?
 |};
-  {|
+    {|
 let pipe = fun fs -> let f = fun a -> fun x -> x(a) in let base = 0 in fold_left(f)(base)(fs) in let _ = pipe([]) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8601,7 +8604,7 @@ type expr =
       "(" ++ exprToString(e) ++ "<" ++ exprToString(e) ++ " ? " ++ exprToString(e) ++ " : " ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8625,22 +8628,22 @@ type expr =
       "(" ++ exprToString(e) ++ "<" ++ exprToString(f) ++ "?" ++ exprToString(g) ++ ":" ++ exprToString(h) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let listReverse = fun l -> ? in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let seen' = ? in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8653,7 +8656,7 @@ type expr =
   | VarX(x) => x
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8668,7 +8671,7 @@ type expr =
   | Sine(N) => Sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8683,7 +8686,7 @@ type expr =
   | Sine(N) => Sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8698,7 +8701,7 @@ type expr =
   | Sine(N) => Sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8713,7 +8716,7 @@ type expr =
   | Sine(N) => sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8728,7 +8731,7 @@ type expr =
   | Sine => sin(N)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8743,7 +8746,7 @@ type expr =
   | Sine(e1) => sin(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8758,7 +8761,7 @@ type expr =
   | Sine => sin(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8777,7 +8780,7 @@ type expr =
   | Thresh => "/"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8796,7 +8799,7 @@ type expr =
   | Thresh => "/"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8815,10 +8818,10 @@ type expr =
   | Thresh => "/"
 end in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> ? in ?
 |};
-  {|
+    {|
 let removeZero = fun l -> case l 
   | [] => []
   | h :: t => if h == 0 then removeZero(t) else h :: t
@@ -8827,10 +8830,10 @@ end in let mulByDigit = fun i -> fun l -> let f = fun a -> fun x -> let carry = 
   | _ => carry / 10 :: [int_mod((carry, 10))]
 end in let base = [] in removeZero(fold_left(f)(base)(rev(l))) in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8849,7 +8852,7 @@ type expr =
   | Thresh(e1, e2, e3, e4) => e1 * e2 * e3 * e4
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8886,7 +8889,7 @@ type expr =
       "(" ++ exprToString(e1) ++ " * " ++ exprToString(e1) ++ ") + (" ++ exprToString(e2) ++ "/2"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8922,7 +8925,7 @@ type expr =
       eval((e1, x, y)) *. eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8949,7 +8952,7 @@ type expr =
       exprToString(e1) ++ " * " ++ exprToString(e1) ++ " * " ++ exprToString(e1)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -8979,7 +8982,7 @@ type expr =
       "(("(exprToString(e1)) ++ " * " ++ exprToString(e2) ++ ") /6)"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9004,7 +9007,7 @@ type expr =
 end
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9025,17 +9028,17 @@ type expr =
   | _ => []
 end in ?
 |};
-  {|
+    {|
 let wwhile = fun (f, b) -> let x = f(b) in case x 
   | h :: t => if t == true then wwhile((f, h)) else h
 end in ?
 |};
-  {|
+    {|
 let wwhile = fun (f, b) -> let x = f(b) in case x 
   | h :: t => if t == false then h else wwhile((f, h))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9059,7 +9062,7 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1)("*")(exprToString)(i2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9071,7 +9074,7 @@ type expr =
   + Square(expr, expr)
  in let buildSquare = fun e -> Square(e) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9094,7 +9097,7 @@ type expr =
   | Exponential(i1, i2) => eval((i1, x, y)) *. eval((i2, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9119,7 +9122,7 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1)("*")(exprToString)(i2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9132,7 +9135,7 @@ type expr =
   + Exponential(expr, expr)
  in let buildSquare = fun e -> Square(e) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9156,7 +9159,7 @@ type expr =
   | Exponential(i1, i2) => eval((i1, x, y)) *. eval((i2, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9181,7 +9184,7 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1)("*")(exprToString)(i2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9205,7 +9208,7 @@ type expr =
   | Exponential(i1, i2) => **.(eval((i1, x, y)))(eval((i2, x, y)))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9231,7 +9234,7 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1) ++ "^" ++ exprToString(i2)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9256,7 +9259,7 @@ type expr =
   | Exponential(i1, i2) => eval((i1, x, y)) ** eval((i2, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9282,28 +9285,28 @@ type expr =
   | Exponential(i1, i2) => exprToString(i1) ++ "^" ++ exprToString(i2)
 end in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> ? in ?
 |};
-  {|
+    {|
 let equiv = fun x -> fun y -> case x 
   | [] => ?
 end in ?
 |};
-  {|
+    {|
 let equiv = fun x -> fun y -> case x 
   | [] => ?
 end in ?
 |};
-  {|
+    {|
 let equiv = fun x -> fun y -> case x 
   | h :: tl => ?
 end in ?
 |};
-  {|
+    {|
 type binop = 
   + Plus
  in type expr = 
@@ -9315,7 +9318,7 @@ type binop =
   + Fun(String, expr)
  in let e3' = App((Let(("z", Const(10), Fun(("y", Plus((Var("y"), Plus, Var("z"))))))), Var("z"))) in ?
 |};
-  {|
+    {|
 type binop = 
   + Plus
  in type expr = 
@@ -9327,7 +9330,7 @@ type binop =
   + Fun(String, expr)
  in let e3 = Let(("x", Const(10), App((Fun(("y", Plus((Var("x"), Plus, Var("y"))))), Var("x"))))) in ?
 |};
-  {|
+    {|
 type binop = 
   + Plus
  in type expr = 
@@ -9339,7 +9342,7 @@ type binop =
   + Fun(String, expr)
  in let e3 = Let(("x", Const(10), App(Fun(("y", Bin((Var("x"), Plus, Var("y")))))), Var("x"))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9359,7 +9362,7 @@ type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9381,7 +9384,7 @@ type expr =
   | Square(e) => "%s*%s"(exprToString)(e)(exprToString)(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9414,7 +9417,7 @@ type expr =
   | MeanPi => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9439,7 +9442,7 @@ type expr =
   | MeanPi => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9460,7 +9463,7 @@ type expr =
       "(" ++ exprToString(expr1) ++ "<" ++ exprToString(expr2) ++ "?" ++ exprToString(expr3) ++ ":" ++ exprToString(expr4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9491,13 +9494,13 @@ type expr =
   | Sqrt(e1) => "sqrt(" ++ exprToString(e1) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let listReverse = fun l -> case l 
   | [] => None
   | front :: back => listReverse(back) :: [front]
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9510,25 +9513,25 @@ type expr =
   + Creative(expr)
  in let sampleExpr5 = Uncreative(Creative(Thresh((VarX, VarY, VarX, Times((Sine(VarX), Cosine(Average((VarX, VarY))))))))) in ?
 |};
-  {|
+    {|
 let wwhile = fun (f, b) -> let x = wwhile((f, b)) in let h :: t = x in case t 
   | false => h
   | true => wwhile((f, h))
 end in ?
 |};
-  {|
+    {|
 let wwhile = fun (f, b) -> let x = wwhile((f, b)) in let h :: t = x in case [t] 
   | false => h
   | true => wwhile((f, h))
 end in ?
 |};
-  {|
+    {|
 let wwhile = fun (f, b) -> let x = f(b) in let h :: t = x in let r :: l = t in case t 
   | false => h
   | true => wwhile((f, h))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9542,7 +9545,7 @@ type expr =
   | VarY => printf("%s")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9556,7 +9559,7 @@ type expr =
   | VarY => printf("%s")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9577,7 +9580,7 @@ type expr =
   | _ => 0
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9596,7 +9599,7 @@ type expr =
   | Thresh => buildThresh((a, b, a_less, b_less))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9621,10 +9624,10 @@ type expr =
       "((" ++ exprToString(s) ++ "+" ++ exprToString(p) ++ "+" ++ exprToString(p) ++ ")/2"
 end in ?
 |};
-  {|
+    {|
 let pipe = fun fs -> let f = fun a -> fun x -> x(a) in let base = fun x -> [] in fold_left(f)(base)(fs) in ?
 |};
-  {|
+    {|
 let filter = fun l -> fun a -> case l 
   | [] => []
   | h :: t => if a == h then filter(t)(a) else h :: filter(t)(a)
@@ -9638,7 +9641,7 @@ end in rev(helper(([], l))) in let removeDuplicates = fun l -> let helper = fun 
       let seen' = h in let rest' = h :: filter(t)(h) in helper((seen', rest'))
 end in removeDuplicates(helper([])) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9651,7 +9654,7 @@ type expr =
   + Square(expr)
  in let sampleExpr1 = Thresh((VarX, VarY, VarX, Cube(Times((Sine(VarX), Cosine(Average((VarX, VarY)))))))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9664,7 +9667,7 @@ type expr =
   + Square(expr)
  in let sampleExpr1 = Thresh((VarX, VarY, VarX, Times((Sine(Mean((VarX, VarX, VarY))), Cosine(Average((Square(VarX), VarY))))))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9688,7 +9691,7 @@ type expr =
   | _ => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9715,7 +9718,7 @@ type expr =
   | _ => ""
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9728,7 +9731,7 @@ type expr =
   + TripMult(expr, expr, expr)
  in let buildExpn = fun b -> Expn(b) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9747,7 +9750,7 @@ type expr =
   | Thresh(x7, x8, x9, x0) => eval((buildThresh((x7, x8, x9, x0)), x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9783,7 +9786,7 @@ type expr =
       "(" ++ exprToString(x12) ++ "<0?" ++ exprToString(x13) ++ ":" ++ exprToString(x14) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9803,7 +9806,7 @@ type expr =
       "Thresh(" ++ exprToString(a) ++ "," ++ exprToString(b) ++ "," ++ exprToString(c) ++ "," ++ exprToString(d) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9814,7 +9817,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Sine(Average(VarX(VarY))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9825,7 +9828,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Average(VarX(VarY)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9848,7 +9851,7 @@ type expr =
       "((" ++ exprToString(x) ++ "%30.0)" ++ exprToString ++ "%" ++ exprToString(z) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9874,26 +9877,26 @@ type expr =
       "(" ++ exprToString(x) ++ ">" ++ exprToString(y) ++ "?" ++ exprToString(x) ++ ":" ++ exprToString(y) ++ ")"
 end in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = [] in let rest' = rev(t) in if mem(h)(rest') then rest == t else h :: seen'(helper)((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let rest' = rev(t) in let seen' = seen in ?
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t => let rest' = rev(t) in let seen' = seen in ?
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9914,7 +9917,7 @@ type expr =
       "(" ++ exprToString(ex1) ++ "<" ++ exprToString(ex2) ++ "?" ++ exprToString(ex3) ++ ":" ++ exprToString(ex4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9938,31 +9941,31 @@ type expr =
       eval((ex1, x, y)) *. cos(pi *. eval((ex2, x, y))) *. sin(pi *. eval((ex3, x, y)))
 end in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> if n < 1 then [] else x :: clone(x)(n - 1) in let padZero = fun l1 -> fun l2 -> let difference = length(l1) - length(l2) in ? in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> if n < 1 then [] else x :: clone(x)(n - 1) in let padZero = fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in if difference1 > 0 then clone(0)(difference1) :: l1 else ? in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> if n < 1 then [] else x :: clone(x)(n - 1) in let padZero = fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> if n < 1 then [] else x :: clone(x)(n - 1) in let padZero = fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
 |};
-  {|
+    {|
 let clone = fun x -> fun n -> if n < 1 then [] else x :: clone(x)(n - 1) in let padZero = fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> if n < 10 then [n] else [int_mod((n, 10))] in ?
 |};
-  {|
+    {|
 let listReverse = fun l -> case l 
   | [] => []
   | h :: t => [h]
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9980,7 +9983,7 @@ type expr =
   | Thresh => ?
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -9998,7 +10001,7 @@ type expr =
   | Thresh => ?
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10016,7 +10019,7 @@ type expr =
   | Thresh => ?
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10034,7 +10037,7 @@ type expr =
   | Thresh(e') => ?
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10052,14 +10055,14 @@ type expr =
   | Thresh(e') => ?
 end in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = mem(h)(t) in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10078,7 +10081,7 @@ type expr =
   | Times(e) => exprToString(e)("*")(exprToString)(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10096,7 +10099,7 @@ type expr =
   | Times(e) => exprToString(e)("*")(exprToString)(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10115,7 +10118,7 @@ type expr =
   | Times(e) => exprToString(e)("*")(exprToString)(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10135,7 +10138,7 @@ type expr =
       eval((e, x, y)) *. eval((e, x, y)) *. eval((e, x, y)) *. eval((e, x, y))(uncomment)(after)(implementing)(eval)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10157,7 +10160,7 @@ type expr =
   | Cotanget(e) => "(" ++ 1. /. "(" ++ tan ++ "("(exprToString)(e) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10179,7 +10182,7 @@ type expr =
   | Cotangent(e) => "(" ++ 1. /. "(" ++ tan ++ "("(exprToString)(e) ++ ")))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10201,7 +10204,7 @@ type expr =
   | Cotangent(e) => 1 ++ "/cot"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10223,7 +10226,7 @@ type expr =
   | Cotangent(e) => "contan" ++ exprToString(e)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10245,7 +10248,7 @@ type expr =
   | Cotangent(e) => "contan(" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10267,7 +10270,7 @@ type expr =
   | Cotangent(e) => "cot(" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10293,7 +10296,7 @@ type expr =
       "(" ++ exprToString(e) ++ "*(" ++ exprToString(e) ++ ")*" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10317,7 +10320,7 @@ type expr =
   | Volume(l, w, h) => eval((l, x, y)) *. eval((w, x, y)) *. eval((h, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10341,7 +10344,7 @@ type expr =
   | Volume(l, w, h) => eval((l, x, y)) *. eval((w, x, y)) *. eval((h, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10367,7 +10370,7 @@ type expr =
       "(" ++ exprToString(e) ++ "*(" ++ exprToString(e) ++ ")*" ++ exprToString(e) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10380,7 +10383,7 @@ type expr =
   + Volume(expr, expr, expr)
  in let buildSquares = fun e -> Squares(e) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10404,7 +10407,7 @@ type expr =
   | Volume(l, w, h) => eval((l, x, y)) *. eval((w, x, y)) *. eval((h, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10429,7 +10432,7 @@ type expr =
   | Substract(j, k) => "(" ++ exprToString(e) ++ "-" ++ exprToString(e)(")")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10442,7 +10445,7 @@ type expr =
   + Volume(expr, expr, expr)
  in let buildSubstract = fun (j, k) -> Volume((j, k)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10466,7 +10469,7 @@ type expr =
   | Substract(j, k) => eval((j, x, y)) -. eval((k, x, y))
 end in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -10491,20 +10494,20 @@ let pi = 4. *. atan(1.) in type expr =
       eval((expr1, x, y)) ** abs_float(eval((expr2, x, y)) +. eval((expr3, x, y)))
 end in let _ = eval((Power((SumInts(Var), VarY, VarX)), -0.999999, 0.99999)) in ?
 |};
-  {|
+    {|
 let padZero = fun l1 -> fun l2 -> if length(l1) == length(l2) then [(l1, l2)] else let numZeros = length(l1) - length(l2) in ? in ?
 |};
-  {|
+    {|
 let padZero = fun l1 -> fun l2 -> ? in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = mem(seen)(h) in let rest' = t in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10517,7 +10520,7 @@ type expr =
   | VarX(s) => printf("%s")(s)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10536,7 +10539,7 @@ type expr =
   | Thresh => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10555,7 +10558,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10574,7 +10577,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10585,7 +10588,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let test = VarX(x) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10604,7 +10607,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10623,7 +10626,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10642,7 +10645,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10661,7 +10664,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10680,7 +10683,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10699,7 +10702,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10718,7 +10721,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10737,7 +10740,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10756,7 +10759,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10775,7 +10778,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10794,7 +10797,7 @@ type expr =
   | Thresh(e) => "Thresh"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10810,7 +10813,7 @@ type expr =
   | (11, 18) => buildCosine(build((rand, depth - 1)))
 end else () in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10824,7 +10827,7 @@ type expr =
   | (11, 18) => buildCosine(build((rand, depth - 1)))
 end else () in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10848,7 +10851,7 @@ type expr =
       "(" ++ exprToString(e1) ++ "<" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":" ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10871,7 +10874,7 @@ type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10894,7 +10897,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr3 = Neg(AddDivide((VarX, VaryX, VarY))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10917,7 +10920,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr3 = Neg(Divadd((VarX, VaryX, VarY))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10930,7 +10933,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr3 = Half(Divadd((VarX, VaryX, VarY))) in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -10955,7 +10958,7 @@ let pi = 4. *. atan(1.) in type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in let _ = eval((Sine(Neg(Divadd((VarX, VarY, Vary)))), 0.8, 0.8)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -10978,7 +10981,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr3 = Neg(Divadd((VarX, VarY, VarY))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11004,7 +11007,7 @@ type expr =
       "(" ++ exprToString(e1) ++ "<" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":" ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11030,7 +11033,7 @@ type expr =
       "(" ++ exprToString(e1) ++ "<" ++ exprToString(e2) ++ "?" ++ exprToString(e3) ++ ":" ++ exprToString(e4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11041,7 +11044,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let _ = Thresh((buildSine(buildCosine(VarX)), VarX, VarY, VarZ)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11054,7 +11057,7 @@ type expr =
   + TowerNeg(expr, expr, expr)
  in let sampleExpr5 = TowerNeg((VarX, VarY, VarZ)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11085,7 +11088,7 @@ type expr =
   | Power(x, y) => ex(x) ++ "^" ++ ex(y)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11117,7 +11120,7 @@ type expr =
       if &&(x < 1.)(&&(x > -1.)(&&(y < 1.)(y > -1.))) then x *. y else eval((a, x, y)) ** eval((b, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11139,7 +11142,7 @@ type expr =
   | SqDist(x, y) => ex(x) ++ "^2+" ++ ex(y) ++ "^2"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11161,7 +11164,7 @@ type expr =
   | SqDist(a, b) => eval((a, x, y)) ** 2. + eval((b, x, y)) ** 2.
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11192,10 +11195,10 @@ type expr =
   | SqDist(a, b) => eval((a, x, y)) ** 2. +. eval((b, x, y)) ** 2.
 end in ?
 |};
-  {|
+    {|
 let wwhile = fun (f, b) -> let (b', c') = f(b) in if c' == true then wwhile((f, b')) else b' in let fixpoint = fun (f, b) -> wwhile((fun x -> (f(b), NOT(b == f(b))), b)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11215,7 +11218,7 @@ type expr =
       exprToString(v) ++ "<" ++ exprToString(v) ++ "?" ++ exprToString(v) ++ ":" ++ exprToString(v)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11236,7 +11239,7 @@ type expr =
       exprToString(v) ++ "<" ++ exprToString(v) ++ "?" ++ exprToString(v) ++ ":" ++ exprToString(v)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11258,7 +11261,7 @@ type expr =
   | Super(v, w) => eval((v, x, y)) + eval((w, x, y)) * eval((v, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11282,7 +11285,7 @@ type expr =
       "(" ++ exprToString(v) ++ "+" ++ exprToString(w) ++ ") *" ++ exprToString(v)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11301,7 +11304,7 @@ type expr =
   | Thresh(th) => printf("(%s<*%s?%s:%s)")(th)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11325,7 +11328,7 @@ type expr =
   | NatLog(nlog) => "ln(" ++ nlog ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11351,7 +11354,7 @@ type expr =
   | Arcsin(m4) => "asin(" ++ exprToString(m4) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11376,7 +11379,7 @@ type expr =
   | Arcsin(m4) => asin(eval((nlog, x, y)))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11411,7 +11414,7 @@ type expr =
   | Arcsin(m4) => eval((m4, x, y)) ** 4.
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11437,7 +11440,7 @@ type expr =
       "(" ++ exprToString(m4) ++ "/((1-" ++ exprToString(m4) ++ ")^2+" ++ exprToString(m4) ++ "^2))"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11450,7 +11453,7 @@ type expr =
   + Oscillate(expr)
  in let buildCirc = fun c1 -> Circ(c1) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11475,7 +11478,7 @@ type expr =
       let x = eval((m4, x, y)) in x /. sqrt(1. -. x ** 2. +. x ** 2.)
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11488,7 +11491,7 @@ type expr =
   + Oscillate(expr)
  in let buildCirc = fun (c1, c2) -> Circ((c1, c2)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11508,7 +11511,7 @@ type expr =
       "(" ++ exp(a) ++ "<" ++ exp(b) ++ "?" ++ exp(c) ++ ":" ++ exp(d) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11529,7 +11532,7 @@ type expr =
   | Tan(a) => "sin(pi*" ++ exp(a) ++ ")/(cos(pi*" ++ exp(a) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11540,7 +11543,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Thresh((VarX, VarY, VarX, Times((Tan(Sine(VarX)), Cosine(Average((VarX, VarY))))))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11562,7 +11565,7 @@ type expr =
   | Tan(a) => "sin(pi*" ++ exp(a) ++ ")/(cos(pi*" ++ exp(a) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11574,7 +11577,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Thresh((VarX, VarY, VarX, Times((Tan(Sine(VarX)), Cosine(Average((VarX, VarY))))))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11596,7 +11599,7 @@ type expr =
       if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11618,7 +11621,7 @@ type expr =
   | Tangent(a) => "sin(pi*" ++ exp(a) ++ ")/(cos(pi*" ++ exp(a) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11639,7 +11642,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Thresh((VarX, VarY, VarX, Times((Tan(Sine(VarX)), Cosine(Average((VarX, VarY))))))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11652,7 +11655,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Divide(Thresh((VarX, VarY, VarX, (Times(Sine(VarX)), Cosine(Average((VarX, VarY)))), VarY))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11665,7 +11668,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Thresh((VarX, VarY, VarX, (Times(Sine(VarX)), Cosine(Average((VarX, VarY)))), VarY)) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11688,7 +11691,7 @@ type expr =
       "sin(pi*" ++ exp(a) ++ ")"("*")("cos(pi*" ++ exp(b) ++ ")")("/2")
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11713,7 +11716,7 @@ type expr =
       "sin(pi*" ++ exp(a) ++ ")*cos(pi*" ++ exp(b) ++ ")/(" ++ exp(c) ++ ")"
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11738,20 +11741,20 @@ type expr =
       if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
 end in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> let numL = [] in if n / 10 > 0 then &&(int_mod((n, 10)) :: numL)(digitsOfInt(n) / 10) else numL in ?
 |};
-  {|
+    {|
 let digitsOfInt = fun n -> let sumL = [] in ? in ?
 |};
-  {|
+    {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
   | [] => seen
   | h :: t =>
       let seen' = if mem(h)(t) then true else false in let rest' = failwith("to be written") in helper((seen', rest'))
 end in rev(helper(([], l))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11762,7 +11765,7 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let exprToString = fun e -> [Thresh(?)] in ?
 |};
-  {|
+    {|
 let pi = 4. *. atan(1.) in type expr = 
   + VarX
   + VarY
@@ -11787,7 +11790,7 @@ let pi = 4. *. atan(1.) in type expr =
       if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
 end in let _ = eval(Smallest((VarX, VarY, Neg(VarX), 1, 2))) in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11809,7 +11812,7 @@ type expr =
   | Exp(e') => "e^" ++ exprToString(e')
 end in ?
 |};
-  {|
+    {|
 type expr = 
   + VarX
   + VarY
@@ -11820,4 +11823,4 @@ type expr =
   + Thresh(expr, expr, expr, expr)
  in let sampleExpr1 = Thresh((VarX, VarY, VarX, Times((Sine(Exp(VarX)), Cosine(Average((VarX, VarY))))))) in ?
 |};
-]
+  ]
