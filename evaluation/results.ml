@@ -48,16 +48,24 @@ let make_exp_info e =
     trace_length = IndetEvaluatorState.get_trace_length state;
   }
 
-let ill_typed =
-  ill_typed_annotated @ ill_typed_dynamic
+let ill_typed_annotated =
+  ill_typed_annotated
   |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
+  let ill_typed_dynamic =
+    ill_typed_dynamic
+    |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
+
+let ill_typed = ill_typed_annotated @ ill_typed_dynamic
 
 let well_typed =
   well_typed
   |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
 
+let all = well_typed @ ill_typed
+
 (* Corpus Statistics *)
 type corpus_stats = {
+  num_progs : int;
   avg_prog_size : float;
   std_prog_size : float;
   avg_trace_size : float;
@@ -66,6 +74,7 @@ type corpus_stats = {
 
 let aggregate_corpus_stats l =
   {
+    num_progs = List.length l;
     avg_prog_size =
       avg_0 (List.map (fun i -> Float.of_int (term_size (Exp i.term))) l);
     std_prog_size =
@@ -81,7 +90,7 @@ let slice_info l =
   |> List.map (fun { term; statics; _ } -> slice_info statics (Exp term))
   |> List.flatten
 
-let slice_info_all = ill_typed @ well_typed |> slice_info
+let slice_info_all = all |> slice_info
 
 (* Total slice size info
    Proportion of size of term + type. Type size approximates the checking context size *)
@@ -466,25 +475,37 @@ let aggregate_cast_slice_sizes ss =
 
 (* Search Procedure Proportions *)
 
-let dfs d =
-  run_with_limits (fun () ->
+exception Timeout
+
+let with_timeout ~secs f =
+  let _ =
+    Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise Timeout))
+  in
+  ignore (Unix.alarm secs);
+  try
+    let r = f () in
+    ignore (Unix.alarm 0);
+    r
+  with e ->
+    ignore (Unix.alarm 0);
+    raise e
+
+let dfs  ~secs d =
+with_timeout  ~secs (fun () ->
       DFS.once (SearchDFS.cast_errors ~env:Builtins.env_init d))
 
-let bfs d =
-  run_with_limits (fun () ->
+let bfs ~secs d =
+  with_timeout ~secs (fun () ->
       BFS.once (SearchBFS.cast_errors ~env:Builtins.env_init d))
 
-let idfs d =
-  run_with_limits (fun () ->
+let idfs ~secs d =
+  with_timeout ~secs (fun () ->
       IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d))
 
-let bdfs d =
-  run_with_limits (fun () ->
+let bdfs ~secs d =
+  with_timeout ~secs (fun () ->
       BDFS.once (SearchBDFS.cast_errors ~env:Builtins.env_init d))
 
-(* Cast size is of the type casted TO, not much reason to inspect the cast from given we have a concrete value to explain it *)
-(* TODO: cast depedence*)
-(* TODO: Code coverage when time outs occur *)
 type search_result =
   | Witness of {
       trace_size : int;
@@ -496,7 +517,6 @@ type search_result =
     }
   | NoWitness
   | TimeOut
-  | MemoryExceeded
 
 let eval_results search l =
   l
@@ -525,31 +545,16 @@ let eval_results search l =
                        result;
                    result;
                  }
-         with
-         | ExceededTimeLimit _ -> TimeOut
-         | ExceededMemoryLimit _ -> MemoryExceeded)
+         with Timeout -> TimeOut)
 
-let dfs_results = eval_results dfs
-let bfs_results = eval_results bfs
-let dfs_results = eval_results dfs
-let idfs_results = eval_results idfs
-let bdfs_results = eval_results bdfs
+let dfs_results ~secs = eval_results (dfs ~secs)
+let bfs_results ~secs = eval_results (bfs ~secs)
+let dfs_results ~secs = eval_results (dfs ~secs)
+let idfs_results ~secs = eval_results (idfs ~secs)
+let bdfs_results ~secs = eval_results (bdfs ~secs)
 
-exception Timeout
 
-let with_timeout ~secs f =
-  let _ =
-    Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise Timeout))
-  in
-  ignore (Unix.alarm secs);
-  try
-    let r = f () in
-    ignore (Unix.alarm 0);
-    r
-  with e ->
-    ignore (Unix.alarm 0);
-    raise e
-
+(* Performance Benchmarks *)
 open Bechamel
 
 let timedout = ref []
@@ -559,8 +564,8 @@ let test ~timeout ((impl_name, impl), (progn, program)) =
   Test.make ~name:test_name
     (Staged.stage (fun () ->
          try
-           with_timeout ~secs:timeout (fun () ->
-               Some (eval_results impl [ program ]))
+           (
+               Some (eval_results (impl ~secs: timeout) [ program ]))
          with Timeout ->
            timedout := ("suite/" ^ test_name) :: !timedout;
            None))
@@ -595,9 +600,9 @@ let tests =
   let impls = [ ("dfs", dfs); ("bfs", bfs); ("idfs", idfs); ("bdfs", bdfs) ] in
   let tests =
     List.concat_map
-      (fun v -> List.mapi (fun i e -> (v, (i, e))) [ List.nth ill_typed 1 ])
+      (fun v -> List.mapi (fun i e -> (v, (i, e))) ill_typed_annotated)
       impls
   in
-  List.map (test ~timeout:10) tests |> Test.make_grouped ~name:"suite"
+  List.map (test ~timeout:1) tests |> Test.make_grouped ~name:"suite"
 
 let () = benchmark tests
