@@ -40,9 +40,10 @@ let make_exp_info i e =
   let elaboration, _ = Elaborator.elaborate statics e in
   print_endline "Evaluating";
   let state, result =
-    with_timeout ~secs: 2 (fun () -> DFS.once
-      (SearchDFS.deterministic ~env:Builtins.env_init
-         ~state:IndetEvaluatorState.init e))
+    with_timeout ~secs:2 (fun () ->
+        DFS.once
+          (SearchDFS.deterministic ~env:Builtins.env_init
+             ~state:IndetEvaluatorState.init e))
     |> Option.get
   in
   print_endline "Finished";
