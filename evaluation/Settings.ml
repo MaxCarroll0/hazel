@@ -6,7 +6,7 @@ let settings = CoreSettings.on (* Note: search off *)
 (* I delete any in[a-Z,0-9] to temporarily get around this *)
 (* This must also be performed on the data, see ParseData module *)
 let replace_inC =
-  Re.replace ~all:true (Re.Perl.compile_pat "in([a-zA-Z0-9])") ~f:(fun g ->
+  Re.replace ~all:true (Re.Perl.compile_pat " in([a-zA-Z0-9])") ~f:(fun g ->
       Re.Group.get g 1)
 
 (* Add list functions. Note: no implementations given for these in default environment yet *)

@@ -6,7 +6,7 @@ module Fresh = IdTagged.FreshGrammar
 (* I delete any in[a-Z,0-9] to temporarily get around this *)
 (* This must also be performed on the Ctx, see Settings.ctx *)
 let replace_inC =
-  Re.replace ~all:true (Re.Perl.compile_pat "in([a-zA-Z0-9])") ~f:(fun g ->
+  Re.replace ~all:true (Re.Perl.compile_pat " in([a-zA-Z0-9])") ~f:(fun g ->
       Re.Group.get g 1)
 
 let add_builtins e =
@@ -70,10 +70,20 @@ let make_term_parse s =
 let well_typed = []
 (* Data.well_typed |> List.map (fun s -> try Some (make_term_parse s) with _ -> None) *)
 
-let ill_typed_dynamic =
-  Data.ill_typed_dynamic
-  |> List.filter_map (fun s -> try Some (make_term_parse s) with _ -> None)
-
 let ill_typed_annotated =
-  Data.ill_typed_annotated
+  Data.ill_typed_annotated |> fun x ->
+  (print_endline "Started parsing ill typed annotated";
+   x)
   |> List.filter_map (fun s -> try Some (make_term_parse s) with _ -> None)
+  |> fun x ->
+  print_endline "Finished parsing ill typed dynamic";
+  x
+
+let ill_typed_dynamic =
+  Data.ill_typed_dynamic |> fun x ->
+  (print_endline "Started parsing ill typed dynamic";
+   x)
+  |> List.filter_map (fun s -> try Some (make_term_parse s) with _ -> None)
+  |> fun x ->
+  print_endline "Finished parsing ill typed dynamic";
+  x

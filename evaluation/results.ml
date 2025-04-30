@@ -666,7 +666,7 @@ let benchmark test =
   Fmt.pr "%a@.%!"
     (Bechamel_csv.pp ~timedout:!timedout ~print_headings:true)
     results
-;;
+
 let tests =
   let impls = [ ("dfs", dfs); ("bfs", bfs); ("idfs", idfs); ("bdfs", bdfs) ] in
   let tests =
@@ -675,7 +675,7 @@ let tests =
       impls
   in
   List.map (test ~timeout:1) tests |> Test.make_grouped ~name:"suite"
-;;
+
 (* Print results *)
 let print_corpus_stats cs =
   Printf.printf "Corpus Stats:\n";
