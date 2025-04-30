@@ -51,6 +51,7 @@ let make_exp_info e =
 let ill_typed_annotated =
   ill_typed_annotated
   |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
+  |> List.filteri (fun i _ -> i < 25)
 
 let ill_typed_dynamic =
   ill_typed_dynamic
@@ -538,15 +539,87 @@ let eval_results search l =
                              [] (* IndetEvaluatorState.get_ids_covered *)))
                      /. Float.of_int
                           (List.length (term_ids (Exp s.elaboration)));
-                   cast_size =
-                     (function
-                      | { term = FailedCast (_, _, t); _ } -> slice_size t
-                      | _ -> 0
-                       : Exp.t -> int)
-                       result;
+                   cast_size = cast_error_size result;
                    result;
                  }
          with Timeout -> TimeOut)
+  |> List.mapi (fun i -> function
+       | TimeOut ->
+           Printf.printf "Prog %i: TIMED OUT%!\n" i;
+           TimeOut
+       | NoWitness ->
+           Printf.printf "Prog %i: Proved No Witness%!\n" i;
+           NoWitness
+       | Witness _ as w ->
+           Printf.printf "Prog %i: Found Witness%!\n" i;
+           w)
+
+type aggregate_search_result = {
+  witness_proportion : float;
+  nowitness_proportion : float;
+  timeout_proportion : float;
+  avg_trace_length : float;
+  std_trace_length : float;
+  avg_witness_size : float;
+  std_witness_size : float;
+  avg_cast_size : float;
+  std_cast_size : float;
+  witness_trace_correlation : float;
+}
+
+let aggregate_search_results rs =
+  let witnesses =
+    rs
+    |> List.filter_map (function
+         | Witness { trace_size; witness_size; cast_size; _ } ->
+             Some (trace_size, witness_size, cast_size)
+         | _ -> None)
+  in
+  let num_nowitness =
+    rs |> List.filter (function NoWitness -> true | _ -> false) |> List.length
+  in
+  let num_timeout =
+    rs |> List.filter (function TimeOut -> true | _ -> false) |> List.length
+  in
+  {
+    witness_proportion =
+      Float.of_int (List.length witnesses)
+      /. Float.of_int (num_nowitness + num_timeout);
+    nowitness_proportion =
+      Float.of_int num_nowitness
+      /. Float.of_int (List.length witnesses + num_timeout);
+    timeout_proportion =
+      Float.of_int num_timeout
+      /. Float.of_int (num_nowitness + List.length witnesses);
+    avg_trace_length =
+      avg_0
+        (witnesses
+        |> List.map (fun (trace_length, _, _) -> Float.of_int trace_length));
+    std_trace_length =
+      std_0
+        (witnesses
+        |> List.map (fun (trace_length, _, _) -> Float.of_int trace_length));
+    avg_witness_size =
+      avg_0
+        (witnesses
+        |> List.map (fun (_, witness_size, _) -> Float.of_int witness_size));
+    std_witness_size =
+      std_0
+        (witnesses
+        |> List.map (fun (_, witness_size, _) -> Float.of_int witness_size));
+    avg_cast_size =
+      avg_0
+        (witnesses |> List.map (fun (_, _, cast_size) -> Float.of_int cast_size));
+    std_cast_size =
+      std_0
+        (witnesses |> List.map (fun (_, _, cast_size) -> Float.of_int cast_size));
+    witness_trace_correlation =
+      pearson_correlation_0
+        (witnesses
+        |> List.map (fun (_, witness_size, _) -> Float.of_int witness_size))
+        (witnesses
+        |> List.map (fun (trace_length, _, _) -> Float.of_int trace_length));
+  }
 
 let dfs_results ~secs = eval_results (dfs ~secs)
 let bfs_results ~secs = eval_results (bfs ~secs)
@@ -593,7 +666,7 @@ let benchmark test =
   Fmt.pr "%a@.%!"
     (Bechamel_csv.pp ~timedout:!timedout ~print_headings:true)
     results
-
+;;
 let tests =
   let impls = [ ("dfs", dfs); ("bfs", bfs); ("idfs", idfs); ("bdfs", bdfs) ] in
   let tests =
@@ -602,5 +675,173 @@ let tests =
       impls
   in
   List.map (test ~timeout:1) tests |> Test.make_grouped ~name:"suite"
+;;
+(* Print results *)
+let print_corpus_stats cs =
+  Printf.printf "Corpus Stats:\n";
+  Printf.printf
+    "  num_progs: %d\n\
+    \  avg_prog_size: %.2f\n\
+    \  std_prog_size: %.2f\n\
+    \  avg_trace_size: %.2f\n\
+    \  std_trace_size: %.2f\n"
+    cs.num_progs cs.avg_prog_size cs.std_prog_size cs.avg_trace_size
+    cs.std_trace_size
 
-let () = benchmark tests
+let print_aggregate_slice_size (agg : aggregate_slice_size) =
+  Printf.printf "Aggregate Slice Size:\n";
+  Printf.printf
+    "  avg_prog_size: %.2f\n\
+    \  std_prog_size: %.2f\n\
+    \  avg_slice_size: %.2f\n\
+    \  std_slice_size: %.2f\n\
+     w_avg_proportion_prog: %.2f\n\
+    \  w_std_proportion_prog: %.2f\n\
+    \  w_avg_ratio_typ: %.2f\n\
+    \  w_std_ratio_typ: %.2f\n"
+    agg.avg_prog_size agg.std_prog_size agg.avg_slice_size agg.std_slice_size
+    agg.w_avg_proportion_prog agg.w_std_proportion_prog agg.w_avg_ratio_typ
+    agg.w_std_ratio_typ
+
+let print_aggregate_cast_slice_size agg =
+  Printf.printf "Aggregate Cast Slice Size:\n";
+  Printf.printf
+    "  avg_prog_size: %.2f\n\
+    \  std_prog_size: %.2f\n\
+    \  avg_term_size: %.2f\n\
+    \  std_term_size: %.2f\n\
+     avg_type_size: %.2f\n\
+    \  std_type_size: %.2f\n\
+    \  avg_slice_from_size: %.2f\n\
+    \  std_slice_from_size: %.2f\n\
+     avg_slice_to_size: %.2f\n\
+    \  std_slice_to_size: %.2f\n\
+    \  w_avg_proportion_prog: %.2f\n\
+    \  w_std_proportion_prog: %.2f\n\
+     w_avg_ratio_typ: %.2f\n\
+    \  w_std_ratio_typ: %.2f\n"
+    agg.avg_prog_size agg.std_prog_size agg.avg_term_size agg.std_term_size
+    agg.avg_type_size agg.std_type_size agg.avg_slice_from_size
+    agg.std_slice_from_size agg.avg_slice_to_size agg.std_slice_to_size
+    agg.w_avg_proportion_prog agg.w_std_proportion_prog agg.w_avg_ratio_typ
+    agg.w_std_ratio_typ
+
+let print_aggregate_search_result res =
+  Printf.printf "Aggregate Search Results:\n";
+  Printf.printf
+    "  witness_proportion: %.2f\n\
+    \  nowitness_proportion: %.2f\n\
+    \  timeout_proportion: %.2f\n\
+     avg_trace_length: %.2f\n\
+    \  std_trace_length: %.2f\n\
+    \  avg_witness_size: %.2f\n\
+    \  std_witness_size: %.2f\n\
+     avg_cast_size: %.2f\n\
+    \  std_cast_size: %.2f\n\
+    \  witness_trace_correlation: %.2f\n"
+    res.witness_proportion res.nowitness_proportion res.timeout_proportion
+    res.avg_trace_length res.std_trace_length res.avg_witness_size
+    res.std_witness_size res.avg_cast_size res.std_cast_size
+    res.witness_trace_correlation
+
+let print_aggregate_slice_size_expectations_error (agg_errors, agg_slices) =
+  Printf.printf "Error Slice Aggregate:\n";
+  Printf.printf "  Error Slice Size:\n";
+  print_aggregate_slice_size agg_errors;
+  Printf.printf "  Combined Slice Aggregate:\n";
+  print_aggregate_slice_size agg_slices
+
+let print_results corpus =
+  print_corpus_stats (aggregate_corpus_stats corpus);
+  print_endline "TYPE SLICES";
+  print_endline "Type Slice Sizes: OK";
+  print_aggregate_slice_size
+    (aggregate_slice_sizes (slice_sizes_ok (slice_info corpus)));
+  print_endline "Type Slice Sizes: Inconsistent Expectations";
+  print_aggregate_slice_size_expectations_error
+    (aggregate_error_slice_sizes
+       (slice_sizes_incon_expectations (slice_info corpus)));
+  print_endline "Type Slice Sizes: Inconsistent Branches";
+  print_aggregate_slice_size_expectations_error
+    (aggregate_error_slice_sizes
+       (slice_sizes_incon_branches (slice_info corpus)));
+  print_endline "Type Slice Sizes: Inconsistent ALL";
+  print_aggregate_slice_size_expectations_error
+    (aggregate_error_slice_sizes
+       (slice_sizes_incon_expectations (slice_info corpus)
+       @ slice_sizes_incon_branches (slice_info corpus)));
+  print_endline "Type Slice Sizes: ALL";
+  print_aggregate_slice_size
+    (aggregate_slice_sizes (slice_sizes_all (slice_info corpus)));
+
+  print_endline "CAST SLICES:";
+  print_endline "Cast Slice Sizes: Elaborations: OK";
+  print_aggregate_cast_slice_size
+    (aggregate_cast_slice_sizes
+       (cast_slice_sizes_ok (cast_slice_info_elaborated corpus)));
+  print_endline "Cast Slice  Sizes: Elaborations: Pats";
+  print_aggregate_cast_slice_size
+    (aggregate_cast_slice_sizes
+       (cast_slice_sizes_pats (cast_slice_info_elaborated corpus)));
+  print_endline "Cast Slice  Sizes: Elaborations: ERRORS";
+  print_aggregate_cast_slice_size
+    (aggregate_cast_slice_sizes
+       (cast_slice_sizes_errors (cast_slice_info_elaborated corpus)));
+  print_endline "Cast Slice  Sizes: Elaborations: ALL";
+  print_aggregate_cast_slice_size
+    (aggregate_cast_slice_sizes
+       (cast_slice_sizes_all (cast_slice_info_elaborated corpus)));
+
+  print_endline "Cast Slice Sizes: Results: OK";
+  print_aggregate_cast_slice_size
+    (aggregate_cast_slice_sizes
+       (cast_slice_sizes_ok (cast_slice_info_results corpus)));
+  print_endline "Cast Slice  Sizes: Results: Pats";
+  print_aggregate_cast_slice_size
+    (aggregate_cast_slice_sizes
+       (cast_slice_sizes_pats (cast_slice_info_results corpus)));
+  print_endline "Cast Slice  Sizes: Results: ERRORS";
+  print_aggregate_cast_slice_size
+    (aggregate_cast_slice_sizes
+       (cast_slice_sizes_errors (cast_slice_info_results corpus)));
+  print_endline "Cast Slice  Sizes: Results: ALL";
+  print_aggregate_cast_slice_size
+    (aggregate_cast_slice_sizes
+       (cast_slice_sizes_all (cast_slice_info_results corpus)))
+
+let () =
+  print_endline "WELL TYPED PROGRAMS: ";
+  print_results well_typed;
+  print_endline "";
+  print_endline "UNANNOTATED ILL TYPED PROGRAMS: ";
+  print_results ill_typed_dynamic;
+  print_endline "";
+  print_endline "ANNOTATED ILL TYPED PROGRAMS: ";
+  print_results ill_typed_annotated;
+  print_endline "";
+  print_endline "ALL ILL TYPED PROGRAMS: ";
+  print_results ill_typed;
+  print_endline "";
+  print_endline "ALL PROGRAMS: ";
+  print_results all;
+  print_endline "";
+  print_endline "";
+
+  print_endline "WITNESS RESULTS:";
+  print_endline "DFS";
+  print_aggregate_search_result
+    (aggregate_search_results (dfs_results ~secs:10 ill_typed_annotated));
+  print_endline "Bounded DFS";
+  print_aggregate_search_result
+    (aggregate_search_results (bdfs_results ~secs:10 ill_typed_annotated));
+  print_endline "Interleaved DFS";
+  print_aggregate_search_result
+    (aggregate_search_results (idfs_results ~secs:10 ill_typed_annotated));
+  print_endline "BFS";
+  print_aggregate_search_result
+    (aggregate_search_results (bfs_results ~secs:10 ill_typed_annotated));
+  print_endline "";
+  print_endline "";
+
+  print_endline "BENCHMARKS: ";
+  benchmark tests

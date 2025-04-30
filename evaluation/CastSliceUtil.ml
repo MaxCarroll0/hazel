@@ -58,3 +58,18 @@ let cast_slice_info prog =
         []
   in
   cast_slice_info prog
+
+(* Hacky way to get the cast error size in most cases *)
+let cast_error_size e =
+  let size = ref 0 in
+  let _ =
+    Exp.map_term
+      ~f_exp:(fun cont e ->
+        match Exp.term_of e with
+        | FailedCast (_, _, t) ->
+            if !size = 0 then size := SlicingUtil.slice_size t;
+            e
+        | _ -> cont e)
+      e
+  in
+  !size

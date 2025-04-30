@@ -1,0 +1,1 @@
+./results.exe | tee results.file

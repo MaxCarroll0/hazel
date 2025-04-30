@@ -43,3 +43,21 @@ let w_std_0 l w =
         (x :: xs, w :: ws)
   in
   filter (l, w) |> fun (l, w) -> w_std l w
+
+let pearson_correlation xs ys =
+  let avg_x = avg xs in
+  let avg_y = avg ys in
+  let covariance, var_x, var_y =
+    List.fold_left2
+      (fun (cov, vx, vy) x y ->
+        let dx = x -. avg_x in
+        let dy = y -. avg_y in
+        (cov +. (dx *. dy), vx +. (dx *. dx), vy +. (dy *. dy)))
+      (0.0, 0.0, 0.0) xs ys
+  in
+  if var_x = 0.0 || var_y = 0.0 then 0.0
+    (* If no variation then correlation undefined *)
+  else covariance /. sqrt (var_x *. var_y)
+
+let pearson_correlation_0 xs ys =
+  pearson_correlation (List.filter (( > ) 0.) xs) (List.filter (( > ) 0.) ys)

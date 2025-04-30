@@ -1,0 +1,9 @@
+lib: [
+  "_build/install/default/lib/hazel/META"
+  "_build/install/default/lib/hazel/dune-package"
+  "_build/install/default/lib/hazel/opam"
+]
+doc: [
+  "_build/install/default/doc/hazel/LICENSE"
+  "_build/install/default/doc/hazel/README.md"
+]
