@@ -7,19 +7,34 @@ open Haz3lcore
 
 (* Performance Benchmarks *)
 
+
+(* Limiting the running limit to ~60s and 1GB using garbage collector alarms *)
+open ResourceLimits
+module DFS = Nondeterminism.DFS
+module SearchDFS = IndetEvaluator.Make (DFS)
+module IDFS = Nondeterminism.IDFS
+module SearchIDFS = IndetEvaluator.Make (IDFS)
+module BFS = Nondeterminism.BFS
+module SearchBFS = IndetEvaluator.Make (BFS)
+
+(* Bounded depth increments of 5 *)
+module BDFS =
+  Nondeterminism.Bounded ((val Nondeterminism.const_incr_config ~init:5 ~inc:5))
+module SearchBDFS = IndetEvaluator.Make (BDFS)
+
 (* Basic info relevant to slicing *)
 type expression_info = {
   term : Exp.t;
   statics : Statics.Map.t;
   elaboration : Exp.t;
   result : DHExp.t; (* Deterministic eval result *)
+  trace_length : int (* Deterministic trace length *)
 }
-
 let make_exp_info e =
   let statics = Statics.mk Settings.settings Settings.ctx e in
   let elaboration, _ = Elaborator.elaborate statics e in
-  let result, _ = Evaluator.evaluate ~env:Builtins.env_init e in
-  { term = e; statics; elaboration; result }
+  let state, result = DFS.once(SearchDFS.deterministic ~env:Builtins.env_init ~state: IndetEvaluatorState.init e) |>Option.get in
+  { term = e; statics; elaboration; result; trace_length= IndetEvaluatorState.get_trace_length(state)}
 
 let ill_typed =
   ill_typed_annotated @ ill_typed_dynamic
@@ -380,20 +395,6 @@ let aggregate_cast_slice_sizes ss =
   }
 
 (* Search Procedure Proportions *)
-(* Limiting the running limit to ~60s and 1GB using garbage collector alarms *)
-open ResourceLimits
-module DFS = Nondeterminism.DFS
-module SearchDFS = IndetEvaluator.Make (DFS)
-module IDFS = Nondeterminism.IDFS
-module SearchIDFS = IndetEvaluator.Make (IDFS)
-module BFS = Nondeterminism.BFS
-module SearchBFS = IndetEvaluator.Make (BFS)
-
-(* Bounded depth increments of 5 *)
-module BDFS =
-  Nondeterminism.Bounded ((val Nondeterminism.const_incr_config ~init:5 ~inc:5))
-
-module SearchBDFS = IndetEvaluator.Make (BDFS)
 
 let dfs d =
   run_with_limits (fun () ->
