@@ -1,24 +1,14 @@
-exception ExceededMemoryLimit of int
-exception ExceededTimeLimit of float
+exception Timeout
 
-let mem_limit = 1000000000
-let time_limit = 60.
-
-(* Note: only triggers alarm on a major garbage collection, so actual time & memory used will differ *)
-let run_with_limits f =
-  let alarm_mem =
-    Gc.create_alarm (fun () ->
-        let mem = Gc.(quick_stat ()).heap_words in
-        if mem > mem_limit / (Sys.word_size / 8) then
-          raise (ExceededMemoryLimit mem_limit))
+let with_timeout ~secs f =
+  let _ =
+    Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise Timeout))
   in
-  let start_time = Sys.time () in
-  let alarm_time =
-    Gc.create_alarm (fun () ->
-        if Sys.time () -. start_time > time_limit then
-          raise (ExceededTimeLimit time_limit))
-  in
-  Fun.protect f ~finally:(fun () ->
-      Gc.delete_alarm alarm_time;
-      Gc.delete_alarm alarm_mem;
-      Gc.compact ())
+  ignore (Unix.alarm secs);
+  try
+    let r = f () in
+    ignore (Unix.alarm 0);
+    r
+  with e ->
+    ignore (Unix.alarm 0);
+    raise e

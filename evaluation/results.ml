@@ -32,15 +32,20 @@ type expression_info = {
   trace_length : int; (* Deterministic trace length *)
 }
 
-let make_exp_info e =
+let make_exp_info i e =
+  print_endline ("Calculator info for prog" ^ Int.to_string i);
+  print_endline "Typing";
   let statics = Statics.mk Settings.settings Settings.ctx e in
+  print_endline "Elaborating";
   let elaboration, _ = Elaborator.elaborate statics e in
+  print_endline "Evaluating";
   let state, result =
     DFS.once
       (SearchDFS.deterministic ~env:Builtins.env_init
          ~state:IndetEvaluatorState.init e)
     |> Option.get
   in
+  print_endline "Finished";
   {
     term = e;
     statics;
@@ -51,18 +56,20 @@ let make_exp_info e =
 
 let ill_typed_annotated =
   ill_typed_annotated
-  |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
-  |> List.filteri (fun i _ -> i < 25)
+  |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
+  |> List.filter_map (fun x -> x)
 
 let ill_typed_dynamic =
   ill_typed_dynamic
-  |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
+  |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
+  |> List.filter_map (fun x -> x)
 
 let ill_typed = ill_typed_annotated @ ill_typed_dynamic
 
 let well_typed =
   well_typed
-  |> List.filter_map (fun e -> try Some (make_exp_info e) with _ -> None)
+  |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
+  |> List.filter_map (fun x -> x)
 
 let all = well_typed @ ill_typed
 
@@ -90,7 +97,7 @@ let aggregate_corpus_stats l =
 (* Type Slice Size Stats*)
 let slice_info l =
   l
-  |> List.map (fun { term; statics; _ } -> slice_info statics (Exp term))
+  |> List.mapi (fun i { term; statics; _ } -> slice_info statics (Exp term))
   |> List.flatten
 
 let slice_info_all = all |> slice_info
@@ -477,21 +484,7 @@ let aggregate_cast_slice_sizes ss =
   }
 
 (* Search Procedure Proportions *)
-
-exception Timeout
-
-let with_timeout ~secs f =
-  let _ =
-    Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise Timeout))
-  in
-  ignore (Unix.alarm secs);
-  try
-    let r = f () in
-    ignore (Unix.alarm 0);
-    r
-  with e ->
-    ignore (Unix.alarm 0);
-    raise e
+open ResourceLimits
 
 let dfs ~secs _ d =
   with_timeout ~secs (fun () ->
