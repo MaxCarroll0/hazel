@@ -543,16 +543,6 @@ let eval_results search l =
                    result;
                  }
          with Timeout -> TimeOut)
-  |> List.mapi (fun i -> function
-       | TimeOut ->
-           Printf.printf "Prog %i: TIMED OUT%!\n" i;
-           TimeOut
-       | NoWitness ->
-           Printf.printf "Prog %i: Proved No Witness%!\n" i;
-           NoWitness
-       | Witness _ as w ->
-           Printf.printf "Prog %i: Found Witness%!\n" i;
-           w)
 
 type aggregate_search_result = {
   witness_proportion : float;
@@ -621,11 +611,50 @@ let aggregate_search_results rs =
         |> List.map (fun (trace_length, _, _) -> Float.of_int trace_length));
   }
 
-let dfs_results ~secs = eval_results (dfs ~secs)
-let bfs_results ~secs = eval_results (bfs ~secs)
-let dfs_results ~secs = eval_results (dfs ~secs)
-let idfs_results ~secs = eval_results (idfs ~secs)
-let bdfs_results ~secs = eval_results (bdfs ~secs)
+let dfs_results ~secs l = eval_results (dfs ~secs) l
+|> List.mapi (fun i -> function
+     | TimeOut ->
+         Printf.printf "Prog %i: TIMED OUT%!\n" i;
+         TimeOut
+     | NoWitness ->
+         Printf.printf "Prog %i: Proved No Witness%!\n" i;
+         NoWitness
+     | Witness _ as w ->
+         Printf.printf "Prog %i: Found Witness%!\n" i;
+         w)
+let bfs_results ~secs l = eval_results (bfs ~secs) l 
+|> List.mapi (fun i -> function
+     | TimeOut ->
+         Printf.printf "Prog %i: TIMED OUT%!\n" i;
+         TimeOut
+     | NoWitness ->
+         Printf.printf "Prog %i: Proved No Witness%!\n" i;
+         NoWitness
+     | Witness _ as w ->
+         Printf.printf "Prog %i: Found Witness%!\n" i;
+         w)
+let idfs_results ~secs l = eval_results (idfs ~secs) l
+|> List.mapi (fun i -> function
+     | TimeOut ->
+         Printf.printf "Prog %i: TIMED OUT%!\n" i;
+         TimeOut
+     | NoWitness ->
+         Printf.printf "Prog %i: Proved No Witness%!\n" i;
+         NoWitness
+     | Witness _ as w ->
+         Printf.printf "Prog %i: Found Witness%!\n" i;
+         w)
+let bdfs_results ~secs l = eval_results (bdfs ~secs) l
+|> List.mapi (fun i -> function
+     | TimeOut ->
+         Printf.printf "Prog %i: TIMED OUT%!\n" i;
+         TimeOut
+     | NoWitness ->
+         Printf.printf "Prog %i: Proved No Witness%!\n" i;
+         NoWitness
+     | Witness _ as w ->
+         Printf.printf "Prog %i: Found Witness%!\n" i;
+         w)
 
 (* Performance Benchmarks *)
 open Bechamel
