@@ -264,24 +264,29 @@ module Make =
                }
              )
           |> ListUtil.remove_duplicates(TypSlice.fast_equal)
-          // Such a scrutinee only occurs when it is of the dynamic type, so cast ? -> t
-          |> List.map(t =>
-               return((
-                 0,
-                 subst_term(
-                   Cast(
-                     Cast(d', TypSlice.hole([]) |> TypSlice.fresh, t)
-                     |> Exp.fresh,
-                     t,
-                     TypSlice.hole([]) |> TypSlice.fresh,
-                   )
-                   |> Exp.fresh,
-                   Exp.rep_id(d'),
-                   d,
+          |> List.map(t => {
+               let sbst =
+                 Cast(d', TypSlice.hole([]) |> TypSlice.fresh, t)
+                 |> Exp.fresh;
+               guard(
+                 !(
+                   sbst
+                   |> Casts.transition_multiple
+                   |> CastErrorChecker.contains_error
                  ),
-               ))
-             )
-          |> List.fold_left(S.choice, fail)
+               )
+               >>= (
+                 () =>
+                   return(
+                  
+                     Cast(sbst, t, TypSlice.hole([]) |> TypSlice.fresh)
+                     |> Exp.fresh,
+                   )
+               );
+             })
+          |> S.concat
+          // Such a scrutinee only occurs when it is of the dynamic type, so cast ? -> t
+          >>= (d'' => return((0, subst_term(d'', Exp.rep_id(d'), d))))
       )
     );
 };
