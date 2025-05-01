@@ -60,6 +60,23 @@ let ill_typed_annotated =
   |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
   |> List.filter_map (fun x -> x)
 
+(* Filter programs which don't actually have inconsistent expectations or redundant branches *)
+let ill_typed_annotated_search =
+  ill_typed_annotated
+  |> List.filter (fun e ->
+         Statics.Map.errors e.statics
+         |> List.exists (fun (_, err) ->
+                match err with
+                | Info.Exp
+                    ( InexhaustiveMatch _ | BadPartialAp _
+                    | Common (Inconsistent _ | NoType (BadTrivAp _)) ) ->
+                    true
+                | Info.Pat
+                    ( ExpectedConstructor _
+                    | Common (Inconsistent _ | NoType (BadTrivAp _)) ) ->
+                    true
+                | _ -> false))
+
 let ill_typed_dynamic =
   ill_typed_dynamic
   |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
@@ -508,36 +525,56 @@ let dfs_print ~secs i d =
   try
     with_timeout ~secs (fun () ->
         DFS.once (SearchDFS.cast_errors ~env:Builtins.env_init d))
-  with Timeout ->
-    print_endline "Timed Out";
-    raise Timeout
+  with
+  | Timeout ->
+      print_endline "Timed Out";
+      raise Timeout
+  | e ->
+      print_endline ("Exception: " ^ Printexc.exn_slot_name e);
+      print_endline ("In: " ^ Exp.show d);
+      raise Timeout
 
 let bfs_print ~secs i d =
   Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
   try
     with_timeout ~secs (fun () ->
         BFS.once (SearchBFS.cast_errors ~env:Builtins.env_init d))
-  with Timeout ->
-    print_endline "Timed Out";
-    raise Timeout
+  with
+  | Timeout ->
+      print_endline "Timed Out";
+      raise Timeout
+  | e ->
+      print_endline ("Exception: " ^ Printexc.exn_slot_name e);
+      print_endline ("In: " ^ Exp.show d);
+      raise Timeout
 
 let idfs_print ~secs i d =
   Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
   try
     with_timeout ~secs (fun () ->
         IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d))
-  with Timeout ->
-    print_endline "Timed Out";
-    raise Timeout
+  with
+  | Timeout ->
+      print_endline "Timed Out";
+      raise Timeout
+  | e ->
+      print_endline ("Exception: " ^ Printexc.exn_slot_name e);
+      print_endline ("In: " ^ Exp.show d);
+      raise Timeout
 
 let bdfs_print ~secs i d =
   Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
   try
     with_timeout ~secs (fun () ->
         BDFS.once (SearchBDFS.cast_errors ~env:Builtins.env_init d))
-  with Timeout ->
-    print_endline "Timed Out";
-    raise Timeout
+  with
+  | Timeout ->
+      print_endline "Timed Out";
+      raise Timeout
+  | e ->
+      print_endline ("Exception: " ^ Printexc.exn_slot_name e);
+      print_endline ("In: " ^ Exp.show d);
+      raise Timeout
 
 type search_result =
   | Witness of {
