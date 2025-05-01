@@ -923,7 +923,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let buildThresh : ? -> expr = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes : ? -> expr = fun (e1, e2) -> Times((e1, e2)) in let buildHelper : (? -> Int) -> Int -> Int -> expr = fun rand -> fun max_depth -> fun curr_depth -> ? in ?
+ in let evall : forall d -> ? -> d = typfun d -> fun (e, x, y) -> failwith("to be written") in let _ = evall@<d>((Sine(Cos(Varx)), 0.5, -0.5)) in ?
 |};
     {|
 type expr = 
@@ -934,7 +934,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval : forall d -> ? -> d = typfun d -> fun (e, x, y) -> failwith("to be written") in let _ = eval@<d>((Sine(Cos(Varx)), 0.5, -0.5)) in ?
+ in let evall : forall d -> ? -> d = typfun d -> fun (e, x, y) -> failwith("to be written") in let _ = evall@<d>((Sine(Varx), 0.5, -0.5)) in ?
 |};
     {|
 type expr = 
@@ -945,23 +945,12 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval : forall d -> ? -> d = typfun d -> fun (e, x, y) -> failwith("to be written") in let _ = eval@<d>((Sine(Varx), 0.5, -0.5)) in ?
-|};
-    {|
-type expr = 
-  + VarX
-  + VarY
-  + Sine(expr)
-  + Cosine(expr)
-  + Average(expr, expr)
-  + Times(expr, expr)
-  + Thresh(expr, expr, expr, expr)
- in let buildCosine : expr -> expr = fun e -> Cosine(e) in let eval : forall a -> forall b -> ? -> a -> b = typfun a -> typfun b -> fun (e, x, y) -> let evalhelper = fun e -> fun x -> fun y -> case e 
+ in let buildCosine : expr -> expr = fun e -> Cosine(e) in let evall : forall a -> forall b -> ? -> a -> b = typfun a -> typfun b -> fun (e, x, y) -> let evallhelper = fun e -> fun x -> fun y -> case e 
   | VarX => x
   | VarY => y
-  | Sine(p1) => evalhelper(Sine)(p1)(x)(y)
-  | Cosine(p1) => evalhelper(buildCosine)(p1)(x)(y)
-end in evalhelper(e)(x)(y) in ?
+  | Sine(p1) => evallhelper(Sine)(p1)(x)(y)
+  | Cosine(p1) => evallhelper(buildCosine)(p1)(x)(y)
+end in evallhelper(e)(x)(y) in ?
 |};
     {|
 let digitsOfInt : Int -> unit = fun n -> ? in ?
@@ -1156,12 +1145,6 @@ type expr =
   + Magic(expr)
   + Weird(expr, expr, expr)
  in let buildWeird : forall e -> ? -> e = typfun e -> fun (e1, e2, e3, e4) -> Weird((e1, e2, e3, e4)) in ?
-|};
-    {|
-let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else if int_mod((n - 1, 10)) == 0 then 1 :: digitsOfInt(n - 1 / 10) else if int_mod((n - 2, 10)) == 0 then 1 :: digitsOfInt(n - 2 / 10) else if int_mod((n - 3, 10)) == 0 then 1 :: digitsOfInt(n - 3 / 10) else if int_mod((n - 4, 10)) == 0 then 1 :: digitsOfInt(n - 4 / 10) else if int_mod((n - 5, 10)) == 0 then 1 :: digitsOfInt(n - 5 / 10) else if int_mod((n - 6, 10)) == 0 then 1 :: digitsOfInt(n - 6 / 10) else if int_mod((n - 7, 10)) == 0 then 1 :: digitsOfInt(n - 7 / 10) else if int_mod((n - 8, 10)) == 0 then 1 :: digitsOfInt(n - 8 / 10) else ? in ?
-|};
-    {|
-let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else if int_mod((n - 1, 10)) == 0 then 1 :: digitsOfInt(n - 1 / 10) else if int_mod((n - 2, 10)) == 0 then 2 :: digitsOfInt(n - 2 / 10) else if int_mod((n - 3, 10)) == 0 then 3 :: digitsOfInt(n - 3 / 10) else if int_mod((n - 4, 10)) == 0 then 4 :: digitsOfInt(n - 4 / 10) else if int_mod((n - 5, 10)) == 0 then 5 :: digitsOfInt(n - 5 / 10) else if int_mod((n - 6, 10)) == 0 then 6 :: digitsOfInt(n - 6 / 10) else if int_mod((n - 7, 10)) == 0 then 7 :: digitsOfInt(n - 7 / 10) else if int_mod((n - 8, 10)) == 0 then 8 :: digitsOfInt(n - 8 / 10) else ? in ?
 |};
     {|
 let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else if int_mod((n, 10)) == 0 then 0 :: digitsOfInt(n / 10) else ? in ?
@@ -1550,20 +1533,6 @@ let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else rev(int_mod((n,
   | [] => 0
   | h :: t => h + sumList(t)
   | _ => -1
-end in let additivePersistence : Int -> unit = fun n -> let count = [] in ? in ?
-|};
-    {|
-let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList : [Int] -> Int = fun xs -> case xs 
-  | [] => 0
-  | h :: t => h + sumList(t)
-  | _ => -1
-end in let additivePersistence : Int -> unit = fun n -> let count = [0] in ? in ?
-|};
-    {|
-let digitsOfInt : Int -> [Int] = fun n -> if n <= 0 then [] else rev(int_mod((n, 10)) :: rev(digitsOfInt(n / 10))) in let sumList : [Int] -> Int = fun xs -> case xs 
-  | [] => 0
-  | h :: t => h + sumList(t)
-  | _ => -1
 end in let additivePersistence : Int -> Int = fun n -> let count = [0] in if sumList(digitsOfInt(n)) > 9 then &(1 :: count)(additivePersistence(sumList(digitsOfInt(n)))) else sumList(count) in ?
 |};
     {|
@@ -1632,7 +1601,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let eval : ? -> expr = fun (e, x, y) -> case e 
+ in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let evall : ? -> expr = fun (e, x, y) -> case e 
   | VarX => let vx = x in vx
   | VarY => let vy = y in vy
   | Average => buildAverage((vx, vy))
@@ -2216,7 +2185,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildSine : expr -> expr = fun e -> Sine(e) in let buildX : unit -> expr = fun () -> VarX in let buildY : unit -> expr = fun () -> VarY in let eval : ? -> unit -> expr = fun (e, x, y) -> case e 
+ in let buildSine : expr -> expr = fun e -> Sine(e) in let buildX : unit -> expr = fun () -> VarX in let buildY : unit -> expr = fun () -> VarY in let evall : ? -> unit -> expr = fun (e, x, y) -> case e 
   | VarX => buildX
   | VarY => buildY
   | Sine => buildSine(e)
@@ -2577,13 +2546,13 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval : ? -> Float = fun (e, x, y) -> case e 
+ in let evall : ? -> Float = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(n) => sin(3.14 *. eval((n, x, y)))
-  | Consine(n) => cos(3.14 *. eval((n, x, y)))
-  | Average(m, n) => eval((m, x, y)) +. eval((n, x, y)) /. 2
-  | Times(m, n) => eval((m, x, y)) *. eval((n, x, y))
+  | Sine(n) => sin(3.14 *. evall((n, x, y)))
+  | Consine(n) => cos(3.14 *. evall((n, x, y)))
+  | Average(m, n) => evall((m, x, y)) +. evall((n, x, y)) /. 2
+  | Times(m, n) => evall((m, x, y)) *. evall((n, x, y))
 end in ?
 |};
     {|
@@ -2755,9 +2724,6 @@ type expr =
   | Thresh(e, f, g, h) =>
       "(" ++ exprToString(e) ++ "<" ++ exprToString(f) ++ "?" ++ exprToString(g) ++ ":" ++ exprToString(h) ++ ")"
 end in ?
-|};
-    {|
-let listReverse : forall a -> [[a]] -> [a] = typfun a -> fun l -> ? in ?
 |};
     {|
 let removeDuplicates : forall a -> [a] -> [a] = typfun a -> fun l -> let helper = fun (seen, rest) -> case rest 
@@ -3510,7 +3476,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let buildThresh : ? -> expr = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes : ? -> expr = fun (e1, e2) -> Times((e1, e2)) in let eval : ? -> expr = fun (e, x, y) -> case e 
+ in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let buildThresh : ? -> expr = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes : ? -> expr = fun (e1, e2) -> Times((e1, e2)) in let evall : ? -> expr = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
   | Sine => buildSine(e)
@@ -3582,7 +3548,7 @@ type expr =
   | Times(a, b) => exprToString(a) ++ "*" ++ exprToString(b)
   | Thresh(a, b, c, d) =>
       "(" ++ exprToString(a) ++ "<" ++ exprToString(b) ++ "?" ++ exprToString(c) ++ ":" ++ exprToString(d) ++ ")"
-  | Eval(a, b) => "(" ++ exprToString(a) ++ "^" ++ exprToString(b) ++ ")"
+  | evall(a, b) => "(" ++ exprToString(a) ++ "^" ++ exprToString(b) ++ ")"
   | _ => ""
 end in ?
 |};
@@ -3635,14 +3601,14 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let buildThresh : ? -> expr = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes : ? -> expr = fun (e1, e2) -> Times((e1, e2)) in let eval : forall a -> ? -> a = typfun a -> fun (e, x, y) -> case e 
+ in let buildAverage : ? -> expr = fun (e1, e2) -> Average((e1, e2)) in let buildCosine : expr -> expr = fun e -> Cosine(e) in let buildSine : expr -> expr = fun e -> Sine(e) in let buildThresh : ? -> expr = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes : ? -> expr = fun (e1, e2) -> Times((e1, e2)) in let evall : forall a -> ? -> a = typfun a -> fun (e, x, y) -> case e 
   | VarX(a) => x
   | VarY(b) => y
-  | Sine(x1) => eval@<a>((buildSine(x1), x, y))
-  | Cosine(x2) => eval@<a>((buildCosine(x2), x, y))
-  | Average(x3, x4) => eval@<a>((buildAverage((x3, x4)), x, y))
-  | Times(x5, x6) => eval@<a>((buildTimes((x5, x6)), x, y))
-  | Thresh(x7, x8, x9, x0) => eval@<a>((buildThresh((x7, x8, x9, x0)), x, y))
+  | Sine(x1) => evall@<a>((buildSine(x1), x, y))
+  | Cosine(x2) => evall@<a>((buildCosine(x2), x, y))
+  | Average(x3, x4) => evall@<a>((buildAverage((x3, x4)), x, y))
+  | Times(x5, x6) => evall@<a>((buildTimes((x5, x6)), x, y))
+  | Thresh(x7, x8, x9, x0) => evall@<a>((buildThresh((x7, x8, x9, x0)), x, y))
 end in ?
 |};
     {|
@@ -3800,34 +3766,22 @@ type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + SinCos(expr)
- in let eval : ? -> Float = fun (e, x, y) -> let pi = 3.14 in case e 
+ in let evall : ? -> Float = fun (e, x, y) -> let pi = 3.14 in case e 
   | VarX => x
   | VarY => y
-  | Sine(ex) => sin(pi *. eval((ex, x, y)))
-  | Cosine(ex) => cos(pi *. eval((ex, x, y)))
-  | Average(ex1, ex2) => eval((ex1, x, y)) +. eval((ex2, x, y)) /. 2.
-  | Times(ex1, ex2) => eval((ex1, x, y)) *. eval((ex2, x, y))
+  | Sine(ex) => sin(pi *. evall((ex, x, y)))
+  | Cosine(ex) => cos(pi *. evall((ex, x, y)))
+  | Average(ex1, ex2) => evall((ex1, x, y)) +. evall((ex2, x, y)) /. 2.
+  | Times(ex1, ex2) => evall((ex1, x, y)) *. evall((ex2, x, y))
   | Thresh(ex1, ex2, ex3, ex4) =>
-      if eval((ex1, x, y)) < eval((ex2, x, y)) then eval((ex3, x, y)) else eval((ex4, x, y))
-  | SinCos(ex) => sin(pi *. eval((ex, x, y))) *. cos(pi *. eval((ex, x, y)))
+      if evall((ex1, x, y)) < evall((ex2, x, y)) then evall((ex3, x, y)) else evall((ex4, x, y))
+  | SinCos(ex) => sin(pi *. evall((ex, x, y))) *. cos(pi *. evall((ex, x, y)))
   | Three(ex1, ex2, ex3) =>
-      eval((ex1, x, y)) *. cos(pi *. eval((ex2, x, y))) *. sin(pi *. eval((ex3, x, y)))
+      evall((ex1, x, y)) *. cos(pi *. evall((ex2, x, y))) *. sin(pi *. evall((ex3, x, y)))
 end in ?
 |};
     {|
-let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> let difference = length(l1) - length(l2) in ? in ?
-|};
-    {|
 let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> [[Int]] -> [a] -> [[Int]] = typfun a -> fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in if difference1 > 0 then clone@<a>(0)(difference1) :: l1 else ? in ?
-|};
-    {|
-let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
-|};
-    {|
-let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
-|};
-    {|
-let clone : forall a -> a -> Int -> [a] = typfun a -> fun x -> fun n -> if n < 1 then [] else x :: clone@<a>(x)(n - 1) in let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> let difference1 = length(l1) - length(l2) in let difference2 = length(l2) - length(l1) in ? in ?
 |};
     {|
 let digitsOfInt : Int -> [Int] = fun n -> if n < 10 then [n] else [int_mod((n, 10))] in ?
@@ -4135,9 +4089,6 @@ type expr =
   + Squares(expr)
   + Volume(expr, expr, expr)
  in let buildSubstract : forall c -> ? -> c = typfun c -> fun (j, k) -> Volume((j, k)) in ?
-|};
-    {|
-let padZero : [a] -> [b] -> [?] = fun l1 -> fun l2 -> if length(l1) == length(l2) then [(l1, l2)] else let numZeros = length(l1) - length(l2) in ? in ?
 |};
     {|
 let padZero : forall a -> forall b -> [a] -> [b] -> unit = typfun a -> typfun b -> fun l1 -> fun l2 -> ? in ?
@@ -4651,17 +4602,17 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval : ? -> Float = fun (e, x, y) -> let pi = 3.142 in case e 
+ in let evall : ? -> Float = fun (e, x, y) -> let pi = 3.142 in case e 
   | VarX => x
   | VarY => y
-  | Sine(v) => sin(pi *. eval((v, x, y)))
-  | Cosine(v) => cos(pi *. eval((v, x, y)))
-  | Average(v, w) => eval((v, x, y)) +. eval((w, x, y)) /. 2.
-  | Times(v, w) => eval((v, x, y)) *. eval((w, x, y))
+  | Sine(v) => sin(pi *. evall((v, x, y)))
+  | Cosine(v) => cos(pi *. evall((v, x, y)))
+  | Average(v, w) => evall((v, x, y)) +. evall((w, x, y)) /. 2.
+  | Times(v, w) => evall((v, x, y)) *. evall((w, x, y))
   | Thresh(v, w, q, r) =>
-      if eval((v, x, y)) < eval((w, x, y)) then eval((q, x, y)) else eval((r, x, y))
-  | Divide(v, w) => eval((v, x, y)) / eval((w, x, y))
-  | Super(v, w) => eval((v, x, y)) + eval((w, x, y)) * eval((v, x, y))
+      if evall((v, x, y)) < evall((w, x, y)) then evall((q, x, y)) else evall((r, x, y))
+  | Divide(v, w) => evall((v, x, y)) / evall((w, x, y))
+  | Super(v, w) => evall((v, x, y)) + evall((w, x, y)) * evall((v, x, y))
 end in ?
 |};
     {|
@@ -4697,7 +4648,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval : forall c -> ? -> c = typfun c -> fun (e, x, y) -> case e 
+ in let evall : forall c -> ? -> c = typfun c -> fun (e, x, y) -> case e 
   | VarX(x') => printf("%s")(x)
   | VarY(y') => printf("%s")(y)
   | Sine(sin) => printf("sin(%s)")(sin)
@@ -4964,17 +4915,6 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let exprToString : forall a -> forall b -> a -> [b] = typfun a -> typfun b -> fun e -> [Thresh(?)] in ?
-|};
-    {|
-type expr = 
-  + VarX
-  + VarY
-  + Sine(expr)
-  + Cosine(expr)
-  + Average(expr, expr)
-  + Times(expr, expr)
-  + Thresh(expr, expr, expr, expr)
  in let exprToString : expr -> String = fun e -> case e 
   | VarX => "x"
   | VarY => "y"
@@ -5058,11 +4998,11 @@ let pi = 4. *. atan(1.) in type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
-  | Sine(m) => sin(pi *. eval((m, x, y)))
+  | Sine(m) => sin(pi *. evall((m, x, y)))
   | _ => x
-end in let _ = eval((Sine, 0.5, 0.)) in ?
+end in let _ = evall((Sine, 0.5, 0.)) in ?
 |};
     {|
 type expr = 
@@ -5328,17 +5268,17 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Expwn(e) => phi ** eval((e, x, y))
-  | Tan(e) => sin(pi *. eval((e, x, y))) /. cos(pi *. eval((e, x, y)))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Expwn(e) => phi ** evall((e, x, y))
+  | Tan(e) => sin(pi *. evall((e, x, y))) /. cos(pi *. evall((e, x, y)))
 end in ?
 |};
     {|
@@ -5383,16 +5323,16 @@ let pi = 4. *. atan(1.) in type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
   | Average(x', y') => x +. y /. 2.
   | Times(x', y') => x *. y
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-end in let _ = eval(Thresh((VarX, VarY, Sine(VarX), Cos(VarY), 1., 2.))) in ?
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+end in let _ = evall(Thresh((VarX, VarY, Sine(VarX), Cos(VarY), 1., 2.))) in ?
 |};
     {|
 let pi = 4. *. atan(1.) in type expr = 
@@ -5403,16 +5343,16 @@ let pi = 4. *. atan(1.) in type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
   | Average(x', y') => x +. y /. 2.
   | Times(x', y') => x *. y
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-end in let _ = eval((Thresh((VarX, VarY, Sine(VarX), Cos(VarY))), 1., 2.)) in ?
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+end in let _ = evall((Thresh((VarX, VarY, Sine(VarX), Cos(VarY))), 1., 2.)) in ?
 |};
     {|
 let pi = 4. *. atan(1.) in type expr = 
@@ -5423,16 +5363,16 @@ let pi = 4. *. atan(1.) in type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-end in let _ = eval((Cosine(Average), 0.5, 0.2)) in ?
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+end in let _ = evall((Cosine(Average), 0.5, 0.2)) in ?
 |};
     {|
 type expr = 
@@ -5445,18 +5385,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + SquareRoot(expr)
   + FunckyCube(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | SquareRoot(e') => sqrt(eval)((e', x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | SquareRoot(e') => sqrt(evall)((e', x, y))
   | FunckyRoot(e1, e2, e3) =>
-      sqrt(sqrt(eval)((e', x, x))(sqrt(eval)((e', x, y)))(sqrt(eval)((e', y, y))))
+      sqrt(sqrt(evall)((e', x, x))(sqrt(evall)((e', x, y)))(sqrt(evall)((e', y, y))))
 end in ?
 |};
     {|
@@ -5546,18 +5486,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Op1(expr)
   + Op2(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Op1(e) => tan(pi *. eval((e, x, y))) -. tan(pi *. eval((e, x, y))) / 2.
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Op1(e) => tan(pi *. evall((e, x, y))) -. tan(pi *. evall((e, x, y))) / 2.
   | Op2(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) > eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) > evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
 end in ?
 |};
     {|
@@ -5571,18 +5511,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Op1(expr)
   + Op2(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Op1(e) => tan(pi *. eval((e, x, y))) -. tan(pi *. eval((e, x, y))) / 2.
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Op1(e) => tan(pi *. evall((e, x, y))) -. tan(pi *. evall((e, x, y))) / 2.
   | Op2(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) > eval((e2, x, y)) then eval((e3, x, y)) else eval((e1, x, y)) -. eval((e2, x, y))
+      if evall((e1, x, y)) > evall((e2, x, y)) then evall((e3, x, y)) else evall((e1, x, y)) -. evall((e2, x, y))
 end in ?
 |};
     {|
@@ -5725,16 +5665,16 @@ type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + Acossin(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Accossin(e1, e2) => acos(eval(e1)) *. asin(eval(e2)) *. 2. /. pi *. pi
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Accossin(e1, e2) => acos(evall(e1)) *. asin(evall(e2)) *. 2. /. pi *. pi
 end in ?
 |};
     {|
@@ -5787,18 +5727,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Acossin(expr, expr)
   + Crazy(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
   | Acossin(e1, e2) =>
-      acos(eval((e1, x, y))) *. asin(eval((e2, x, y))) *. 2. /. pi *. pi
-  | Crazy(e1, e2, e3) => eval(e1)
+      acos(evall((e1, x, y))) *. asin(evall((e2, x, y))) *. 2. /. pi *. pi
+  | Crazy(e1, e2, e3) => evall(e1)
 end in ?
 |};
     {|
@@ -5812,18 +5752,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Acossin(expr, expr)
   + Crazy(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
   | Acossin(e1, e2) =>
-      acos(eval((e1, x, y))) *. asin(eval((e2, x, y))) *. 2. /. pi *. pi
-  | Crazy(e1, e2, e3) => eval((e1, x, y))
+      acos(evall((e1, x, y))) *. asin(evall((e2, x, y))) *. 2. /. pi *. pi
+  | Crazy(e1, e2, e3) => evall((e1, x, y))
 end in ?
 |};
     {|
@@ -5919,16 +5859,16 @@ let pi = 4. *. atan(1.) in type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-end in let _ = eval((NewExprA((VarX, Vary)), 1., -1.)) in ?
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+end in let _ = evall((NewExprA((VarX, Vary)), 1., -1.)) in ?
 |};
     {|
 let pi = 4. *. atan(1.) in type expr = 
@@ -5941,20 +5881,20 @@ let pi = 4. *. atan(1.) in type expr =
   + Thresh(expr, expr, expr, expr)
   + NewExprA(expr, expr)
   + NewExprB(expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
   | NewExprA(e1, e2) =>
-      if eval((e1, x, y)) > eval((e2, x, y)) then eval((e1, x, y)) else eval((e2, x, y))
+      if evall((e1, x, y)) > evall((e2, x, y)) then evall((e1, x, y)) else evall((e2, x, y))
   | NewExprB(e1, e2, e3) =>
-      eval((e1, x, y)) +. eval((e2, x, y)) -. eval((e3, x, y))
-end in let _ = eval((NewExprA((VarX, Vary)), 1., -1.)) in ?
+      evall((e1, x, y)) +. evall((e2, x, y)) -. evall((e3, x, y))
+end in let _ = evall((NewExprA((VarX, Vary)), 1., -1.)) in ?
 |};
     {|
 type expr = 
@@ -5975,19 +5915,19 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
   | NewExprA(e1, e2) =>
-      if eval((e1, x, y)) > eval((e2, x, y)) then eval((e1, x, y)) else eval((e2, x, y))
+      if evall((e1, x, y)) > evall((e2, x, y)) then evall((e1, x, y)) else evall((e2, x, y))
   | NewExprB(e1, e2, e3) =>
-      eval((e1, x, y)) +. eval((e2, x, y)) *. eval((e3, x, y))
+      evall((e1, x, y)) +. evall((e2, x, y)) *. evall((e3, x, y))
 end in ?
 |};
     {|
@@ -6002,7 +5942,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let buildThresh = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes = fun (e1, e2) -> Times((e1, e2)) in let buildHelper = fun rand -> fun max_depth -> fun curr_depth -> ? in ?
+ in let evall = fun (e, x, y) -> failwith("to be written") in let _ = evall((Sine(Cos(Varx)), 0.5, -0.5)) in ?
 |};
     {|
 type expr = 
@@ -6013,7 +5953,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> failwith("to be written") in let _ = eval((Sine(Cos(Varx)), 0.5, -0.5)) in ?
+ in let evall = fun (e, x, y) -> failwith("to be written") in let _ = evall((Sine(Varx), 0.5, -0.5)) in ?
 |};
     {|
 type expr = 
@@ -6024,23 +5964,12 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> failwith("to be written") in let _ = eval((Sine(Varx), 0.5, -0.5)) in ?
-|};
-    {|
-type expr = 
-  + VarX
-  + VarY
-  + Sine(expr)
-  + Cosine(expr)
-  + Average(expr, expr)
-  + Times(expr, expr)
-  + Thresh(expr, expr, expr, expr)
- in let buildCosine = fun e -> Cosine(e) in let eval = fun (e, x, y) -> let evalhelper = fun e -> fun x -> fun y -> case e 
+ in let buildCosine = fun e -> Cosine(e) in let evall = fun (e, x, y) -> let evallhelper = fun e -> fun x -> fun y -> case e 
   | VarX => x
   | VarY => y
-  | Sine(p1) => evalhelper(Sine)(p1)(x)(y)
-  | Cosine(p1) => evalhelper(buildCosine)(p1)(x)(y)
-end in evalhelper(e)(x)(y) in ?
+  | Sine(p1) => evallhelper(Sine)(p1)(x)(y)
+  | Cosine(p1) => evallhelper(buildCosine)(p1)(x)(y)
+end in evallhelper(e)(x)(y) in ?
 |};
     {|
 let pi = 4. *. atan(1.) in type expr = 
@@ -6051,12 +5980,12 @@ let pi = 4. *. atan(1.) in type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> let evalhelper = fun e -> fun x -> fun y -> case e 
+ in let evall = fun (e, x, y) -> let evallhelper = fun e -> fun x -> fun y -> case e 
   | VarX => float(x)
   | VarY => float(y)
-  | Sine(p1) => sin(pi *. evalhelper(p1)(x)(y))
-  | Cosine(p1) => cos(pi *. evalhelper(p1)(x)(y))
-end in evalhelper(e)(x)(y) in let _ = eval((Sine(Varx), 0.5, -0.5)) in ?
+  | Sine(p1) => sin(pi *. evallhelper(p1)(x)(y))
+  | Cosine(p1) => cos(pi *. evallhelper(p1)(x)(y))
+end in evallhelper(e)(x)(y) in let _ = evall((Sine(Varx), 0.5, -0.5)) in ?
 |};
     {|
 let digitsOfInt = fun n -> ? in ?
@@ -6125,20 +6054,20 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Log(expr)
   + SumOfSquares(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e1) => sin(pi *. eval((e1, x, y)))
-  | Cosine(e1) => cos(pi *. eval((e1, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e1) => sin(pi *. evall((e1, x, y)))
+  | Cosine(e1) => cos(pi *. evall((e1, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | ModF(e1) => case modf(eval((e1, x, y)) *. 10) 
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | ModF(e1) => case modf(evall((e1, x, y)) *. 10) 
   | (f, i) => f
 end
 | SumOfSquares(e1, e2, e3) =>
-    eval((e1, x, y)) ** 2. +. eval((e2, x, y)) ** 2. +. eval((e3, x, y)) ** 2. /. 3.
+    evall((e1, x, y)) ** 2. +. evall((e2, x, y)) ** 2. +. evall((e3, x, y)) ** 2. /. 3.
 end in ?
 |};
     {|
@@ -6177,20 +6106,20 @@ let a = (1, 2) in let (c, d) = (1, 2) in let pi = 4. *. atan(1.) in type expr =
   + Thresh(expr, expr, expr, expr)
   + Foo(expr, expr)
   + Clamp(expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(eval((a, x, y)) *. pi)
-  | Cosine(a) => cos(eval((a, x, y)) *. pi)
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(a) => sin(evall((a, x, y)) *. pi)
+  | Cosine(a) => cos(evall((a, x, y)) *. pi)
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
   | Foo(a, b) =>
-      if eval((a, x, y)) < eval((b, x, y)) then 0.9 *. eval((a, x, y)) else 0.1 *. eval((a, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then 0.9 *. evall((a, x, y)) else 0.1 *. evall((a, x, y))
   | Clamp(a, b, c) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((b, x, y)) else if eval((a, x, y)) > eval((c, x, y)) then eval((c, x, y)) else eval((a, x, y))
-end in let _ = eval((Clamp((Sine(Varx), VarX, VarY)), 1, 2)) in ?
+      if evall((a, x, y)) < evall((b, x, y)) then evall((b, x, y)) else if evall((a, x, y)) > evall((c, x, y)) then evall((c, x, y)) else evall((a, x, y))
+end in let _ = evall((Clamp((Sine(Varx), VarX, VarY)), 1, 2)) in ?
 |};
     {|
 let _ = [] in ?
@@ -6274,20 +6203,20 @@ let pi = 4. *. atan(1.) in type expr =
   + Sqrt(expr)
   + Abs(expr)
   + Gauss(expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Sqrt(e) => sqrt(abs_float(eval((e, x, y))))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Sqrt(e) => sqrt(abs_float(evall((e, x, y))))
   | Gauss(e1, e2, e3) =>
-      2. *. exp(eval((e1, x, y)) -. eval((e2, x, y)) ** 2. /. eval((e3, x, y))) -. 1.
+      2. *. exp(evall((e1, x, y)) -. evall((e2, x, y)) ** 2. /. evall((e3, x, y))) -. 1.
   | _ => failwith("we are seriously writing a lisp compiler god save us all")
-end in let _ = eval((Quad((VarX, VarY, VarX)), 0.5, 0.5)) in ?
+end in let _ = evall((Quad((VarX, VarY, VarX)), 0.5, 0.5)) in ?
 |};
     {|
 let pi = 4. *. atan(1.) in type expr = 
@@ -6312,20 +6241,20 @@ let pi = 4. *. atan(1.) in type expr =
   + Sqrt(expr)
   + Abs(expr)
   + Logistic(expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e') => sin(pi *. eval((e', x, y)))
-  | Cosine(e') => cos(pi *. eval((e', x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e') => sin(pi *. evall((e', x, y)))
+  | Cosine(e') => cos(pi *. evall((e', x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Sqrt(e) => sqrt(abs_float(eval((e, x, y))))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Sqrt(e) => sqrt(abs_float(evall((e, x, y))))
   | Logistic(e1, e2, e3) =>
-      2. /. 1. -. exp(~-.(eval((e1, x, y)) *. eval((e2, x, y)))) -. 1. ** eval((e3, x, y))
+      2. /. 1. -. exp(~-.(evall((e1, x, y)) *. evall((e2, x, y)))) -. 1. ** evall((e3, x, y))
   | _ => failwith("error")
-end in let _ = eval((Gauss((VarX, VarY, VarX)), 0.5, 0.5)) in ?
+end in let _ = evall((Gauss((VarX, VarY, VarX)), 0.5, 0.5)) in ?
 |};
     {|
 type expr = 
@@ -6375,19 +6304,19 @@ type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + Power(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e1) => sin(pi *. eval((e1, x, y)))
-  | Cosine(e1) => cos(pi *. eval((e1, x, y)))
+  | Sine(e1) => sin(pi *. evall((e1, x, y)))
+  | Cosine(e1) => cos(pi *. evall((e1, x, y)))
   | Average(e1, e2) =>
-      eval((e1, x, y)) +. eval((e2, x, y)) /. float_of_int(2)
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+      evall((e1, x, y)) +. evall((e2, x, y)) /. float_of_int(2)
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Power(e1, e2) => eval((e1, x, y)) ** eval((e2, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Power(e1, e2) => evall((e1, x, y)) ** evall((e2, x, y))
   | Comp(e1, e2, e3) =>
-      -1 * eval((e1, x, y)) * eval((e2, x, y)) * eval((e3, x, y))
+      -1 * evall((e1, x, y)) * evall((e2, x, y)) * evall((e3, x, y))
 end in ?
 |};
     {|
@@ -6490,19 +6419,19 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + FiboPlus(expr, expr, expr)
   + TheThing(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(ex) => sin(pi *. eval((ex, x, y)))
-  | Cosine(ex) => cos(pi *. eval((ex, x, y)))
-  | Average(ex1, ex2) => eval((ex1, x, y)) +. eval((ex2, x, y)) /. 2.
-  | Times(ex1, ex2) => eval((ex1, x, y)) *. eval((ex2, x, y))
+  | Sine(ex) => sin(pi *. evall((ex, x, y)))
+  | Cosine(ex) => cos(pi *. evall((ex, x, y)))
+  | Average(ex1, ex2) => evall((ex1, x, y)) +. evall((ex2, x, y)) /. 2.
+  | Times(ex1, ex2) => evall((ex1, x, y)) *. evall((ex2, x, y))
   | Thresh(ex1, ex2, ex3, ex4) =>
-      if eval((ex1, x, y)) < eval((ex2, x, y)) then eval((ex3, x, y)) else eval((ex4, x, y))
+      if evall((ex1, x, y)) < evall((ex2, x, y)) then evall((ex3, x, y)) else evall((ex4, x, y))
   | FiboPlus(ex1, ex2, ex3, ex4, ex5) =>
-      eval((ex1, x, y)) *. eval((ex1, x, y)) +. eval((ex2, x, y)) *. eval((ex1, x, y)) +. eval((ex2, x, y)) +. eval((ex3, x, y))
+      evall((ex1, x, y)) *. evall((ex1, x, y)) +. evall((ex2, x, y)) *. evall((ex1, x, y)) +. evall((ex2, x, y)) +. evall((ex3, x, y))
   | TheThing(ex1, ex2, ex3) =>
-      eval((ex1, x, y)) *. sin(pi *. eval((ex2, x, y))) *. cos(pi *. eval((ex3, x, y))) /. 2.
+      evall((ex1, x, y)) *. sin(pi *. evall((ex2, x, y))) *. cos(pi *. evall((ex3, x, y))) /. 2.
 end in ?
 |};
     {|
@@ -6516,19 +6445,19 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + FiboPlus(expr, expr)
   + TheThing(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(ex) => sin(pi *. eval((ex, x, y)))
-  | Cosine(ex) => cos(pi *. eval((ex, x, y)))
-  | Average(ex1, ex2) => eval((ex1, x, y)) +. eval((ex2, x, y)) /. 2.
-  | Times(ex1, ex2) => eval((ex1, x, y)) *. eval((ex2, x, y))
+  | Sine(ex) => sin(pi *. evall((ex, x, y)))
+  | Cosine(ex) => cos(pi *. evall((ex, x, y)))
+  | Average(ex1, ex2) => evall((ex1, x, y)) +. evall((ex2, x, y)) /. 2.
+  | Times(ex1, ex2) => evall((ex1, x, y)) *. evall((ex2, x, y))
   | Thresh(ex1, ex2, ex3, ex4) =>
-      if eval((ex1, x, y)) < eval((ex2, x, y)) then eval((ex3, x, y)) else eval((ex4, x, y))
+      if evall((ex1, x, y)) < evall((ex2, x, y)) then evall((ex3, x, y)) else evall((ex4, x, y))
   | FiboPlus(ex1, ex2, ex3, ex4, ex5) =>
-      eval((ex1, x, y)) *. eval((ex1, x, y)) +. eval((ex2, x, y))
+      evall((ex1, x, y)) *. evall((ex1, x, y)) +. evall((ex2, x, y))
   | TheThing(ex1, ex2, ex3) =>
-      eval((ex1, x, y)) *. sin(pi *. eval((ex2, x, y))) *. cos(pi *. eval((ex3, x, y))) /. 2.
+      evall((ex1, x, y)) *. sin(pi *. evall((ex2, x, y))) *. cos(pi *. evall((ex3, x, y))) /. 2.
 end in ?
 |};
     {|
@@ -6581,18 +6510,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + SixtyNine(expr, expr)
   + TheThing(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(ex) => sin(pi *. eval((ex, x, y)))
-  | Cosine(ex) => cos(pi *. eval((ex, x, y)))
-  | Average(ex1, ex2) => eval((ex1, x, y)) +. eval((ex2, x, y)) /. 2.
-  | Times(ex1, ex2) => eval((ex1, x, y)) *. eval((ex2, x, y))
+  | Sine(ex) => sin(pi *. evall((ex, x, y)))
+  | Cosine(ex) => cos(pi *. evall((ex, x, y)))
+  | Average(ex1, ex2) => evall((ex1, x, y)) +. evall((ex2, x, y)) /. 2.
+  | Times(ex1, ex2) => evall((ex1, x, y)) *. evall((ex2, x, y))
   | Thresh(ex1, ex2, ex3, ex4) =>
-      if eval((ex1, x, y)) < eval((ex2, x, y)) then eval((ex3, x, y)) else eval((ex4, x, y))
-  | SixtyNine(ex1) => eval((ex1, x, y)) *. 69.
+      if evall((ex1, x, y)) < evall((ex2, x, y)) then evall((ex3, x, y)) else evall((ex4, x, y))
+  | SixtyNine(ex1) => evall((ex1, x, y)) *. 69.
   | TheThing(ex1, ex2, ex3) =>
-      eval((ex1, x, y)) *. sin(pi *. eval((ex2, x, y))) *. cos(pi *. eval((ex3, x, y))) /. 2.
+      evall((ex1, x, y)) *. sin(pi *. evall((ex2, x, y))) *. cos(pi *. evall((ex3, x, y))) /. 2.
 end in ?
 |};
     {|
@@ -6793,18 +6722,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Power(expr)
   + KellysOp(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(a, b, a_less, b_less) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((a_less, x, y)) else eval((b_less, x, y))
-  | Power(e) => eval((e, x, y)) *. eval((e, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((a_less, x, y)) else evall((b_less, x, y))
+  | Power(e) => evall((e, x, y)) *. evall((e, x, y))
   | KellysOp(a, b, a_more) =>
-      if eval((a, x, y)) > eval((b, x, y)) then eval((a_more, x, y)) else 0.
+      if evall((a, x, y)) > evall((b, x, y)) then evall((a_more, x, y)) else 0.
 end in ?
 |};
     {|
@@ -6865,17 +6794,17 @@ let pi = 4. *. atan(1.) in type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + Half(expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Half(a) => 0.5 *. eval((a, x, y))
-end in let _ = eval((Half, 0.3, 0.3)) in ?
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Half(a) => 0.5 *. evall((a, x, y))
+end in let _ = evall((Half, 0.3, 0.3)) in ?
 |};
     {|
 type expr = 
@@ -6913,16 +6842,16 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Half(expr)
   + Timestwo(expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Half(a) => 0.5 *. eval((a, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Half(a) => 0.5 *. evall((a, x, y))
   | Third(a) => 0.33 *. eal((a, x, y))
 end in ?
 |};
@@ -7085,7 +7014,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let eval = fun (e, x, y) -> case e 
+ in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let evall = fun (e, x, y) -> case e 
   | VarX => let vx = x in vx
   | VarY => let vy = y in vy
   | Average => buildAverage((vx, vy))
@@ -7100,16 +7029,16 @@ let c1 = fun () -> failwith("to be implemented") in let pi = 4. *. atan(1.) in t
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x +. 0.
   | VarY => y +. 0.
-  | Sine(s1) => sin(pi *. eval((s1, x, y)))
-  | Cosine(c1) => cos(pi *. eval((c1, x, y)))
-  | Average(a1, a2) => eval((a1, x, y)) +. eval((a2, x, y)) /. 2.
-  | Times(t1, t2) => eval((t1, x, y)) *. eval((t2, x, y))
+  | Sine(s1) => sin(pi *. evall((s1, x, y)))
+  | Cosine(c1) => cos(pi *. evall((c1, x, y)))
+  | Average(a1, a2) => evall((a1, x, y)) +. evall((a2, x, y)) /. 2.
+  | Times(t1, t2) => evall((t1, x, y)) *. evall((t2, x, y))
   | Thresh(h1, h2, h3, h4) =>
-      if eval((h1, x, y)) < eval((h2, x, y)) then eval((h3, x, y)) else eval((h4, x, y))
-end in let _ = eval((Sine(Average((Varx, VarY))), 0.5, -0.5)) in ?
+      if evall((h1, x, y)) < evall((h2, x, y)) then evall((h3, x, y)) else evall((h4, x, y))
+end in let _ = evall((Sine(Average((Varx, VarY))), 0.5, -0.5)) in ?
 |};
     {|
 type expr = 
@@ -7191,20 +7120,20 @@ type expr =
   + Hello1(expr, expr, expr)
   + Thresh(expr, expr, expr, expr)
   + Hello2(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Divide(e1, e2) => eval((e1, x, y)) /. eval((e2, x, y))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Divide(e1, e2) => evall((e1, x, y)) /. evall((e2, x, y))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Hello1(e1, e2, e3) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e1, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e1, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
   | Hello2(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e4, x, y)) else eval((e3, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e4, x, y)) else evall((e3, x, y))
 end in ?
 |};
     {|
@@ -7334,16 +7263,16 @@ let pi = 4. *. atan(1.) in type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
-  | Average(a, b) => eval((a, x, y)) *. eval((b, x, y))
-  | Cosine(a) => cos(pi ** eval((a, x, y)))
-  | Sine(a) => sin(pi ** eval((a, x, y)))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
+  | Average(a, b) => evall((a, x, y)) *. evall((b, x, y))
+  | Cosine(a) => cos(pi ** evall((a, x, y)))
+  | Sine(a) => sin(pi ** evall((a, x, y)))
   | VarY => y
   | VarX => x
-end in let _ = eval((Time((VarX, VarY)), 1., 2.)) in ?
+end in let _ = evall((Time((VarX, VarY)), 1., 2.)) in ?
 |};
     {|
 let clone = fun x -> fun n -> case n 
@@ -7453,12 +7382,12 @@ let pi = 4. *. atan(1.) in type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-end in let _ = eval((Sine(Varx), 1, 1)) in ?
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+end in let _ = evall((Sine(Varx), 1, 1)) in ?
 |};
     {|
 let removeDuplicates = fun l -> let helper = fun (seen, rest) -> case rest 
@@ -7542,9 +7471,9 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
   | Average(e) => x +. y /. 2.
   | Times(x, y) => x *. y
   | Thresh(e, f, g, h) => failwith("sad")
@@ -7559,13 +7488,13 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX(x) => x
   | VarY(y) => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(x, y) => eval((e, x, y)) +. eval((e, x, y)) /. 2.
-  | Times(x, y) => eval((e, x, y)) *. eval((e, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(x, y) => evall((e, x, y)) +. evall((e, x, y)) /. 2.
+  | Times(x, y) => evall((e, x, y)) *. evall((e, x, y))
   | Thresh(e1, e2, e3, e4) => failwith("sad")
 end in ?
 |};
@@ -7619,17 +7548,17 @@ type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + Timmy1(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
   | Timmy1(e1, e2, e3) =>
-      sin(pi *. eval((e, x, y))) ** 2. *. cos(pi *. eval((e, x, y)))
+      sin(pi *. evall((e, x, y))) ** 2. *. cos(pi *. evall((e, x, y)))
 end in ?
 |};
     {|
@@ -7750,14 +7679,14 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(u) => sin(pi *. eval(u))
-  | Cos(u) => cos(pi *. eval(u))
-  | Average(u, v) => eval(u) +. eval(v) /. 2
-  | Times(u, v) => eval(u) *. eval(v)
-  | Thresh(s, t, u, v) => if eval(s) < eval(t) then eval(u) else eval(v)
+  | Sine(u) => sin(pi *. evall(u))
+  | Cos(u) => cos(pi *. evall(u))
+  | Average(u, v) => evall(u) +. evall(v) /. 2
+  | Times(u, v) => evall(u) *. evall(v)
+  | Thresh(s, t, u, v) => if evall(s) < evall(t) then evall(u) else evall(v)
 end in ?
 |};
     {|
@@ -7769,18 +7698,18 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(u) => sin(pi *. eval((u, x, y)))
-  | Cosine(u) => cos(pi *. eval((u, x, y)))
-  | Average(u, v) => eval((u, x, y)) +. eval((v, x, y)) /. 2.
-  | Times(u, v) => eval((u, x, y)) *. eval((v, x, y))
+  | Sine(u) => sin(pi *. evall((u, x, y)))
+  | Cosine(u) => cos(pi *. evall((u, x, y)))
+  | Average(u, v) => evall((u, x, y)) +. evall((v, x, y)) /. 2.
+  | Times(u, v) => evall((u, x, y)) *. evall((v, x, y))
   | Thresh(s, t, u, v) =>
-      if eval((s, x, y)) < eval((t, x, y)) then eval((u, x, y)) else eval((v, x, y))
-  | Halve(u) => eval((u, x, y)) /. 2
+      if evall((s, x, y)) < evall((t, x, y)) then evall((u, x, y)) else evall((v, x, y))
+  | Halve(u) => evall((u, x, y)) /. 2
   | Wow(u, v, w) =>
-      sqrt(abs(eval((u, x, y))) *. abs(eval((v, x, y))) *. abs(eval((w, x, y))))
+      sqrt(abs(evall((u, x, y))) *. abs(evall((v, x, y))) *. abs(evall((w, x, y))))
 end in ?
 |};
     {|
@@ -7902,7 +7831,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildSine = fun e -> Sine(e) in let buildX = fun () -> VarX in let buildY = fun () -> VarY in let eval = fun (e, x, y) -> case e 
+ in let buildSine = fun e -> Sine(e) in let buildX = fun () -> VarX in let buildY = fun () -> VarY in let evall = fun (e, x, y) -> case e 
   | VarX => buildX
   | VarY => buildY
   | Sine => buildSine(e)
@@ -7917,17 +7846,17 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => sin(pi *. eval((e, x, y)))
-  | ArcSine(e) => 1 /. sin(pi *. eval((e, x, y)))
-  | ArcCosine(e) => 1 /. cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => sin(pi *. evall((e, x, y)))
+  | ArcSine(e) => 1 /. sin(pi *. evall((e, x, y)))
+  | ArcCosine(e) => 1 /. cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
 end in ?
 |};
     {|
@@ -7963,17 +7892,17 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Squared(expr)
   + Root(expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Square(e) => eval(e ** 2)
-  | Root(e) => eval(e ** 1 / 2)
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Square(e) => evall(e ** 2)
+  | Root(e) => evall(e ** 1 / 2)
 end in ?
 |};
     {|
@@ -8010,19 +7939,19 @@ let pi = 4. *. atan(1.) in type expr =
   + Thresh(expr, expr, expr, expr)
   + Squared(expr)
   + Flatten(expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-  | Squared(e) => eval((e, x, y)) ** 2.
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+  | Squared(e) => evall((e, x, y)) ** 2.
   | Flatten(e1, e2, e3) =>
-      eval((e1, x, y)) /. eval((e2, x, y)) /. eval((e3, x, y))
-end in let _ = eval((Root(VarX), 0.5, 1.)) in ?
+      evall((e1, x, y)) /. evall((e2, x, y)) /. evall((e3, x, y))
+end in let _ = evall((Root(VarX), 0.5, 1.)) in ?
 |};
     {|
 let _ = () in ?
@@ -8150,18 +8079,18 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Square(a) => eval((a, x, y)) *. eval((a, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Square(a) => evall((a, x, y)) *. evall((a, x, y))
   | Volume(vol_1, vol_2, vol_3) =>
-      eval((vol_1, x, y)) *. eval((vol_2, x, y)) *. eval((vol_3, x, y))
+      evall((vol_1, x, y)) *. evall((vol_2, x, y)) *. evall((vol_3, x, y))
 end in ?
 |};
     {|
@@ -8221,18 +8150,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Sqaure(expr)
   + Volume(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Square(a) => eval((a, x, y)) *. eval((a, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Square(a) => evall((a, x, y)) *. evall((a, x, y))
   | Volume(vol_1, vol_2, vol_3) =>
-      eval((vol_1, x, y)) *. eval((vol_2, x, y)) *. eval((vol_3, x, y))
+      evall((vol_1, x, y)) *. evall((vol_2, x, y)) *. evall((vol_3, x, y))
 end in ?
 |};
     {|
@@ -8289,15 +8218,15 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
   | SquareAv(a, b) => a *. a +. b *. b / 2.
   | MultHalf(a, b, c) => a *. b *. c / 2.
 end in ?
@@ -8424,13 +8353,13 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(n) => sin(3.14 *. eval((n, x, y)))
-  | Consine(n) => cos(3.14 *. eval((n, x, y)))
-  | Average(m, n) => eval((m, x, y)) +. eval((n, x, y)) /. 2
-  | Times(m, n) => eval((m, x, y)) *. eval((n, x, y))
+  | Sine(n) => sin(3.14 *. evall((n, x, y)))
+  | Consine(n) => cos(3.14 *. evall((n, x, y)))
+  | Average(m, n) => evall((m, x, y)) +. evall((n, x, y)) /. 2
+  | Times(m, n) => evall((m, x, y)) *. evall((n, x, y))
 end in ?
 |};
     {|
@@ -8562,19 +8491,19 @@ let pi = 4. *. atan(1.) in type expr =
   + Thresh(expr, expr, expr, expr)
   + Power(expr, expr)
   + Op(expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(n) => sin(pi *. eval((n, x, y)))
-  | Cosine(n) => cos(pi *. eval((n, x, y)))
-  | Average(m, n) => eval((m, x, y)) +. eval((n, x, y)) /. 2.
-  | Times(m, n) => eval((m, x, y)) *. eval((n, x, y))
+  | Sine(n) => sin(pi *. evall((n, x, y)))
+  | Cosine(n) => cos(pi *. evall((n, x, y)))
+  | Average(m, n) => evall((m, x, y)) +. evall((n, x, y)) /. 2.
+  | Times(m, n) => evall((m, x, y)) *. evall((n, x, y))
   | Thresh(m, n, o, p) =>
-      if eval((m, x, y)) < eval((n, x, y)) then eval((o, x, y)) else eval((p, x, y))
-  | Power(m, n) => eval((m, x, y)) ** eval((n, x, y))
+      if evall((m, x, y)) < evall((n, x, y)) then evall((o, x, y)) else evall((p, x, y))
+  | Power(m, n) => evall((m, x, y)) ** evall((n, x, y))
   | Op(m, n, o) =>
-      sqrt(eval((m, x, y)) +. eval((n, x, y)) +. eval((o, x, y))) /. 3.
-end in let _ = eval(Power((VarX, VarY, 0.5, -0.5))) in ?
+      sqrt(evall((m, x, y)) +. evall((n, x, y)) +. evall((o, x, y))) /. 3.
+end in let _ = evall(Power((VarX, VarY, 0.5, -0.5))) in ?
 |};
     {|
 let pipe = fun fs -> let f = fun a -> fun x -> case fs 
@@ -8910,19 +8839,19 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + TimesTimes(expr, expr, expr)
   + SqXPlusYDiv2(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e1) => sin(pi *. eval((e1, x, y)))
-  | Cosine(e1) => cos(pi *. eval((e1, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e1) => sin(pi *. evall((e1, x, y)))
+  | Cosine(e1) => cos(pi *. evall((e1, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
   | TimesTimes(e1, e2, e3) =>
-      eval((e1, x, y)) *. eval((e2, x, y)) *. eval((e3, x, y))
+      evall((e1, x, y)) *. evall((e2, x, y)) *. evall((e3, x, y))
   | SqXPlusY(e1, e2) =>
-      eval((e1, x, y)) *. eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
+      evall((e1, x, y)) *. evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
 end in ?
 |};
     {|
@@ -9084,17 +9013,17 @@ type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + Square(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(i) => sin(pi *. eval((i, x, y)))
-  | Cosine(i) => cos(pi *. eval((i, x, y)))
-  | Average(i1, i2) => eval((i1, x, y)) +. eval((i2, x, y)) /. 2.
-  | Times(i1, i2) => eval((i1, x, y)) *. eval((i2, x, y))
+  | Sine(i) => sin(pi *. evall((i, x, y)))
+  | Cosine(i) => cos(pi *. evall((i, x, y)))
+  | Average(i1, i2) => evall((i1, x, y)) +. evall((i2, x, y)) /. 2.
+  | Times(i1, i2) => evall((i1, x, y)) *. evall((i2, x, y))
   | Thresh(i1, i2, i3, i4) =>
-      if eval((i1, x, y)) < eval((i2, x, y)) then eval((i3, x, y)) else eval((i4, x, y))
-  | Square(i) => eval((i, x, y)) *. eval((i, x, y))
-  | Exponential(i1, i2) => eval((i1, x, y)) *. eval((i2, x, y))
+      if evall((i1, x, y)) < evall((i2, x, y)) then evall((i3, x, y)) else evall((i4, x, y))
+  | Square(i) => evall((i, x, y)) *. evall((i, x, y))
+  | Exponential(i1, i2) => evall((i1, x, y)) *. evall((i2, x, y))
 end in ?
 |};
     {|
@@ -9146,17 +9075,17 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Square(expr, expr)
   + Exponential(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(i) => sin(pi *. eval((i, x, y)))
-  | Cosine(i) => cos(pi *. eval((i, x, y)))
-  | Average(i1, i2) => eval((i1, x, y)) +. eval((i2, x, y)) /. 2.
-  | Times(i1, i2) => eval((i1, x, y)) *. eval((i2, x, y))
+  | Sine(i) => sin(pi *. evall((i, x, y)))
+  | Cosine(i) => cos(pi *. evall((i, x, y)))
+  | Average(i1, i2) => evall((i1, x, y)) +. evall((i2, x, y)) /. 2.
+  | Times(i1, i2) => evall((i1, x, y)) *. evall((i2, x, y))
   | Thresh(i1, i2, i3, i4) =>
-      if eval((i1, x, y)) < eval((i2, x, y)) then eval((i3, x, y)) else eval((i4, x, y))
-  | Square(i) => eval((i, x, y)) *. eval((i, x, y))
-  | Exponential(i1, i2) => eval((i1, x, y)) *. eval((i2, x, y))
+      if evall((i1, x, y)) < evall((i2, x, y)) then evall((i3, x, y)) else evall((i4, x, y))
+  | Square(i) => evall((i, x, y)) *. evall((i, x, y))
+  | Exponential(i1, i2) => evall((i1, x, y)) *. evall((i2, x, y))
 end in ?
 |};
     {|
@@ -9195,17 +9124,17 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Square(expr, expr)
   + Exponential(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(i) => sin(pi *. eval((i, x, y)))
-  | Cosine(i) => cos(pi *. eval((i, x, y)))
-  | Average(i1, i2) => eval((i1, x, y)) +. eval((i2, x, y)) /. 2.
-  | Times(i1, i2) => eval((i1, x, y)) *. eval((i2, x, y))
+  | Sine(i) => sin(pi *. evall((i, x, y)))
+  | Cosine(i) => cos(pi *. evall((i, x, y)))
+  | Average(i1, i2) => evall((i1, x, y)) +. evall((i2, x, y)) /. 2.
+  | Times(i1, i2) => evall((i1, x, y)) *. evall((i2, x, y))
   | Thresh(i1, i2, i3, i4) =>
-      if eval((i1, x, y)) < eval((i2, x, y)) then eval((i3, x, y)) else eval((i4, x, y))
-  | Square(i) => eval((i, x, y)) *. eval((i, x, y))
-  | Exponential(i1, i2) => **.(eval((i1, x, y)))(eval((i2, x, y)))
+      if evall((i1, x, y)) < evall((i2, x, y)) then evall((i3, x, y)) else evall((i4, x, y))
+  | Square(i) => evall((i, x, y)) *. evall((i, x, y))
+  | Exponential(i1, i2) => **.(evall((i1, x, y)))(evall((i2, x, y)))
 end in ?
 |};
     {|
@@ -9245,18 +9174,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Square(expr)
   + Exponential(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(i) => sin(pi *. eval((i, x, y)))
-  | Cosine(i) => cos(pi *. eval((i, x, y)))
-  | Average(i1, i2) => eval((i1, x, y)) +. eval((i2, x, y)) /. 2.
-  | Times(i1, i2) => eval((i1, x, y)) *. eval((i2, x, y))
+  | Sine(i) => sin(pi *. evall((i, x, y)))
+  | Cosine(i) => cos(pi *. evall((i, x, y)))
+  | Average(i1, i2) => evall((i1, x, y)) +. evall((i2, x, y)) /. 2.
+  | Times(i1, i2) => evall((i1, x, y)) *. evall((i2, x, y))
   | Thresh(i1, i2, i3, i4) =>
-      if eval((i1, x, y)) < eval((i2, x, y)) then eval((i3, x, y)) else eval((i4, x, y))
+      if evall((i1, x, y)) < evall((i2, x, y)) then evall((i3, x, y)) else evall((i4, x, y))
   | Cubic(i1, i2, i3) =>
-      eval((i1, x, y)) *. eval((i2, x, y)) *. eval((i3, x, y))
-  | Exponential(i1, i2) => eval((i1, x, y)) ** eval((i2, x, y))
+      evall((i1, x, y)) *. evall((i2, x, y)) *. evall((i3, x, y))
+  | Exponential(i1, i2) => evall((i1, x, y)) ** evall((i2, x, y))
 end in ?
 |};
     {|
@@ -9351,15 +9280,15 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
   | Sin(e) => sin(pi * e)
-  | Cosine(e) => cos(pi * eval((e, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) + eval((e2, x, y)) / 2
-  | Times(e1, e2) => eval((e1, x, y)) * eval((e2, x, y))
+  | Cosine(e) => cos(pi * evall((e, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) + evall((e2, x, y)) / 2
+  | Times(e1, e2) => evall((e1, x, y)) * evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
 end in ?
 |};
     {|
@@ -9589,7 +9518,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let buildThresh = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes = fun (e1, e2) -> Times((e1, e2)) in let eval = fun (e, x, y) -> case e 
+ in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let buildThresh = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes = fun (e1, e2) -> Times((e1, e2)) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
   | Sine => buildSine(e)
@@ -9687,7 +9616,7 @@ type expr =
   | Times(a, b) => exprToString(a) ++ "*" ++ exprToString(b)
   | Thresh(a, b, c, d) =>
       "(" ++ exprToString(a) ++ "<" ++ exprToString(b) ++ "?" ++ exprToString(c) ++ ":" ++ exprToString(d) ++ ")"
-  | Eval(a, b) => "(" ++ exprToString(a) ++ "^" ++ exprToString(b) ++ ")"
+  | evall(a, b) => "(" ++ exprToString(a) ++ "^" ++ exprToString(b) ++ ")"
   | _ => ""
 end in ?
 |};
@@ -9740,14 +9669,14 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let buildThresh = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes = fun (e1, e2) -> Times((e1, e2)) in let eval = fun (e, x, y) -> case e 
+ in let buildAverage = fun (e1, e2) -> Average((e1, e2)) in let buildCosine = fun e -> Cosine(e) in let buildSine = fun e -> Sine(e) in let buildThresh = fun (a, b, a_less, b_less) -> Thresh((a, b, a_less, b_less)) in let buildTimes = fun (e1, e2) -> Times((e1, e2)) in let evall = fun (e, x, y) -> case e 
   | VarX(a) => x
   | VarY(b) => y
-  | Sine(x1) => eval((buildSine(x1), x, y))
-  | Cosine(x2) => eval((buildCosine(x2), x, y))
-  | Average(x3, x4) => eval((buildAverage((x3, x4)), x, y))
-  | Times(x5, x6) => eval((buildTimes((x5, x6)), x, y))
-  | Thresh(x7, x8, x9, x0) => eval((buildThresh((x7, x8, x9, x0)), x, y))
+  | Sine(x1) => evall((buildSine(x1), x, y))
+  | Cosine(x2) => evall((buildCosine(x2), x, y))
+  | Average(x3, x4) => evall((buildAverage((x3, x4)), x, y))
+  | Times(x5, x6) => evall((buildTimes((x5, x6)), x, y))
+  | Thresh(x7, x8, x9, x0) => evall((buildThresh((x7, x8, x9, x0)), x, y))
 end in ?
 |};
     {|
@@ -9927,18 +9856,18 @@ type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + SinCos(expr)
- in let eval = fun (e, x, y) -> let pi = 3.14 in case e 
+ in let evall = fun (e, x, y) -> let pi = 3.14 in case e 
   | VarX => x
   | VarY => y
-  | Sine(ex) => sin(pi *. eval((ex, x, y)))
-  | Cosine(ex) => cos(pi *. eval((ex, x, y)))
-  | Average(ex1, ex2) => eval((ex1, x, y)) +. eval((ex2, x, y)) /. 2.
-  | Times(ex1, ex2) => eval((ex1, x, y)) *. eval((ex2, x, y))
+  | Sine(ex) => sin(pi *. evall((ex, x, y)))
+  | Cosine(ex) => cos(pi *. evall((ex, x, y)))
+  | Average(ex1, ex2) => evall((ex1, x, y)) +. evall((ex2, x, y)) /. 2.
+  | Times(ex1, ex2) => evall((ex1, x, y)) *. evall((ex2, x, y))
   | Thresh(ex1, ex2, ex3, ex4) =>
-      if eval((ex1, x, y)) < eval((ex2, x, y)) then eval((ex3, x, y)) else eval((ex4, x, y))
-  | SinCos(ex) => sin(pi *. eval((ex, x, y))) *. cos(pi *. eval((ex, x, y)))
+      if evall((ex1, x, y)) < evall((ex2, x, y)) then evall((ex3, x, y)) else evall((ex4, x, y))
+  | SinCos(ex) => sin(pi *. evall((ex, x, y))) *. cos(pi *. evall((ex, x, y)))
   | Three(ex1, ex2, ex3) =>
-      eval((ex1, x, y)) *. cos(pi *. eval((ex2, x, y))) *. sin(pi *. eval((ex3, x, y)))
+      evall((ex1, x, y)) *. cos(pi *. evall((ex2, x, y))) *. sin(pi *. evall((ex3, x, y)))
 end in ?
 |};
     {|
@@ -10127,15 +10056,15 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(x, y) => Average(eval((e, x, y)) +. eval((e, x, y)) / 2.)
-  | Times(x, y) => eval((e, x, y)) *. eval((e, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(x, y) => Average(evall((e, x, y)) +. evall((e, x, y)) / 2.)
+  | Times(x, y) => evall((e, x, y)) *. evall((e, x, y))
   | Thresh(w, x, y, z) =>
-      eval((e, x, y)) *. eval((e, x, y)) *. eval((e, x, y)) *. eval((e, x, y))(uncomment)(after)(implementing)(eval)
+      evall((e, x, y)) *. evall((e, x, y)) *. evall((e, x, y)) *. evall((e, x, y))(uncomment)(after)(implementing)(evall)
 end in ?
 |};
     {|
@@ -10307,17 +10236,17 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Cotangent(expr)
   + Volume(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Squares(e) => eval((e, x, y)) * eval((e, x, y))
-  | Volume(l, w, h) => eval((l, x, y)) *. eval((w, x, y)) *. eval((h, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Squares(e) => evall((e, x, y)) * evall((e, x, y))
+  | Volume(l, w, h) => evall((l, x, y)) *. evall((w, x, y)) *. evall((h, x, y))
 end in ?
 |};
     {|
@@ -10331,17 +10260,17 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Cotangent(expr)
   + Volume(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Squares(e) => eval((e, x, y)) *. eval((e, x, y))
-  | Volume(l, w, h) => eval((l, x, y)) *. eval((w, x, y)) *. eval((h, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Squares(e) => evall((e, x, y)) *. evall((e, x, y))
+  | Volume(l, w, h) => evall((l, x, y)) *. evall((w, x, y)) *. evall((h, x, y))
 end in ?
 |};
     {|
@@ -10394,17 +10323,17 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Squares(expr, expr)
   + Volume(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Squares(e) => eval((e, x, y)) *. eval((e, x, y))
-  | Volume(l, w, h) => eval((l, x, y)) *. eval((w, x, y)) *. eval((h, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Squares(e) => evall((e, x, y)) *. evall((e, x, y))
+  | Volume(l, w, h) => evall((l, x, y)) *. evall((w, x, y)) *. evall((h, x, y))
 end in ?
 |};
     {|
@@ -10456,17 +10385,17 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Squares(expr)
   + Volume(expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | Squares(e) => eval((e, x, y)) *. eval((e, x, y))
-  | Substract(j, k) => eval((j, x, y)) -. eval((k, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | Squares(e) => evall((e, x, y)) *. evall((e, x, y))
+  | Substract(j, k) => evall((j, x, y)) -. evall((k, x, y))
 end in ?
 |};
     {|
@@ -10480,19 +10409,19 @@ let pi = 4. *. atan(1.) in type expr =
   + Thresh(expr, expr, expr, expr)
   + SumInts(expr)
   + Power(expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(expr) => sin(pi *. eval((expr, x, y)))
-  | Cosine(expr) => cos(pi *. eval((expr, x, y)))
-  | Average(expr1, expr2) => eval((expr1, x, y)) +. eval((expr2, x, y)) /. 2.
-  | Times(expr1, expr2) => eval((expr1, x, y)) *. eval((expr2, x, y))
+  | Sine(expr) => sin(pi *. evall((expr, x, y)))
+  | Cosine(expr) => cos(pi *. evall((expr, x, y)))
+  | Average(expr1, expr2) => evall((expr1, x, y)) +. evall((expr2, x, y)) /. 2.
+  | Times(expr1, expr2) => evall((expr1, x, y)) *. evall((expr2, x, y))
   | Thresh(expr1, expr2, expr3, expr4) =>
-      if eval((expr1, x, y)) < eval((expr2, x, y)) then eval((expr3, x, y)) else eval((expr4, x, y))
-  | SumInts(expr) => eval((expr, x, y)) *. eval((expr, x, y)) +. 1. /. 2.
+      if evall((expr1, x, y)) < evall((expr2, x, y)) then evall((expr3, x, y)) else evall((expr4, x, y))
+  | SumInts(expr) => evall((expr, x, y)) *. evall((expr, x, y)) +. 1. /. 2.
   | Power(expr1, expr2, expr3) =>
-      eval((expr1, x, y)) ** abs_float(eval((expr2, x, y)) +. eval((expr3, x, y)))
-end in let _ = eval((Power((SumInts(Var), VarY, VarX)), -0.999999, 0.99999)) in ?
+      evall((expr1, x, y)) ** abs_float(evall((expr2, x, y)) +. evall((expr3, x, y)))
+end in let _ = evall((Power((SumInts(Var), VarY, VarX)), -0.999999, 0.99999)) in ?
 |};
     {|
 let padZero = fun l1 -> fun l2 -> if length(l1) == length(l2) then [(l1, l2)] else let numZeros = length(l1) - length(l2) in ? in ?
@@ -10861,17 +10790,17 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Neg(e) => -1. *. eval((e, x, y))
-  | Half(e) => eval((e, x, y)) /. 2.
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Neg(e) => -1. *. evall((e, x, y))
+  | Half(e) => evall((e, x, y)) /. 2.
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
 end in ?
 |};
     {|
@@ -10944,19 +10873,19 @@ let pi = 4. *. atan(1.) in type expr =
   + Times(expr, expr)
   + Divadd(expr, expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(e) => sin(pi *. eval((e, x, y)))
-  | Cosine(e) => cos(pi *. eval((e, x, y)))
-  | Neg(e) => -1. *. eval((e, x, y))
+  | Sine(e) => sin(pi *. evall((e, x, y)))
+  | Cosine(e) => cos(pi *. evall((e, x, y)))
+  | Neg(e) => -1. *. evall((e, x, y))
   | Divadd(e1, e2, e3) =>
-      eval((e, x, y)) +. eval((e, x, y)) /. eval((e, x, y))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+      evall((e, x, y)) +. evall((e, x, y)) /. evall((e, x, y))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-end in let _ = eval((Sine(Neg(Divadd((VarX, VarY, Vary)))), 0.8, 0.8)) in ?
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+end in let _ = evall((Sine(Neg(Divadd((VarX, VarY, Vary)))), 0.8, 0.8)) in ?
 |};
     {|
 type expr = 
@@ -11107,17 +11036,17 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
   | Power(a, b) =>
-      if (x < 1.)&&((x > -1.)&&((y < 1.)&&(y > -1.))) then x *. y else eval((a, x, y)) ** eval((b, x, y))
+      if (x < 1.)&&((x > -1.)&&((y < 1.)&&(y > -1.))) then x *. y else evall((a, x, y)) ** evall((b, x, y))
 end in ?
 |};
     {|
@@ -11152,16 +11081,16 @@ type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + Tan(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | SqDist(a, b) => eval((a, x, y)) ** 2. + eval((b, x, y)) ** 2.
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | SqDist(a, b) => evall((a, x, y)) ** 2. + evall((b, x, y)) ** 2.
 end in ?
 |};
     {|
@@ -11183,16 +11112,16 @@ type expr =
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
   + SinCos(expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
-  | SqDist(a, b) => eval((a, x, y)) ** 2. +. eval((b, x, y)) ** 2.
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
+  | SqDist(a, b) => evall((a, x, y)) ** 2. +. evall((b, x, y)) ** 2.
 end in ?
 |};
     {|
@@ -11248,17 +11177,17 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> let pi = 3.142 in case e 
+ in let evall = fun (e, x, y) -> let pi = 3.142 in case e 
   | VarX => x
   | VarY => y
-  | Sine(v) => sin(pi *. eval((v, x, y)))
-  | Cosine(v) => cos(pi *. eval((v, x, y)))
-  | Average(v, w) => eval((v, x, y)) +. eval((w, x, y)) /. 2.
-  | Times(v, w) => eval((v, x, y)) *. eval((w, x, y))
+  | Sine(v) => sin(pi *. evall((v, x, y)))
+  | Cosine(v) => cos(pi *. evall((v, x, y)))
+  | Average(v, w) => evall((v, x, y)) +. evall((w, x, y)) /. 2.
+  | Times(v, w) => evall((v, x, y)) *. evall((w, x, y))
   | Thresh(v, w, q, r) =>
-      if eval((v, x, y)) < eval((w, x, y)) then eval((q, x, y)) else eval((r, x, y))
-  | Divide(v, w) => eval((v, x, y)) / eval((w, x, y))
-  | Super(v, w) => eval((v, x, y)) + eval((w, x, y)) * eval((v, x, y))
+      if evall((v, x, y)) < evall((w, x, y)) then evall((q, x, y)) else evall((r, x, y))
+  | Divide(v, w) => evall((v, x, y)) / evall((w, x, y))
+  | Super(v, w) => evall((v, x, y)) + evall((w, x, y)) * evall((v, x, y))
 end in ?
 |};
     {|
@@ -11294,7 +11223,7 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX(x') => printf("%s")(x)
   | VarY(y') => printf("%s")(y)
   | Sine(sin) => printf("sin(%s)")(sin)
@@ -11365,18 +11294,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Circ(expr, expr)
   + Fibonacci(expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(sine) => sin(pi *. eval((sine, x, y)))
-  | Cosine(cosine) => cos(pi *. eval((cosine, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(t1, t2) => eval((t1, x, y)) *. eval((t2, x, y))
+  | Sine(sine) => sin(pi *. evall((sine, x, y)))
+  | Cosine(cosine) => cos(pi *. evall((cosine, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(t1, t2) => evall((t1, x, y)) *. evall((t2, x, y))
   | Thresh(th1, th2, th3, th4) =>
-      if eval((th1, x, y)) < eval((th2, x, y)) then eval((th3, x, y)) else eval((th4, x, y))
+      if evall((th1, x, y)) < evall((th2, x, y)) then evall((th3, x, y)) else evall((th4, x, y))
   | Circ(circ1, circ2) =>
-      eval((circ1, x, y)) ** 2. +. eval((circ2, x, y)) ** 2.
-  | Arcsin(m4) => asin(eval((nlog, x, y)))
+      evall((circ1, x, y)) ** 2. +. evall((circ2, x, y)) ** 2.
+  | Arcsin(m4) => asin(evall((nlog, x, y)))
 end in ?
 |};
     {|
@@ -11400,18 +11329,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Circ(expr, expr)
   + Quad(expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(sine) => sin(pi *. eval((sine, x, y)))
-  | Cosine(cosine) => cos(pi *. eval((cosine, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(t1, t2) => eval((t1, x, y)) *. eval((t2, x, y))
+  | Sine(sine) => sin(pi *. evall((sine, x, y)))
+  | Cosine(cosine) => cos(pi *. evall((cosine, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(t1, t2) => evall((t1, x, y)) *. evall((t2, x, y))
   | Thresh(th1, th2, th3, th4) =>
-      if eval((th1, x, y)) < eval((th2, x, y)) then eval((th3, x, y)) else eval((th4, x, y))
+      if evall((th1, x, y)) < evall((th2, x, y)) then evall((th3, x, y)) else evall((th4, x, y))
   | Circ(circ1, circ2) =>
-      eval((circ1, x, y)) ** 2. +. eval((circ2, x, y)) ** 2.
-  | Arcsin(m4) => eval((m4, x, y)) ** 4.
+      evall((circ1, x, y)) ** 2. +. evall((circ2, x, y)) ** 2.
+  | Arcsin(m4) => evall((m4, x, y)) ** 4.
 end in ?
 |};
     {|
@@ -11464,18 +11393,18 @@ type expr =
   + Thresh(expr, expr, expr, expr)
   + Circ(expr, expr)
   + Oscillate(expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(sine) => sin(pi *. eval((sine, x, y)))
-  | Cosine(cosine) => cos(pi *. eval((cosine, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(t1, t2) => eval((t1, x, y)) *. eval((t2, x, y))
+  | Sine(sine) => sin(pi *. evall((sine, x, y)))
+  | Cosine(cosine) => cos(pi *. evall((cosine, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(t1, t2) => evall((t1, x, y)) *. evall((t2, x, y))
   | Thresh(th1, th2, th3, th4) =>
-      if eval((th1, x, y)) < eval((th2, x, y)) then eval((th3, x, y)) else eval((th4, x, y))
-  | Circ(circ1) => sqrt(abs_float(1. -. eval((circ1, x, y)) ** 2.))
+      if evall((th1, x, y)) < evall((th2, x, y)) then evall((th3, x, y)) else evall((th4, x, y))
+  | Circ(circ1) => sqrt(abs_float(1. -. evall((circ1, x, y)) ** 2.))
   | Oscillate(m4) =>
-      let x = eval((m4, x, y)) in x /. sqrt(1. -. x ** 2. +. x ** 2.)
+      let x = evall((m4, x, y)) in x /. sqrt(1. -. x ** 2. +. x ** 2.)
 end in ?
 |};
     {|
@@ -11587,16 +11516,16 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Tangent(a) => sin(pi *. eval((a, x, y))) /. cos(pi *. eval((a, x, y)))
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Tangent(a) => sin(pi *. evall((a, x, y))) /. cos(pi *. evall((a, x, y)))
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
 end in ?
 |};
     {|
@@ -11727,18 +11656,18 @@ type expr =
   + Average(expr, expr)
   + Times(expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let pi = 4. *. atan(1.) in let eval = fun (e, x, y) -> case e 
+ in let pi = 4. *. atan(1.) in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Sine(a) => sin(pi *. eval((a, x, y)))
-  | Cosine(a) => cos(pi *. eval((a, x, y)))
-  | Boo(a) => eval((a, x, y)) +. eval((a, x, y)) /. 100.
-  | Average(a, b) => eval((a, x, y)) +. eval((b, x, y)) /. 2.
-  | Times(a, b) => eval((a, x, y)) *. eval((b, x, y))
+  | Sine(a) => sin(pi *. evall((a, x, y)))
+  | Cosine(a) => cos(pi *. evall((a, x, y)))
+  | Boo(a) => evall((a, x, y)) +. evall((a, x, y)) /. 100.
+  | Average(a, b) => evall((a, x, y)) +. evall((b, x, y)) /. 2.
+  | Times(a, b) => evall((a, x, y)) *. evall((b, x, y))
   | Hoi(a, b, c) =>
-      sin(pi *. eval((a, x, y))) *. cos(pi *. eval((b, x, y))) /. eval((c, x, y))
+      sin(pi *. evall((a, x, y))) *. cos(pi *. evall((b, x, y))) /. evall((c, x, y))
   | Thresh(a, b, c, d) =>
-      if eval((a, x, y)) < eval((b, x, y)) then eval((c, x, y)) else eval((d, x, y))
+      if evall((a, x, y)) < evall((b, x, y)) then evall((c, x, y)) else evall((d, x, y))
 end in ?
 |};
     {|
@@ -11776,19 +11705,19 @@ let pi = 4. *. atan(1.) in type expr =
   + Times(expr, expr)
   + Smallest(expr, expr, expr)
   + Thresh(expr, expr, expr, expr)
- in let eval = fun (e, x, y) -> case e 
+ in let evall = fun (e, x, y) -> case e 
   | VarX => x
   | VarY => y
-  | Neg(e1) => eval((e1, x, y)) *. -1.
-  | Sine(e1) => sin(pi *. eval((e1, x, y)))
-  | Cosine(e1) => cos(pi *. eval((e1, x, y)))
-  | Average(e1, e2) => eval((e1, x, y)) +. eval((e2, x, y)) /. 2.
-  | Times(e1, e2) => eval((e1, x, y)) *. eval((e2, x, y))
+  | Neg(e1) => evall((e1, x, y)) *. -1.
+  | Sine(e1) => sin(pi *. evall((e1, x, y)))
+  | Cosine(e1) => cos(pi *. evall((e1, x, y)))
+  | Average(e1, e2) => evall((e1, x, y)) +. evall((e2, x, y)) /. 2.
+  | Times(e1, e2) => evall((e1, x, y)) *. evall((e2, x, y))
   | Smallest(e1, e2, e3) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then if eval((e1, x, y)) < eval((e3, x, y)) then eval((e1, x, y)) else eval((e3, x, y)) else if eval((e2, x, y)) < eval((e3, x, y)) then eval((e2, x, y)) else eval((e3, x, y))
+      if evall((e1, x, y)) < evall((e2, x, y)) then if evall((e1, x, y)) < evall((e3, x, y)) then evall((e1, x, y)) else evall((e3, x, y)) else if evall((e2, x, y)) < evall((e3, x, y)) then evall((e2, x, y)) else evall((e3, x, y))
   | Thresh(e1, e2, e3, e4) =>
-      if eval((e1, x, y)) < eval((e2, x, y)) then eval((e3, x, y)) else eval((e4, x, y))
-end in let _ = eval(Smallest((VarX, VarY, Neg(VarX), 1, 2))) in ?
+      if evall((e1, x, y)) < evall((e2, x, y)) then evall((e3, x, y)) else evall((e4, x, y))
+end in let _ = evall(Smallest((VarX, VarY, Neg(VarX), 1, 2))) in ?
 |};
     {|
 type expr = 
