@@ -577,6 +577,7 @@ let bdfs_print ~secs i s d =
 type search_result =
   | Witness of {
       trace_size : int;
+      trace_size_original: int; (* For deterministic evaluation *)
       witness_size : int;
           (* Sum of sizes of ALL instantiated parts, even if the instantiation is not actually the erroneous part of the witness *)
       code_coverage : float;
@@ -596,6 +597,7 @@ let eval_results search l =
                Some(Witness
                  {
                    trace_size = IndetEvaluatorState.get_trace_length state;
+                   trace_size_original = s.trace_length;
                    witness_size = IndetEvaluatorState.get_instantiations state;
                    code_coverage =
                      Float.of_int
@@ -623,14 +625,15 @@ type aggregate_search_result = {
   avg_cast_size : float;
   std_cast_size : float;
   witness_trace_correlation : float;
+  (* Correlation between witness size and normalised trace size (divided by original trace size) *)
 }
 
 let aggregate_search_results rs =
   let witnesses =
     rs
     |> List.filter_map (function
-         | Witness { trace_size; witness_size; cast_size; _ } ->
-             Some (trace_size, witness_size, cast_size)
+         | Witness { trace_size_original; trace_size; witness_size; cast_size; _ } ->
+             Some (trace_size_original, trace_size, witness_size, cast_size)
          | _ -> None)
   in
   let num_nowitness =
@@ -652,31 +655,31 @@ let aggregate_search_results rs =
     avg_trace_length =
       avg_0
         (witnesses
-        |> List.map (fun (trace_length, _, _) -> Float.of_int trace_length));
+        |> List.map (fun (_, trace_length, _, _) -> Float.of_int trace_length));
     std_trace_length =
       std_0
         (witnesses
-        |> List.map (fun (trace_length, _, _) -> Float.of_int trace_length));
+        |> List.map (fun (_, trace_length, _, _) -> Float.of_int trace_length));
     avg_witness_size =
       avg_0
         (witnesses
-        |> List.map (fun (_, witness_size, _) -> Float.of_int witness_size));
+        |> List.map (fun (_, _, witness_size, _) -> Float.of_int witness_size));
     std_witness_size =
       std_0
         (witnesses
-        |> List.map (fun (_, witness_size, _) -> Float.of_int witness_size));
+        |> List.map (fun (_, _, witness_size, _) -> Float.of_int witness_size));
     avg_cast_size =
       avg_0
-        (witnesses |> List.map (fun (_, _, cast_size) -> Float.of_int cast_size));
+        (witnesses |> List.map (fun (_, _, _, cast_size) -> Float.of_int cast_size));
     std_cast_size =
       std_0
-        (witnesses |> List.map (fun (_, _, cast_size) -> Float.of_int cast_size));
+        (witnesses |> List.map (fun (_, _, _, cast_size) -> Float.of_int cast_size));
     witness_trace_correlation =
       pearson_correlation_0
         (witnesses
-        |> List.map (fun (_, witness_size, _) -> Float.of_int witness_size))
+        |> List.map (fun (_, _, witness_size, _) -> Float.of_int witness_size))
         (witnesses
-        |> List.map (fun (trace_length, _, _) -> Float.of_int trace_length));
+        |> List.map (fun (trace_length_original, trace_length, _, _) -> Float.of_int trace_length /. Float.of_int(trace_length_original)));
   }
 
 let dfs_results_print ~secs l = eval_results (dfs_print ~secs) l
@@ -874,7 +877,7 @@ let print_results corpus =
        (cast_slice_sizes_all (cast_slice_info_results corpus)))
 
 let () =
-  print_endline "WELL TYPED PROGRAMS: ";
+  (*print_endline "WELL TYPED PROGRAMS: ";
   print_results well_typed;
   print_endline "";
   print_endline "UNANNOTATED ILL TYPED PROGRAMS: ";
@@ -891,23 +894,23 @@ let () =
   print_endline "";
   print_endline "";
   print_endline "WITNESS RESULTS:";
-  print_corpus_stats (aggregate_corpus_stats ill_typed_annotated_search);
+  print_corpus_stats (aggregate_corpus_stats ill_typed_annotated_search);*)
   print_endline "Bounded DFS";
   print_aggregate_search_result
     (aggregate_search_results
-       (bdfs_results_print ~secs:30 ill_typed_annotated_search));
+       (bdfs_results_print ~secs:1 ill_typed_annotated_search));
   print_endline "DFS";
   print_aggregate_search_result
     (aggregate_search_results
-       (dfs_results_print ~secs:30 ill_typed_annotated_search));
+       (dfs_results_print ~secs:1 ill_typed_annotated_search));
   print_endline "Interleaved DFS";
   print_aggregate_search_result
     (aggregate_search_results
-       (idfs_results_print ~secs:30 ill_typed_annotated_search));
+       (idfs_results_print ~secs:1 ill_typed_annotated_search));
   print_endline "BFS";
   print_aggregate_search_result
     (aggregate_search_results
-       (bfs_results_print ~secs:30 ill_typed_annotated_search));
+       (bfs_results_print ~secs:1 ill_typed_annotated_search));
   print_endline "";
   print_endline "";
 
