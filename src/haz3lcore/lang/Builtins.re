@@ -277,7 +277,7 @@ module Pervasives = {
       |> fn("asin", Float, Float, asin)
       |> fn("acos", Float, Float, acos)
       |> fn("atan", Float, Float, atan)
-      |> fn("mod", Prod([int(), int()]), Int, int_mod("mod"))
+      |> fn("t_mod", Prod([int(), int()]), Int, int_mod("mod"))
       |> fn("string_length", String, Int, string_length)
       |> fn(
            "string_compare",
