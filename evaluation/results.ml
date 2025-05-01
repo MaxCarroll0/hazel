@@ -60,7 +60,7 @@ let ill_typed_annotated =
   |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
   |> List.filter_map (fun x -> x)
 
-(* Filter programs which don't actually have inconsistent expectations or redundant branches *)
+(* Filter programs which don't actually have inconsistent expectations *)
 let ill_typed_annotated_search =
   ill_typed_annotated
   |> List.filter (fun e ->
@@ -68,7 +68,7 @@ let ill_typed_annotated_search =
          |> List.exists (fun (_, err) ->
                 match err with
                 | Info.Exp
-                    ( InexhaustiveMatch _ | BadPartialAp _
+                    ( BadPartialAp _
                     | Common (Inconsistent _ | NoType (BadTrivAp _)) ) ->
                     true
                 | Info.Pat
@@ -726,16 +726,16 @@ let tests =
   in
   let tests =
     List.concat_map
-      (fun v -> List.mapi (fun i e -> (v, (i, e))) ill_typed_annotated)
+      (fun v -> List.mapi (fun i e -> (v, (i, e))) ill_typed_annotated_search)
       impls
   in
   List.map (test ~timeout:1) tests |> Test.make_grouped ~name:"suite"
 
 (* Print results *)
 let print_corpus_stats cs =
-  Printf.printf "Corpus Stats:\n";
+  Printf.printf "\nCorpus Stats:\n";
   Printf.printf
-    "  num_progs: %d\n\
+    "\  num_progs: %d\n\
     \  avg_prog_size: %.2f\n\
     \  std_prog_size: %.2f\n\
     \  avg_trace_size: %.2f\n\
@@ -744,13 +744,13 @@ let print_corpus_stats cs =
     cs.std_trace_size
 
 let print_aggregate_slice_size (agg : aggregate_slice_size) =
-  Printf.printf "Aggregate Slice Size:\n";
+  Printf.printf "\nAggregate Slice Size:\n";
   Printf.printf
-    "  avg_prog_size: %.2f\n\
+    "\  avg_prog_size: %.2f\n\
     \  std_prog_size: %.2f\n\
     \  avg_slice_size: %.2f\n\
     \  std_slice_size: %.2f\n\
-     w_avg_proportion_prog: %.2f\n\
+    \  w_avg_proportion_prog: %.2f\n\
     \  w_std_proportion_prog: %.2f\n\
     \  w_avg_ratio_typ: %.2f\n\
     \  w_std_ratio_typ: %.2f\n"
@@ -759,21 +759,21 @@ let print_aggregate_slice_size (agg : aggregate_slice_size) =
     agg.w_std_ratio_typ
 
 let print_aggregate_cast_slice_size agg =
-  Printf.printf "Aggregate Cast Slice Size:\n";
+  Printf.printf "\nAggregate Cast Slice Size:\n";
   Printf.printf
-    "  avg_prog_size: %.2f\n\
+    "\  avg_prog_size: %.2f\n\
     \  std_prog_size: %.2f\n\
     \  avg_term_size: %.2f\n\
     \  std_term_size: %.2f\n\
-     avg_type_size: %.2f\n\
+    \  avg_type_size: %.2f\n\
     \  std_type_size: %.2f\n\
     \  avg_slice_from_size: %.2f\n\
     \  std_slice_from_size: %.2f\n\
-     avg_slice_to_size: %.2f\n\
+    \  avg_slice_to_size: %.2f\n\
     \  std_slice_to_size: %.2f\n\
     \  w_avg_proportion_prog: %.2f\n\
     \  w_std_proportion_prog: %.2f\n\
-     w_avg_ratio_typ: %.2f\n\
+    \  w_avg_ratio_typ: %.2f\n\
     \  w_std_ratio_typ: %.2f\n"
     agg.avg_prog_size agg.std_prog_size agg.avg_term_size agg.std_term_size
     agg.avg_type_size agg.std_type_size agg.avg_slice_from_size
@@ -782,16 +782,16 @@ let print_aggregate_cast_slice_size agg =
     agg.w_std_ratio_typ
 
 let print_aggregate_search_result res =
-  Printf.printf "Aggregate Search Results:\n";
+  Printf.printf "\nAggregate Search Results:\n";
   Printf.printf
-    "  witness_proportion: %.2f\n\
+    "\  witness_proportion: %.2f\n\
     \  nowitness_proportion: %.2f\n\
     \  timeout_proportion: %.2f\n\
-     avg_trace_length: %.2f\n\
+    \  avg_trace_length: %.2f\n\
     \  std_trace_length: %.2f\n\
     \  avg_witness_size: %.2f\n\
     \  std_witness_size: %.2f\n\
-     avg_cast_size: %.2f\n\
+    \  avg_cast_size: %.2f\n\
     \  std_cast_size: %.2f\n\
     \  witness_trace_correlation: %.2f\n"
     res.witness_proportion res.nowitness_proportion res.timeout_proportion
@@ -800,10 +800,10 @@ let print_aggregate_search_result res =
     res.witness_trace_correlation
 
 let print_aggregate_slice_size_expectations_error (agg_errors, agg_slices) =
-  Printf.printf "Error Slice Aggregate:\n";
-  Printf.printf "  Error Slice Size:\n";
+  Printf.printf "\nError Slice Aggregate:\n";
+  Printf.printf "Error Slice Size:\n";
   print_aggregate_slice_size agg_errors;
-  Printf.printf "  Combined Slice Aggregate:\n";
+  Printf.printf "Combined Slice Aggregate:\n";
   print_aggregate_slice_size agg_slices
 
 let print_results corpus =
@@ -883,18 +883,19 @@ let () =
   print_endline "";
 
   print_endline "WITNESS RESULTS:";
+  print_corpus_stats (aggregate_corpus_stats ill_typed_annotated_search);
   print_endline "DFS";
   print_aggregate_search_result
-    (aggregate_search_results (dfs_results_print ~secs:10 ill_typed_annotated));
+    (aggregate_search_results (dfs_results_print ~secs:10 ill_typed_annotated_search));
   print_endline "Bounded DFS";
   print_aggregate_search_result
-    (aggregate_search_results (bdfs_results_print ~secs:10 ill_typed_annotated));
+    (aggregate_search_results (bdfs_results_print ~secs:10 ill_typed_annotated_search));
   print_endline "Interleaved DFS";
   print_aggregate_search_result
-    (aggregate_search_results (idfs_results_print ~secs:10 ill_typed_annotated));
+    (aggregate_search_results (idfs_results_print ~secs:10 ill_typed_annotated_search));
   (*print_endline "BFS";
   print_aggregate_search_result
-    (aggregate_search_results (bfs_results_print ~secs:10 ill_typed_annotated));*)
+    (aggregate_search_results (bfs_results_print ~secs:1 ill_typed_annotated_search));*)
   print_endline "";
   print_endline "";
 
