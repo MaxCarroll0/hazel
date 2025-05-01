@@ -531,7 +531,6 @@ let dfs_print ~secs i d =
       raise Timeout
   | e ->
       print_endline ("Exception: " ^ Printexc.exn_slot_name e);
-      print_endline ("In: " ^ Exp.show d);
       raise Timeout
 
 let bfs_print ~secs i d =
@@ -545,7 +544,6 @@ let bfs_print ~secs i d =
       raise Timeout
   | e ->
       print_endline ("Exception: " ^ Printexc.exn_slot_name e);
-      print_endline ("In: " ^ Exp.show d);
       raise Timeout
 
 let idfs_print ~secs i d =
@@ -559,7 +557,6 @@ let idfs_print ~secs i d =
       raise Timeout
   | e ->
       print_endline ("Exception: " ^ Printexc.exn_slot_name e);
-      print_endline ("In: " ^ Exp.show d);
       raise Timeout
 
 let bdfs_print ~secs i d =
@@ -573,7 +570,6 @@ let bdfs_print ~secs i d =
       raise Timeout
   | e ->
       print_endline ("Exception: " ^ Printexc.exn_slot_name e);
-      print_endline ("In: " ^ Exp.show d);
       raise Timeout
 
 type search_result =
