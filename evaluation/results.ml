@@ -25,6 +25,7 @@ module SearchBDFS = IndetEvaluator.Make (BDFS)
 
 (* Basic info relevant to slicing *)
 type expression_info = {
+  str : string;
   term : Exp.t;
   statics : Statics.Map.t;
   elaboration : Exp.t;
@@ -32,7 +33,7 @@ type expression_info = {
   trace_length : int; (* Deterministic trace length *)
 }
 
-let make_exp_info i e =
+let make_exp_info i s e =
   print_endline ("Calculating info for prog" ^ Int.to_string i);
   print_endline "Typing";
   let statics = Statics.mk Settings.settings Settings.ctx e in
@@ -48,6 +49,7 @@ let make_exp_info i e =
   in
   print_endline "Finished";
   {
+    str = s;
     term = e;
     statics;
     elaboration;
@@ -57,7 +59,7 @@ let make_exp_info i e =
 
 let ill_typed_annotated =
   ill_typed_annotated
-  |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
+  |> List.mapi (fun i (s, e) -> try Some (make_exp_info i s e) with _ -> None)
   |> List.filter_map (fun x -> x)
 
 (* Filter programs which don't actually have inconsistent expectations *)
@@ -79,14 +81,14 @@ let ill_typed_annotated_search =
 
 let ill_typed_dynamic =
   ill_typed_dynamic
-  |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
+  |> List.mapi (fun i (s, e) -> try Some (make_exp_info i s e) with _ -> None)
   |> List.filter_map (fun x -> x)
 
 let ill_typed = ill_typed_annotated @ ill_typed_dynamic
 
 let well_typed =
   well_typed
-  |> List.mapi (fun i e -> try Some (make_exp_info i e) with _ -> None)
+  |> List.mapi (fun i (s, e) -> try Some (make_exp_info i s e) with _ -> None)
   |> List.filter_map (fun x -> x)
 
 let all = well_typed @ ill_typed
@@ -115,7 +117,7 @@ let aggregate_corpus_stats l =
 (* Type Slice Size Stats*)
 let slice_info l =
   l
-  |> List.mapi (fun i { term; statics; _ } -> slice_info statics (Exp term))
+  |> List.mapi (fun _ { term; statics; _ } -> slice_info statics (Exp term))
   |> List.flatten
 
 let slice_info_all = all |> slice_info
@@ -504,72 +506,72 @@ let aggregate_cast_slice_sizes ss =
 (* Search Procedure Proportions *)
 open ResourceLimits
 
-let dfs ~secs _ d =
+let dfs ~secs _ _ d =
   with_timeout ~secs (fun () ->
       DFS.once (SearchDFS.cast_errors ~env:Builtins.env_init d))
 
-let bfs ~secs _ d =
+let bfs ~secs _ _ d =
   with_timeout ~secs (fun () ->
       BFS.once (SearchBFS.cast_errors ~env:Builtins.env_init d))
 
-let idfs ~secs _ d =
+let idfs ~secs _ _ d =
   with_timeout ~secs (fun () ->
       IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d))
 
-let bdfs ~secs _ d =
+let bdfs ~secs _ _ d =
   with_timeout ~secs (fun () ->
       BDFS.once (SearchBDFS.cast_errors ~env:Builtins.env_init d))
 
-let dfs_print ~secs i d =
-  Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
+let dfs_print ~secs i s d =
+  Printf.printf "\nDFS Searching prog %i with timeout: %is: %!" i secs;
   try
     with_timeout ~secs (fun () ->
         DFS.once (SearchDFS.cast_errors ~env:Builtins.env_init d))
   with
   | Timeout ->
-      print_endline "Timed Out";
+      Printf.printf "(Timed Out):\n%s" s;
       raise Timeout
-  | e ->
-      print_endline ("Exception: " ^ Printexc.exn_slot_name e);
+  | EvaluatorError.Exception(e) ->
+      Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
       raise Timeout
 
-let bfs_print ~secs i d =
-  Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
+let bfs_print ~secs i s d =
+  Printf.printf "\nBFS Searching prog %i with timeout: %is: %!" i secs;
   try
     with_timeout ~secs (fun () ->
         BFS.once (SearchBFS.cast_errors ~env:Builtins.env_init d))
   with
   | Timeout ->
-      print_endline "Timed Out";
+      Printf.printf "(Timed Out):\n%s" s;
       raise Timeout
-  | e ->
-      print_endline ("Exception: " ^ Printexc.exn_slot_name e);
+  | EvaluatorError.Exception(e) ->
+    Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
       raise Timeout
 
-let idfs_print ~secs i d =
-  Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
+let idfs_print ~secs i s d =
+  Printf.printf "\nIDFS Searching prog %i with timeout %is: %!" i secs;
   try
     with_timeout ~secs (fun () ->
         IDFS.once (SearchIDFS.cast_errors ~env:Builtins.env_init d))
   with
   | Timeout ->
-      print_endline "Timed Out";
+      Printf.printf "(Timed Out):\n%s" s;
       raise Timeout
-  | e ->
-      print_endline ("Exception: " ^ Printexc.exn_slot_name e);
+  | EvaluatorError.Exception(e) ->
+    Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
       raise Timeout
 
-let bdfs_print ~secs i d =
-  Printf.printf "Searching prog %i with timeout %is%!\n" i secs;
+let bdfs_print ~secs i s d =
+  Printf.printf "\nBDFS Searching prog %i with timeout %is: %!" i secs;
   try
     with_timeout ~secs (fun () ->
         BDFS.once (SearchBDFS.cast_errors ~env:Builtins.env_init d))
   with
   | Timeout ->
-      print_endline "Timed Out";
+      Printf.printf "(Timed Out):\n%s" s;
       raise Timeout
-  | e ->
-      print_endline ("Exception: " ^ Printexc.exn_slot_name e);
+  | EvaluatorError.Exception(e) ->
+    Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
       raise Timeout
 
 type search_result =
@@ -588,7 +590,7 @@ let eval_results search l =
   l
   |> List.mapi (fun i s ->
          try
-           match search i s.elaboration with
+           match search i s.str s.elaboration with
            | None -> NoWitness
            | Some (state, result) ->
                Witness
@@ -705,7 +707,7 @@ let benchmark test =
         [ monotonic_clock; minor_allocated; major_allocated ]
     in
     let cfg =
-      Benchmark.cfg ~limit:100 ~quota:(Time.second 1.) ~kde:(Some 1000) ()
+      Benchmark.cfg ~limit:100 ~quota:(Time.second 10.) ~kde:(Some 1000) ()
     in
     let raw_results = Benchmark.all cfg instances test in
     let results =
@@ -735,7 +737,7 @@ let tests =
 let print_corpus_stats cs =
   Printf.printf "\nCorpus Stats:\n";
   Printf.printf
-    "\  num_progs: %d\n\
+    "  num_progs: %d\n\
     \  avg_prog_size: %.2f\n\
     \  std_prog_size: %.2f\n\
     \  avg_trace_size: %.2f\n\
@@ -746,7 +748,7 @@ let print_corpus_stats cs =
 let print_aggregate_slice_size (agg : aggregate_slice_size) =
   Printf.printf "\nAggregate Slice Size:\n";
   Printf.printf
-    "\  avg_prog_size: %.2f\n\
+    "  avg_prog_size: %.2f\n\
     \  std_prog_size: %.2f\n\
     \  avg_slice_size: %.2f\n\
     \  std_slice_size: %.2f\n\
@@ -761,7 +763,7 @@ let print_aggregate_slice_size (agg : aggregate_slice_size) =
 let print_aggregate_cast_slice_size agg =
   Printf.printf "\nAggregate Cast Slice Size:\n";
   Printf.printf
-    "\  avg_prog_size: %.2f\n\
+    "  avg_prog_size: %.2f\n\
     \  std_prog_size: %.2f\n\
     \  avg_term_size: %.2f\n\
     \  std_term_size: %.2f\n\
@@ -784,7 +786,7 @@ let print_aggregate_cast_slice_size agg =
 let print_aggregate_search_result res =
   Printf.printf "\nAggregate Search Results:\n";
   Printf.printf
-    "\  witness_proportion: %.2f\n\
+    "  witness_proportion: %.2f\n\
     \  nowitness_proportion: %.2f\n\
     \  timeout_proportion: %.2f\n\
     \  avg_trace_length: %.2f\n\
@@ -865,7 +867,7 @@ let print_results corpus =
        (cast_slice_sizes_all (cast_slice_info_results corpus)))
 
 let () =
-  print_endline "WELL TYPED PROGRAMS: ";
+  (*print_endline "WELL TYPED PROGRAMS: ";
   print_results well_typed;
   print_endline "";
   print_endline "UNANNOTATED ILL TYPED PROGRAMS: ";
@@ -880,22 +882,25 @@ let () =
   print_endline "ALL PROGRAMS: ";
   print_results all;
   print_endline "";
-  print_endline "";
-
+  print_endline "";*)
   print_endline "WITNESS RESULTS:";
   print_corpus_stats (aggregate_corpus_stats ill_typed_annotated_search);
-  print_endline "DFS";
-  print_aggregate_search_result
-    (aggregate_search_results (dfs_results_print ~secs:10 ill_typed_annotated_search));
   print_endline "Bounded DFS";
   print_aggregate_search_result
-    (aggregate_search_results (bdfs_results_print ~secs:10 ill_typed_annotated_search));
+    (aggregate_search_results
+       (bdfs_results_print ~secs:30 ill_typed_annotated_search));
+  print_endline "DFS";
+  print_aggregate_search_result
+    (aggregate_search_results
+       (dfs_results_print ~secs:30 ill_typed_annotated_search));
   print_endline "Interleaved DFS";
   print_aggregate_search_result
-    (aggregate_search_results (idfs_results_print ~secs:10 ill_typed_annotated_search));
-  (*print_endline "BFS";
+    (aggregate_search_results
+       (idfs_results_print ~secs:30 ill_typed_annotated_search));
+  print_endline "BFS";
   print_aggregate_search_result
-    (aggregate_search_results (bfs_results_print ~secs:1 ill_typed_annotated_search));*)
+    (aggregate_search_results
+       (bfs_results_print ~secs:30 ill_typed_annotated_search));
   print_endline "";
   print_endline "";
 

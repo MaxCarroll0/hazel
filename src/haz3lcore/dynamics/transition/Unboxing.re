@@ -230,7 +230,7 @@ let rec unbox: type a. (unbox_request(a), DHExp.t) => unboxed(a) =
         let* d' = unbox(SumNoArg(name), d');
         Matches(d');
       | _ => DoesNotMatch
-      };
+      }
 
     | (SumWithArg(_), Constructor(_)) => DoesNotMatch
     | (SumWithArg(name1), Ap(_, {term: Constructor(name2, _), _}, d3))

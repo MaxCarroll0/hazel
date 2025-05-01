@@ -78,7 +78,7 @@ let ill_typed_annotated =
   Data.ill_typed_annotated |> fun x ->
   (print_endline "Started parsing ill typed annotated";
    x)
-  |> List.filter_map (fun s -> try Some (make_term_parse s) with _ -> None)
+  |> List.filter_map (fun s -> try Some (s, make_term_parse s) with _ -> None)
   |> fun x ->
   print_endline "Finished parsing ill typed dynamic";
   x
@@ -87,7 +87,7 @@ let ill_typed_dynamic =
   Data.ill_typed_dynamic |> fun x ->
   (print_endline "Started parsing ill typed dynamic";
    x)
-  |> List.filter_map (fun s -> try Some (make_term_parse s) with _ -> None)
+  |> List.filter_map (fun s -> try Some (s, make_term_parse s) with _ -> None)
   |> fun x ->
   print_endline "Finished parsing ill typed dynamic";
   x
