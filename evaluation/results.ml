@@ -690,14 +690,18 @@ open Bechamel
 let timedout = ref []
 
 let test ~timeout ((impl_name, impl), (progn, program)) =
-  Printf.printf("\r%s-%i") impl_name progn;
   let test_name = Fmt.str "%s-%i" impl_name progn in
   Test.make ~name:test_name
     (Staged.stage (fun () ->
-         try Some (eval_results (impl ~secs:timeout) [ program ])
-         with Timeout ->
+         match (eval_results (impl ~secs:timeout) [ program ] |> B.List.hd) with
+         | Some(TimeOut) ->
            timedout := ("suite/" ^ test_name) :: !timedout;
-           None))
+           Some(TimeOut)
+
+          | Some(x) -> Some(x)
+          | None -> None))
+
+let no_timeouts = ill_typed_annotated_search
 
 let benchmark test =
   let run_bench test =
@@ -710,7 +714,7 @@ let benchmark test =
         [ monotonic_clock; minor_allocated; major_allocated ]
     in
     let cfg =
-      Benchmark.cfg ~limit:100 ~quota:(Time.second 10.) ~kde:(Some 1000) ()
+      Benchmark.cfg ~limit:100 ~quota:(Time.second 1.) ~kde:(Some 1000) ()
     in
     let raw_results = Benchmark.all cfg instances test in
     let results =
@@ -720,14 +724,14 @@ let benchmark test =
     (results, raw_results)
   in
   let results, _ = run_bench test in
-  Fmt.pr "Timeout %a\n%!" Fmt.(list string) !timedout;
+  Fmt.pr "Timeout %a\n%!" Fmt.(list ~sep: semi string) !timedout;
   Fmt.pr "%a@.%!"
     (Bechamel_csv.pp ~timedout:!timedout ~print_headings:true)
     results
 
 let tests =
   let impls =
-    [ ("dfs", dfs); (*("bfs", bfs);*) ("idfs", idfs); ("bdfs", bdfs) ]
+    [ ("dfs", dfs); ("bfs", bfs); ("idfs", idfs); ("bdfs", bdfs) ]
   in
   let tests =
     List.concat_map
