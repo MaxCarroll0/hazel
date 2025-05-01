@@ -1,0 +1,83 @@
+# Filtered Classes -- Never produce witnesses:
+- Irrelevant Errors:
+Unbound var errors, label errors, constructor errors, etc. Only inconsistent expectation errors are considered
+
+# Unfiltered Classes:
+- Dead Code: 
+Unreachable code for any input. Trivial means it is easily detectable by basic dead code detection.
+
+- Witness Exists:
+A witness does exist but the procedure doesn't find it.
+
+- Function Generation (Witness Exists):
+We only generate constant functions
+
+- Non-Termination (Witness Exists): 
+Unfair search procedures like DFS may enter infinite loop which are otherwise recoverable.
+
+- Pattern Cast Failure (Witness Exists): 
+Inconsistencies in pattern casts are not automatically failed casts. When inside dynamic match statements, any cast errors transferred to the match scrutinee which result in cast errors are filtered to allow easily ignoring spurious cast errors resulting from repeated instantiation e.g.
+_instantiating a list scrutinee then wrapping it in an int cast from an int pattern._
+A small class of real errors are missed. Pattern directed instantiation would detect these.
+Note that this class doesn't appear in these results as these are mostly statically typed.
+
+- Pattern Cast Failure (Dead Code):
+- Same as above except inside a static pattern matching statement. Such a cast failure is contained entirely within an unusable pattern. This can be considered this as Trivial Dead Code. This class of dead code woule be detectable with pattern-directed instantiation.
+
+- Hazel Bug:
+Hazel unboxing bugs are present in a few examples (and also on the main branch). These are excluded from results.
+
+
+
+# Bounded DFS -- 30s limit
+Program Name		Exception Type	Classification
+	
+prog0080.typed.hazel	TIMEOUT		Dead Code (Trivial), Wildcard Let Expression
+prog0339.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog0453.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog0500.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog0589.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog0593.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure	note: same error as prog0589
+prog1332.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog1622.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog2052.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog2226.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog2270.typed.hazel 	TIMEOUT		Witness Exists	(Average(?, ?))
+prog2271.typed.hazel	TIMEOUT		Witness Exists	(Average(?, ?))
+prog2813.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog3321.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog3418.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog3419.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog4123.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure, Unbound Constructor
+prog4136.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog4602.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog4759.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog5152.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog5382.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog5471.typed.hazel	EXCEPTION	Hazel Bug, Tuple Unboxing
+prog5480.typed.hazel	TIMEOUT		Dead Code (Trivial), Wildcard Let Expression
+prog5716.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog5888.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog5889.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog5932.typed.hazel	TIMEOUT		Witness Exists	((fun _ -> fun _ -> 7), 1), Function Instantiation
+prog6172.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog6260.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog6260.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog6319.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog6488.typed.hazel	EXCEPTION	Hazel Bug, Tuple Unboxing
+prog6489.typed.hazel	EXCEPTION	Hazel Bug, Tuple Unboxing
+prog6492.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog6650.typed.hazel	TIMEOUT		Dead Code (Non-Trivial), Non-Termination
+prog6741.typed.hazel	TIMEOUT		Hazel Bug, Consistency (?,?) with rec exp -> + ...
+prog6790.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog6830.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog7047.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog7805.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog7806.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog7807.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog7813.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog7820.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog8065.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog8121.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+
+
