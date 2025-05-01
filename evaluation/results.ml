@@ -590,10 +590,10 @@ let eval_results search l =
   l
   |> List.mapi (fun i s ->
          try
-           match search i s.str s.elaboration with
-           | None -> NoWitness
+           match search  i s.str s.elaboration with
+           | None -> Some(NoWitness)
            | Some (state, result) ->
-               Witness
+               Some(Witness
                  {
                    trace_size = IndetEvaluatorState.get_trace_length state;
                    witness_size = IndetEvaluatorState.get_instantiations state;
@@ -607,8 +607,10 @@ let eval_results search l =
                           (List.length (term_ids (Exp s.elaboration)));
                    cast_size = cast_error_size result;
                    result;
-                 }
-         with Timeout -> TimeOut)
+                 })
+         with Timeout -> Some(TimeOut)
+         | _ -> None)
+         |> List.filter_map(fun x -> x)
 
 type aggregate_search_result = {
   witness_proportion : float;
@@ -688,6 +690,7 @@ open Bechamel
 let timedout = ref []
 
 let test ~timeout ((impl_name, impl), (progn, program)) =
+  Printf.printf("\r%s-%i") impl_name progn;
   let test_name = Fmt.str "%s-%i" impl_name progn in
   Test.make ~name:test_name
     (Staged.stage (fun () ->
@@ -867,7 +870,7 @@ let print_results corpus =
        (cast_slice_sizes_all (cast_slice_info_results corpus)))
 
 let () =
-  (*print_endline "WELL TYPED PROGRAMS: ";
+  print_endline "WELL TYPED PROGRAMS: ";
   print_results well_typed;
   print_endline "";
   print_endline "UNANNOTATED ILL TYPED PROGRAMS: ";
@@ -882,7 +885,7 @@ let () =
   print_endline "ALL PROGRAMS: ";
   print_results all;
   print_endline "";
-  print_endline "";*)
+  print_endline "";
   print_endline "WITNESS RESULTS:";
   print_corpus_stats (aggregate_corpus_stats ill_typed_annotated_search);
   print_endline "Bounded DFS";
