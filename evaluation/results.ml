@@ -898,7 +898,7 @@ let print_results corpus =
        (cast_slice_sizes_all (cast_slice_info_results corpus)))
 
 let () =
-  (*print_endline "WELL TYPED PROGRAMS: ";
+  print_endline "WELL TYPED PROGRAMS: ";
   print_results well_typed;
   print_endline "";
   print_endline "UNANNOTATED ILL TYPED PROGRAMS: ";
@@ -915,7 +915,7 @@ let () =
   print_endline "";
   print_endline "";
   print_endline "WITNESS RESULTS:";
-  print_corpus_stats (aggregate_corpus_stats ill_typed_annotated_search);*)
+  print_corpus_stats (aggregate_corpus_stats ill_typed_annotated_search);
   print_endline "Bounded DFS";
   print_aggregate_search_result
     (aggregate_search_results
