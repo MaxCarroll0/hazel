@@ -278,7 +278,6 @@ module Make =
                >>= (
                  () =>
                    return(
-                  
                      Cast(sbst, t, TypSlice.hole([]) |> TypSlice.fresh)
                      |> Exp.fresh,
                    )

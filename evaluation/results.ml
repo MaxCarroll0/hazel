@@ -180,8 +180,16 @@ let slice_sizes_incon_expectations l =
                (incon_join
                |> List.map (fun (x, y) ->
                       TypSlice.union_slice_incr
-                        (TypSlice.full_slice (TypSlice.term_of x))
-                        (TypSlice.full_slice (TypSlice.term_of y)))
+                        (TypSlice.union_slice_incr
+                           (TypSlice.get_global_slice_or_empty
+                              (TypSlice.term_of x))
+                           (TypSlice.get_global_slice_or_empty
+                              (TypSlice.term_of y)))
+                        (TypSlice.union_slice_incr
+                           (TypSlice.get_incr_slice_or_empty
+                              (TypSlice.term_of x))
+                           (TypSlice.get_incr_slice_or_empty
+                              (TypSlice.term_of y))))
                |> List.fold_left TypSlice.union_slice_incr
                     TypSlice.empty_slice_incr)
                  .term_ids |> List.length )
@@ -235,8 +243,16 @@ let slice_sizes_incon_branches l =
                (incon_join
                |> List.map (fun (x, y) ->
                       TypSlice.union_slice_incr
-                        (TypSlice.full_slice (TypSlice.term_of x))
-                        (TypSlice.full_slice (TypSlice.term_of y)))
+                        (TypSlice.union_slice_incr
+                           (TypSlice.get_global_slice_or_empty
+                              (TypSlice.term_of x))
+                           (TypSlice.get_global_slice_or_empty
+                              (TypSlice.term_of y)))
+                        (TypSlice.union_slice_incr
+                           (TypSlice.get_incr_slice_or_empty
+                              (TypSlice.term_of x))
+                           (TypSlice.get_incr_slice_or_empty
+                              (TypSlice.term_of y))))
                |> List.fold_left TypSlice.union_slice_incr
                     TypSlice.empty_slice_incr)
                  .term_ids |> List.length )
@@ -531,7 +547,7 @@ let dfs_print ~secs i s d =
   | Timeout ->
       Printf.printf "(Timed Out):\n%s" s;
       raise Timeout
-  | EvaluatorError.Exception(e) ->
+  | EvaluatorError.Exception e ->
       Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
       raise Timeout
 
@@ -544,8 +560,8 @@ let bfs_print ~secs i s d =
   | Timeout ->
       Printf.printf "(Timed Out):\n%s" s;
       raise Timeout
-  | EvaluatorError.Exception(e) ->
-    Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
+  | EvaluatorError.Exception e ->
+      Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
       raise Timeout
 
 let idfs_print ~secs i s d =
@@ -557,8 +573,8 @@ let idfs_print ~secs i s d =
   | Timeout ->
       Printf.printf "(Timed Out):\n%s" s;
       raise Timeout
-  | EvaluatorError.Exception(e) ->
-    Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
+  | EvaluatorError.Exception e ->
+      Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
       raise Timeout
 
 let bdfs_print ~secs i s d =
@@ -570,14 +586,14 @@ let bdfs_print ~secs i s d =
   | Timeout ->
       Printf.printf "(Timed Out):\n%s" s;
       raise Timeout
-  | EvaluatorError.Exception(e) ->
-    Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
+  | EvaluatorError.Exception e ->
+      Printf.printf "(Exception: %s)\n%s" (EvaluatorError.show e) s;
       raise Timeout
 
 type search_result =
   | Witness of {
       trace_size : int;
-      trace_size_original: int; (* For deterministic evaluation *)
+      trace_size_original : int; (* For deterministic evaluation *)
       witness_size : int;
           (* Sum of sizes of ALL instantiated parts, even if the instantiation is not actually the erroneous part of the witness *)
       code_coverage : float;
@@ -591,28 +607,31 @@ let eval_results search l =
   l
   |> List.mapi (fun i s ->
          try
-           match search  i s.str s.elaboration with
-           | None -> Some(NoWitness)
+           match search i s.str s.elaboration with
+           | None -> Some NoWitness
            | Some (state, result) ->
-               Some(Witness
-                 {
-                   trace_size = IndetEvaluatorState.get_trace_length state;
-                   trace_size_original = s.trace_length;
-                   witness_size = IndetEvaluatorState.get_instantiations state;
-                   code_coverage =
-                     Float.of_int
-                       (List.length
-                          (diff
-                             (term_ids (Exp s.elaboration))
-                             [] (* IndetEvaluatorState.get_ids_covered *)))
-                     /. Float.of_int
-                          (List.length (term_ids (Exp s.elaboration)));
-                   cast_size = cast_error_size result;
-                   result;
-                 })
-         with Timeout -> Some(TimeOut)
+               Some
+                 (Witness
+                    {
+                      trace_size = IndetEvaluatorState.get_trace_length state;
+                      trace_size_original = s.trace_length;
+                      witness_size =
+                        IndetEvaluatorState.get_instantiations state;
+                      code_coverage =
+                        Float.of_int
+                          (List.length
+                             (diff
+                                (term_ids (Exp s.elaboration))
+                                [] (* IndetEvaluatorState.get_ids_covered *)))
+                        /. Float.of_int
+                             (List.length (term_ids (Exp s.elaboration)));
+                      cast_size = cast_error_size result;
+                      result;
+                    })
+         with
+         | Timeout -> Some TimeOut
          | _ -> None)
-         |> List.filter_map(fun x -> x)
+  |> List.filter_map (fun x -> x)
 
 type aggregate_search_result = {
   witness_proportion : float;
@@ -625,14 +644,15 @@ type aggregate_search_result = {
   avg_cast_size : float;
   std_cast_size : float;
   witness_trace_correlation : float;
-  (* Correlation between witness size and normalised trace size (divided by original trace size) *)
+      (* Correlation between witness size and normalised trace size (divided by original trace size) *)
 }
 
 let aggregate_search_results rs =
   let witnesses =
     rs
     |> List.filter_map (function
-         | Witness { trace_size_original; trace_size; witness_size; cast_size; _ } ->
+         | Witness
+             { trace_size_original; trace_size; witness_size; cast_size; _ } ->
              Some (trace_size_original, trace_size, witness_size, cast_size)
          | _ -> None)
   in
@@ -670,16 +690,20 @@ let aggregate_search_results rs =
         |> List.map (fun (_, _, witness_size, _) -> Float.of_int witness_size));
     avg_cast_size =
       avg_0
-        (witnesses |> List.map (fun (_, _, _, cast_size) -> Float.of_int cast_size));
+        (witnesses
+        |> List.map (fun (_, _, _, cast_size) -> Float.of_int cast_size));
     std_cast_size =
       std_0
-        (witnesses |> List.map (fun (_, _, _, cast_size) -> Float.of_int cast_size));
+        (witnesses
+        |> List.map (fun (_, _, _, cast_size) -> Float.of_int cast_size));
     witness_trace_correlation =
       pearson_correlation_0
         (witnesses
         |> List.map (fun (_, _, witness_size, _) -> Float.of_int witness_size))
         (witnesses
-        |> List.map (fun (trace_length_original, trace_length, _, _) -> Float.of_int trace_length /. Float.of_int(trace_length_original)));
+        |> List.map (fun (trace_length_original, trace_length, _, _) ->
+               Float.of_int trace_length /. Float.of_int trace_length_original)
+        );
   }
 
 let dfs_results_print ~secs l = eval_results (dfs_print ~secs) l
@@ -696,13 +720,12 @@ let test ~timeout ((impl_name, impl), (progn, program)) =
   let test_name = Fmt.str "%s-%i" impl_name progn in
   Test.make ~name:test_name
     (Staged.stage (fun () ->
-         match (eval_results (impl ~secs:timeout) [ program ] |> B.List.hd) with
-         | Some(TimeOut) ->
-           timedout := ("suite/" ^ test_name) :: !timedout;
-           Some(TimeOut)
-
-          | Some(x) -> Some(x)
-          | None -> None))
+         match eval_results (impl ~secs:timeout) [ program ] |> B.List.hd with
+         | Some TimeOut ->
+             timedout := ("suite/" ^ test_name) :: !timedout;
+             Some TimeOut
+         | Some x -> Some x
+         | None -> None))
 
 let no_timeouts = ill_typed_annotated_search
 
@@ -727,15 +750,13 @@ let benchmark test =
     (results, raw_results)
   in
   let results, _ = run_bench test in
-  Fmt.pr "Timeout %a\n%!" Fmt.(list ~sep: semi string) !timedout;
+  Fmt.pr "Timeout %a\n%!" Fmt.(list ~sep:semi string) !timedout;
   Fmt.pr "%a@.%!"
     (Bechamel_csv.pp ~timedout:!timedout ~print_headings:true)
     results
 
 let tests =
-  let impls =
-    [ ("dfs", dfs); ("bfs", bfs); ("idfs", idfs); ("bdfs", bdfs) ]
-  in
+  let impls = [ ("dfs", dfs); ("bfs", bfs); ("idfs", idfs); ("bdfs", bdfs) ] in
   let tests =
     List.concat_map
       (fun v -> List.mapi (fun i e -> (v, (i, e))) ill_typed_annotated_search)
