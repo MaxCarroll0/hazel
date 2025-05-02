@@ -24,12 +24,12 @@ Error Slice Aggregate:
 Aggregate Slice Size:
   avg_prog_size: 164.89
   std_prog_size: 81.18
-  avg_slice_size: 8.37
-  std_slice_size: 10.23
-  w_avg_proportion_prog: 0.05
-  w_std_proportion_prog: 0.08
-  w_avg_ratio_typ: 0.10
-  w_std_ratio_typ: 0.15
+  avg_slice_size: 5.66
+  std_slice_size: 4.31
+  w_avg_proportion_prog: 0.03
+  w_std_proportion_prog: 0.03
+  w_avg_ratio_typ: 0.05
+  w_std_ratio_typ: 0.05
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
@@ -47,12 +47,12 @@ Error Slice Aggregate:
 Aggregate Slice Size:
   avg_prog_size: 156.88
   std_prog_size: 84.10
-  avg_slice_size: 10.63
-  std_slice_size: 27.69
-  w_avg_proportion_prog: 0.07
-  w_std_proportion_prog: 0.16
-  w_avg_ratio_typ: 5.31
-  w_std_ratio_typ: 13.84
+  avg_slice_size: 3.18
+  std_slice_size: 4.12
+  w_avg_proportion_prog: 0.02
+  w_std_proportion_prog: 0.03
+  w_avg_ratio_typ: 1.59
+  w_std_ratio_typ: 2.06
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
@@ -70,12 +70,12 @@ Error Slice Aggregate:
 Aggregate Slice Size:
   avg_prog_size: 162.76
   std_prog_size: 82.05
-  avg_slice_size: 8.97
-  std_slice_size: 16.79
-  w_avg_proportion_prog: 0.06
-  w_std_proportion_prog: 0.11
-  w_avg_ratio_typ: 1.01
-  w_std_ratio_typ: 6.13
+  avg_slice_size: 5.00
+  std_slice_size: 4.40
+  w_avg_proportion_prog: 0.03
+  w_std_proportion_prog: 0.03
+  w_avg_ratio_typ: 0.32
+  w_std_ratio_typ: 1.04
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
@@ -259,14 +259,14 @@ Aggregate Slice Size:
 Type Slice Sizes: Inconsistent Expectations
 Error Slice Aggregate:
 Aggregate Slice Size:
-  avg_prog_size: 146.97
-  std_prog_size: 76.85
-  avg_slice_size: 18.43
-  std_slice_size: 25.59
-  w_avg_proportion_prog: 0.13
-  w_std_proportion_prog: 0.19
-  w_avg_ratio_typ: 0.13
-  w_std_ratio_typ: 0.22
+  avg_prog_size: 147.04
+  std_prog_size: 76.87
+  avg_slice_size: 8.22
+  std_slice_size: 12.61
+  w_avg_proportion_prog: 0.06
+  w_std_proportion_prog: 0.09
+  w_avg_ratio_typ: 0.05
+  w_std_ratio_typ: 0.08
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
@@ -284,12 +284,12 @@ Error Slice Aggregate:
 Aggregate Slice Size:
   avg_prog_size: 275.00
   std_prog_size: 66.00
-  avg_slice_size: 138.40
-  std_slice_size: 43.80
-  w_avg_proportion_prog: 0.50
-  w_std_proportion_prog: 0.07
-  w_avg_ratio_typ: 69.20
-  w_std_ratio_typ: 21.90
+  avg_slice_size: 2.00
+  std_slice_size: 0.00
+  w_avg_proportion_prog: 0.01
+  w_std_proportion_prog: 0.00
+  w_avg_ratio_typ: 1.00
+  w_std_ratio_typ: 0.00
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
@@ -305,14 +305,14 @@ Aggregate Slice Size:
 Type Slice Sizes: Inconsistent ALL
 Error Slice Aggregate:
 Aggregate Slice Size:
-  avg_prog_size: 148.53
-  std_prog_size: 78.00
-  avg_slice_size: 19.90
-  std_slice_size: 29.05
-  w_avg_proportion_prog: 0.13
-  w_std_proportion_prog: 0.20
-  w_avg_ratio_typ: 0.71
-  w_std_ratio_typ: 6.64
+  avg_prog_size: 148.60
+  std_prog_size: 78.02
+  avg_slice_size: 8.15
+  std_slice_size: 12.56
+  w_avg_proportion_prog: 0.05
+  w_std_proportion_prog: 0.08
+  w_avg_ratio_typ: 0.06
+  w_std_ratio_typ: 0.12
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
@@ -496,14 +496,14 @@ Aggregate Slice Size:
 Type Slice Sizes: Inconsistent Expectations
 Error Slice Aggregate:
 Aggregate Slice Size:
-  avg_prog_size: 155.77
-  std_prog_size: 79.51
-  avg_slice_size: 13.49
-  std_slice_size: 20.25
-  w_avg_proportion_prog: 0.09
-  w_std_proportion_prog: 0.15
-  w_avg_ratio_typ: 0.11
-  w_std_ratio_typ: 0.19
+  avg_prog_size: 155.81
+  std_prog_size: 79.52
+  avg_slice_size: 6.96
+  std_slice_size: 9.58
+  w_avg_proportion_prog: 0.04
+  w_std_proportion_prog: 0.06
+  w_avg_ratio_typ: 0.05
+  w_std_ratio_typ: 0.06
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
@@ -521,12 +521,12 @@ Error Slice Aggregate:
 Aggregate Slice Size:
   avg_prog_size: 160.90
   std_prog_size: 86.25
-  avg_slice_size: 14.97
-  std_slice_size: 36.64
-  w_avg_proportion_prog: 0.09
-  w_std_proportion_prog: 0.19
-  w_avg_ratio_typ: 7.49
-  w_std_ratio_typ: 18.32
+  avg_slice_size: 3.14
+  std_slice_size: 4.05
+  w_avg_proportion_prog: 0.02
+  w_std_proportion_prog: 0.03
+  w_avg_ratio_typ: 1.57
+  w_std_ratio_typ: 2.03
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
@@ -542,14 +542,14 @@ Aggregate Slice Size:
 Type Slice Sizes: Inconsistent ALL
 Error Slice Aggregate:
 Aggregate Slice Size:
-  avg_prog_size: 156.57
-  std_prog_size: 80.62
-  avg_slice_size: 13.72
-  std_slice_size: 23.57
-  w_avg_proportion_prog: 0.09
-  w_std_proportion_prog: 0.16
-  w_avg_ratio_typ: 0.89
-  w_std_ratio_typ: 6.35
+  avg_prog_size: 156.60
+  std_prog_size: 80.63
+  avg_slice_size: 6.37
+  std_slice_size: 9.05
+  w_avg_proportion_prog: 0.04
+  w_std_proportion_prog: 0.06
+  w_avg_ratio_typ: 0.21
+  w_std_ratio_typ: 0.81
   
 Combined Slice Aggregate:
 Aggregate Slice Size:
