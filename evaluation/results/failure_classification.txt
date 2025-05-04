@@ -33,12 +33,12 @@ Hazel unboxing bugs are present in a few examples (and also on the main branch).
 Program Name		Exception Type	Classification
 	
 prog0080.typed.hazel	TIMEOUT		Dead Code (Trivial), Wildcard Let Expression
-prog0339.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog0339.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure, Unbound Constructor, Nested Error
 prog0453.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
-prog0500.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog0500.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure, Nested Error
 prog0589.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
-prog0593.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure	note: same error as prog0589
-prog1332.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog0593.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog1332.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor, Nested Error
 prog1622.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
 prog2052.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
 prog2226.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
@@ -57,13 +57,13 @@ prog5382.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
 prog5471.typed.hazel	EXCEPTION	Hazel Bug, Tuple Unboxing
 prog5480.typed.hazel	TIMEOUT		Dead Code (Trivial), Wildcard Let Expression
 prog5716.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
-prog5888.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
-prog5889.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog5888.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure, Nested Error
+prog5889.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure, Nested Error
 prog5932.typed.hazel	TIMEOUT		Witness Exists	((fun _ -> fun _ -> 7), 1), Function Instantiation
-prog6172.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog6172.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor, Nested Error
 prog6260.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
 prog6260.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
-prog6319.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog6319.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure, Nested Error
 prog6488.typed.hazel	EXCEPTION	Hazel Bug, Tuple Unboxing
 prog6489.typed.hazel	EXCEPTION	Hazel Bug, Tuple Unboxing
 prog6492.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
@@ -72,12 +72,12 @@ prog6741.typed.hazel	TIMEOUT		Hazel Bug, Consistency (?,?) with rec exp -> + ...
 prog6790.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
 prog6830.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
 prog7047.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
-prog7805.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
-prog7806.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
-prog7807.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog7805.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor, Nested Error
+prog7806.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor, Nested Error
+prog7807.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor, Nested Error
 prog7813.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
-prog7820.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor
+prog7820.typed.hazel	TIMEOUT		Dead Code (Trivial), Unbound Constructor, Nested Error
 prog8065.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
-prog8121.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure
+prog8121.typed.hazel	TIMEOUT		Dead Code (Trivial), Pattern Cast Failure, Nested Error
 
 
